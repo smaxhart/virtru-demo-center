@@ -1,6 +1,6 @@
 {
   "name": "virtru-demo-center",
-  "version": "1.3.3",
+  "version": "1.3.4",
   "description": "Virtru Demo Center — self-contained Electron app with embedded OpenTDF platform",
   "author": "Virtru",
   "license": "UNLICENSED",
@@ -53,10 +53,8 @@
         }
       ],
       "icon": "resources/icon.icns",
-      "hardenedRuntime": true,
-      "gatekeeperAssess": false,
-      "entitlements": "resources/entitlements.mac.plist",
-      "entitlementsInherit": "resources/entitlements.mac.plist"
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false
     },
     "files": [
       "dist/**",
