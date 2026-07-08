@@ -31,6 +31,7 @@ function setupUpdater() {
 
   autoUpdater.autoDownload = true
   autoUpdater.autoInstallOnAppQuit = true
+  autoUpdater.verifyUpdateCodeSignature = false
 
   autoUpdater.on('update-available', info => {
     log.info(`[updater] Update available: v${info.version}`)
