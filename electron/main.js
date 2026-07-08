@@ -2,6 +2,12 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const { autoUpdater } = require('electron-updater')
+const log = require('electron-log')
+
+// Route electron-log to file + console
+log.transports.file.level = 'info'
+log.transports.console.level = 'info'
+autoUpdater.logger = log
 
 const jwtIssuer = require('./jwt-issuer')
 const sidecar   = require('./sidecar')
@@ -27,19 +33,37 @@ function setupUpdater() {
   autoUpdater.autoInstallOnAppQuit = true
 
   autoUpdater.on('update-available', info => {
+    log.info(`[updater] Update available: v${info.version}`)
     if (mainWindow) mainWindow.webContents.send('update-status', { state: 'available', version: info.version })
   })
 
+  autoUpdater.on('update-not-available', () => {
+    log.info('[updater] App is up to date')
+  })
+
   autoUpdater.on('download-progress', progress => {
-    if (mainWindow) mainWindow.webContents.send('update-status', { state: 'downloading', percent: Math.round(progress.percent) })
+    const mbps = (progress.bytesPerSecond / 1024 / 1024).toFixed(1)
+    const transferred = (progress.transferred / 1024 / 1024).toFixed(1)
+    const total = (progress.total / 1024 / 1024).toFixed(0)
+    const pct = Math.round(progress.percent)
+    log.info(`[updater] Downloading ${pct}% — ${transferred}MB / ${total}MB @ ${mbps} MB/s`)
+    if (mainWindow) mainWindow.webContents.send('update-status', {
+      state: 'downloading',
+      percent: pct,
+      transferred: parseFloat(transferred),
+      total: parseFloat(total),
+      mbps: parseFloat(mbps),
+    })
   })
 
   autoUpdater.on('update-downloaded', info => {
+    log.info(`[updater] Download complete — v${info.version} ready to install`)
     if (mainWindow) mainWindow.webContents.send('update-status', { state: 'ready', version: info.version })
   })
 
   autoUpdater.on('error', err => {
-    console.warn('[updater] Error:', err.message)
+    log.error('[updater] Error:', err.message)
+    if (mainWindow) mainWindow.webContents.send('update-status', { state: 'error', message: err.message })
   })
 }
 
@@ -48,6 +72,7 @@ ipcMain.handle('install-update', () => {
 })
 
 ipcMain.handle('get-app-version', () => app.getVersion())
+ipcMain.handle('get-log-path', () => log.transports.file.getFile().path)
 
 let mainWindow = null
 let platformStatus = 'starting' // 'starting' | 'ready' | 'error'

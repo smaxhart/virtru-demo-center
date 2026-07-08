@@ -181,12 +181,27 @@ export default function Layout() {
                 ↑ v{updateInfo.version} available — downloading…
               </div>
             )}
+            {updateInfo.state === 'error' && (
+              <div style={{ fontSize: 11, color: '#f87171' }}>
+                ⚠ Update failed — check logs
+              </div>
+            )}
             {updateInfo.state === 'downloading' && (
               <div style={{ fontSize: 11, color: '#60a5fa' }}>
-                ↓ Downloading update… {updateInfo.percent}%
-                <div style={{ marginTop: 4, height: 2, background: 'rgba(96,165,250,0.2)', borderRadius: 1 }}>
-                  <div style={{ width: `${updateInfo.percent}%`, height: '100%', background: '#60a5fa', borderRadius: 1, transition: 'width 0.3s' }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <span>↓ Updating… {updateInfo.percent}%</span>
+                  <span style={{ color: 'rgba(96,165,250,0.6)' }}>
+                    {updateInfo.mbps ? `${updateInfo.mbps} MB/s` : ''}
+                  </span>
                 </div>
+                <div style={{ height: 3, background: 'rgba(96,165,250,0.15)', borderRadius: 2 }}>
+                  <div style={{ width: `${updateInfo.percent}%`, height: '100%', background: '#60a5fa', borderRadius: 2, transition: 'width 0.3s' }} />
+                </div>
+                {updateInfo.total && (
+                  <div style={{ marginTop: 3, color: 'rgba(96,165,250,0.5)', fontSize: 10 }}>
+                    {updateInfo.transferred} / {updateInfo.total} MB
+                  </div>
+                )}
               </div>
             )}
             {updateInfo.state === 'ready' && (
