@@ -124,7 +124,7 @@ export default function RevocationPage() {
   const isGeneric = activePersona.id === 'generic'
 
   return (
-    <div style={{ padding: 24, height: '100%', display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 1200, margin: '0 auto' }}>
+    <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 1200, margin: '0 auto' }}>
 
       {/* Page hero */}
       <div className="page-hero">
@@ -137,7 +137,7 @@ export default function RevocationPage() {
       </div>
 
       {/* 2-column layout */}
-      <div style={{ display: 'flex', gap: 20, flex: 1, minHeight: 0 }}>
+      <div style={{ display: 'flex', gap: 20 }}>
 
         {/* ── Left column (60%) ── */}
         <div style={{ flex: 3, display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>

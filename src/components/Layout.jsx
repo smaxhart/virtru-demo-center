@@ -4,11 +4,11 @@ import { useDemo } from '../context/DemoContext.jsx'
 import Icon from './Icon.jsx'
 
 const NAV_ITEMS = [
+  { to: '/home',         id: 'home',         label: 'Home',              icon: 'globe'   },
   { to: '/architecture', id: 'architecture', label: 'Architecture',      icon: 'boxes'   },
   { to: '/keywrap',      id: 'keywrap',      label: 'Key Management',    icon: 'key'     },
   { to: '/revoke',       id: 'revoke',       label: 'Live Revocation',   icon: 'revoke'  },
   { to: '/tagging',      id: 'tagging',      label: 'Auto-Tagging',      icon: 'document'},
-  { to: '/encrypt',      id: 'encrypt',      label: 'Encrypt / Decrypt', icon: 'lock'    },
   { to: '/policy',       id: 'policy',       label: 'Policy Builder',    icon: 'document'},
   { to: '/platform',     id: 'platform',     label: 'Platform',          icon: 'globe'   },
   { to: '/tdf-explorer', id: 'tdf-explorer', label: 'TDF Explorer',      icon: 'tdf'     },
@@ -16,12 +16,12 @@ const NAV_ITEMS = [
 ]
 
 const PAGE_LABELS = {
+  '/home':         'Home',
   '/architecture': 'Architecture',
   '/keywrap':      'Key Management',
   '/revoke':       'Live Revocation',
   '/audit':        'Audit Log',
   '/tagging':      'Auto-Tagging',
-  '/encrypt':      'Encrypt / Decrypt',
   '/policy':       'Policy Builder',
   '/platform':     'Platform',
   '/tdf-explorer': 'TDF Explorer',

@@ -282,7 +282,6 @@ export default function ArchitecturePage() {
         )}
 
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span className="badge badge-blue" style={{ fontSize: 11 }}>v2.0.6.4</span>
           {(activeFlow || selected) && (
             <button
               onClick={reset}
