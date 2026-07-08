@@ -207,19 +207,19 @@ function CheckCard({ check, result, onRun, anyRunning, techMode }) {
           <div className="mt-2 font-mono text-xs rounded px-3 py-2 leading-relaxed"
             style={{ background: '#0f172a', border: '1px solid #1e293b' }}>
             <div>
-              <span style={{ color: '#60a5fa' }}>{check.method}</span>
+              <span style={{ color: '#93c5fd' }}>{check.method}</span>
               {' '}
-              <span style={{ color: '#cbd5e1' }}>{check.url}</span>
+              <span style={{ color: '#e2e8f0' }}>{check.url}</span>
             </div>
             {check.auth && (
-              <div style={{ color: '#94a3b8' }}>
+              <div style={{ color: '#cbd5e1' }}>
                 Authorization: <span style={{ color: '#7dd3fc' }}>Bearer</span>{' '}
-                <span style={{ color: '#a5b4fc' }}>eyJ… [opentdf-admin client_credentials token]</span>
+                <span style={{ color: '#c4b5fd' }}>eyJ… [opentdf-admin client_credentials token]</span>
               </div>
             )}
-            <div style={{ color: '#94a3b8' }}>Content-Type: application/json</div>
+            <div style={{ color: '#cbd5e1' }}>Content-Type: application/json</div>
             {check.body && (
-              <div style={{ color: '#94a3b8' }}>Body: <span style={{ color: '#cbd5e1' }}>{check.body}</span></div>
+              <div style={{ color: '#cbd5e1' }}>Body: <span style={{ color: '#e2e8f0' }}>{check.body}</span></div>
             )}
           </div>
         )}
@@ -251,8 +251,8 @@ function CheckCard({ check, result, onRun, anyRunning, techMode }) {
                 .filter(([k]) => SHOW_HEADERS.includes(k))
                 .map(([k, v]) => (
                   <div key={k}>
-                    <span style={{ color: '#6b7280' }}>{k}: </span>
-                    <span style={{ color: '#9ca3af' }}>{v}</span>
+                    <span style={{ color: '#94a3b8' }}>{k}: </span>
+                    <span style={{ color: '#e2e8f0' }}>{v}</span>
                   </div>
                 ))}
             </div>
@@ -271,7 +271,7 @@ function CheckCard({ check, result, onRun, anyRunning, techMode }) {
               <pre className="text-xs rounded p-3 overflow-auto"
                 style={{
                   background: 'var(--c-bg)',
-                  color: '#06b6d4',
+                  color: '#e2e8f0',
                   border: '1px solid var(--c-border)',
                   maxHeight: '12rem',
                   fontFamily: 'monospace',
