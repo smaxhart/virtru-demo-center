@@ -18,6 +18,7 @@
     "@opentdf/sdk": "^0.19.0",
     "@tailwindcss/postcss": "^4.2.1",
     "autoprefixer": "^10.4.27",
+    "electron-updater": "^6.8.9",
     "postcss": "^8.5.8",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
@@ -66,7 +67,13 @@
         "from": "resources/bin/opentdf-platform-darwin-arm64",
         "to": "bin/opentdf-platform"
       }
-    ]
+    ],
+    "publish": {
+      "provider": "github",
+      "owner": "smaxhart",
+      "repo": "virtru-demo-center",
+      "private": true
+    }
   },
   "allowScripts": {
     "electron@33.4.11": true,

@@ -1,12 +1,42 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron')
 const path = require('path')
 const fs = require('fs')
+const { autoUpdater } = require('electron-updater')
 
 const jwtIssuer = require('./jwt-issuer')
 const sidecar   = require('./sidecar')
 const seeder    = require('./seeder')
 
 const isDev = !app.isPackaged
+
+// ── Auto-updater ──────────────────────────────────────────────────────────────
+
+function setupUpdater() {
+  if (isDev) return  // don't check for updates in dev
+
+  autoUpdater.autoDownload = true
+  autoUpdater.autoInstallOnAppQuit = true
+
+  autoUpdater.on('update-available', info => {
+    if (mainWindow) mainWindow.webContents.send('update-status', { state: 'available', version: info.version })
+  })
+
+  autoUpdater.on('download-progress', progress => {
+    if (mainWindow) mainWindow.webContents.send('update-status', { state: 'downloading', percent: Math.round(progress.percent) })
+  })
+
+  autoUpdater.on('update-downloaded', info => {
+    if (mainWindow) mainWindow.webContents.send('update-status', { state: 'ready', version: info.version })
+  })
+
+  autoUpdater.on('error', err => {
+    console.warn('[updater] Error:', err.message)
+  })
+}
+
+ipcMain.handle('install-update', () => {
+  autoUpdater.quitAndInstall()
+})
 
 let mainWindow = null
 let platformStatus = 'starting' // 'starting' | 'ready' | 'error'
@@ -146,6 +176,10 @@ async function boot() {
   } catch (err) {
     console.warn('[main] Seed warning (non-fatal):', err.message)
   }
+
+  // 6. Check for updates (packaged builds only)
+  setupUpdater()
+  if (!isDev) autoUpdater.checkForUpdates()
 }
 
 // ── Lifecycle ─────────────────────────────────────────────────────────────────

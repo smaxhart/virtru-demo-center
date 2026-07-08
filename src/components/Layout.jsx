@@ -41,9 +41,16 @@ export default function Layout() {
   const [drawerOpen, setDrawerOpen]         = useState(false)
   const [pageVisibility, setPageVisibility] = useState({})
   const prevLogLen = useRef(0)
-  const [pulse, setPulse]   = useState(false)
+  const [pulse, setPulse]       = useState(false)
+  const [updateInfo, setUpdateInfo] = useState(null) // { state, version?, percent? }
   const devRef   = useRef(null)
   const location = useLocation()
+
+  useEffect(() => {
+    if (!window.electronAPI?.onUpdateStatus) return
+    const unsub = window.electronAPI.onUpdateStatus(setUpdateInfo)
+    return unsub
+  }, [])
 
   useEffect(() => {
     const load = () => {
@@ -149,6 +156,45 @@ export default function Layout() {
             )}
           </NavLink>
         </div>
+
+        {/* Update banner */}
+        {updateInfo && (
+          <div style={{
+            padding: '8px 12px',
+            borderBottom: '1px solid rgba(106,170,228,0.1)',
+            background: updateInfo.state === 'ready' ? 'rgba(74,222,128,0.08)' : 'rgba(96,165,250,0.08)',
+            flexShrink: 0,
+          }}>
+            {updateInfo.state === 'available' && (
+              <div style={{ fontSize: 11, color: '#60a5fa' }}>
+                ↑ v{updateInfo.version} available — downloading…
+              </div>
+            )}
+            {updateInfo.state === 'downloading' && (
+              <div style={{ fontSize: 11, color: '#60a5fa' }}>
+                ↓ Downloading update… {updateInfo.percent}%
+                <div style={{ marginTop: 4, height: 2, background: 'rgba(96,165,250,0.2)', borderRadius: 1 }}>
+                  <div style={{ width: `${updateInfo.percent}%`, height: '100%', background: '#60a5fa', borderRadius: 1, transition: 'width 0.3s' }} />
+                </div>
+              </div>
+            )}
+            {updateInfo.state === 'ready' && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 11, color: '#4ade80' }}>✓ v{updateInfo.version} ready</span>
+                <button
+                  onClick={() => window.electronAPI.installUpdate()}
+                  style={{
+                    fontSize: 10, padding: '2px 8px', borderRadius: 4, cursor: 'pointer',
+                    background: 'rgba(74,222,128,0.15)', color: '#4ade80',
+                    border: '1px solid rgba(74,222,128,0.3)',
+                  }}
+                >
+                  Restart
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Nav items */}
         <nav style={{ flex: 1, overflowY: 'auto', padding: '12px 0' }}>

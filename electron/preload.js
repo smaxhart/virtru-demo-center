@@ -18,4 +18,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('platform-status', (_event, status) => callback(status))
     return () => ipcRenderer.removeAllListeners('platform-status')
   },
+
+  // Auto-updater
+  onUpdateStatus: (callback) => {
+    ipcRenderer.on('update-status', (_event, info) => callback(info))
+    return () => ipcRenderer.removeAllListeners('update-status')
+  },
+  installUpdate: () => ipcRenderer.invoke('install-update'),
 })
