@@ -70,7 +70,7 @@ export default function EncryptPage() {
     setFileMode('encrypted')
     logEvent({
       type: 'access',
-      persona: { id: activePersona.id, name: activePersona.name, avatar: activePersona.avatar, color: activePersona.color },
+      persona: { id: activePersona.id, name: activePersona.name, avatar: activePersona.avatar, color: activePersona.color, fqns: activePersona.fqns ?? [] },
       document: selectedFile.name, result: 'granted', reason: 'Encrypted successfully',
     })
   }
@@ -96,7 +96,7 @@ export default function EncryptPage() {
     setFileMode(granted ? 'granted' : 'denied')
     logEvent({
       type: 'access',
-      persona: { id: activePersona.id, name: activePersona.name, avatar: activePersona.avatar, color: activePersona.color },
+      persona: { id: activePersona.id, name: activePersona.name, avatar: activePersona.avatar, color: activePersona.color, fqns: activePersona.fqns ?? [] },
       document: selectedFile.name, result: granted ? 'granted' : 'denied', reason,
     })
   }

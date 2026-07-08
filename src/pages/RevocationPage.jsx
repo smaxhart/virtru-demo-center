@@ -110,7 +110,7 @@ export default function RevocationPage() {
     setCurrentStep(3)
     logEvent({
       type: 'access',
-      persona: { id: activePersona.id, name: activePersona.name, avatar: activePersona.avatar, color: activePersona.color },
+      persona: { id: activePersona.id, name: activePersona.name, avatar: activePersona.avatar, color: activePersona.color, fqns: [...activeAttrs] },
       document: doc.title, result: entitled ? 'granted' : 'denied', reason,
     })
     setAttemptLog(prev => [{

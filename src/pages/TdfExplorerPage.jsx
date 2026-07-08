@@ -35,7 +35,7 @@ function bytesToHexRows(bytes, rows = 8) {
 }
 
 export default function TdfExplorerPage() {
-  const { platformReady } = useDemo()
+  const { platformReady, logEvent } = useDemo()
 
   const [selectedId, setSelectedId] = useState('opord')
   const [encrypting, setEncrypting] = useState(false)
@@ -90,6 +90,14 @@ export default function TdfExplorerPage() {
       setManifest(mf)
       setManifestOpen(true)
       setPayloadOpen(false)
+      const sarahPersona = FEDERAL_PERSONAS.find(p => p.id === 'sarah')
+      logEvent({
+        type: 'encrypt',
+        persona: { id: 'sarah', name: sarahPersona?.name ?? 'Sarah', avatar: sarahPersona?.avatar ?? '👩', color: sarahPersona?.color ?? '#60a5fa', fqns: sarahPersona?.fqns ?? [] },
+        document: file?.name ?? selectedId,
+        result: 'granted',
+        reason: `Encrypted with ${fqns.length} policy attribute${fqns.length !== 1 ? 's' : ''}`,
+      })
     } catch (e) {
       setEncryptError(e.message || String(e))
     } finally {
@@ -149,9 +157,23 @@ export default function TdfExplorerPage() {
     try {
       const plaintext = await decryptTdf(tdfBytes, persona.id)
       setDecryptResults(r => ({ ...r, [persona.id]: { ok: true, text: plaintext } }))
+      logEvent({
+        type: 'access',
+        persona: { id: persona.id, name: persona.name, avatar: persona.avatar, color: persona.color, fqns: persona.fqns ?? [] },
+        document: file?.name ?? selectedId,
+        result: 'granted',
+        reason: `${persona.name} has required clearance`,
+      })
     } catch (e) {
       const msg = e.message || String(e)
       setDecryptResults(r => ({ ...r, [persona.id]: { ok: false, error: msg } }))
+      logEvent({
+        type: 'access',
+        persona: { id: persona.id, name: persona.name, avatar: persona.avatar, color: persona.color, fqns: persona.fqns ?? [] },
+        document: file?.name ?? selectedId,
+        result: 'denied',
+        reason: msg.includes('403') || msg.toLowerCase().includes('denied') ? `KAS denied — missing required attributes` : msg.slice(0, 80),
+      })
     } finally {
       setDecryptingId(null)
     }

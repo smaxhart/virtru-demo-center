@@ -127,25 +127,31 @@ export default function Layout() {
           flexShrink: 0,
           WebkitAppRegion: 'drag',
         }}>
-          <NavLink to="/architecture" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 9, WebkitAppRegion: 'no-drag' }}>
-            <img
-              src="./virtru-logomark.svg"
-              alt="Virtru"
-              width={22}
-              height={22}
-              style={{ flexShrink: 0, opacity: 0.95 }}
-            />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(147,197,253,0.7)', letterSpacing: '0.12em', textTransform: 'uppercase', lineHeight: 1 }}>
+          <NavLink to="/architecture" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10, WebkitAppRegion: 'no-drag' }}>
+            {/* C1 icon chip — navy gradient bg + logomark */}
+            <div style={{
+              width: 34, height: 34,
+              borderRadius: 8,
+              background: 'linear-gradient(150deg, #1e3a5f 0%, #0a1f3d 100%)',
+              boxShadow: '0 0 12px rgba(106,170,228,0.25), inset 0 1px 0 rgba(106,170,228,0.15)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <img src="./virtru-logomark.svg" alt="Virtru" width={20} height={20} style={{ opacity: 0.95 }} />
+            </div>
+            {/* Text stack */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(147,197,253,0.65)', letterSpacing: '0.18em', textTransform: 'uppercase', lineHeight: 1 }}>
                 Virtru
               </div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#e8f0fe', letterSpacing: '-0.2px', lineHeight: 1 }}>
+              <div style={{ width: 24, height: 1, background: 'rgba(106,170,228,0.35)' }} />
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(232,240,254,0.9)', letterSpacing: '0.1em', textTransform: 'uppercase', lineHeight: 1 }}>
                 Demo Center
               </div>
             </div>
             {platformReady === true && (
               <div style={{
-                marginLeft: 4,
+                marginLeft: 2,
                 width: 6, height: 6,
                 borderRadius: '50%',
                 background: '#4ade80',

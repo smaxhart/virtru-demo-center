@@ -959,13 +959,13 @@ export const PIPELINE_STAGES = [
 export function makeSeedEvents(sector) {
   const now = Date.now()
   if (sector === 'federal') {
-    const sarah   = { id: 'sarah',    name: 'Maj. Sarah Williams', avatar: '👩‍✈️', color: '#3b82f6' }
-    const james   = { id: 'james',    name: 'CPT. James Rivera',   avatar: '👨‍💼', color: '#f59e0b' }
-    const patricia= { id: 'patricia', name: 'Col. Patricia Lee',   avatar: '👩‍⚖️', color: '#8b5cf6' }
-    const marcus  = { id: 'marcus',   name: 'CW3 Marcus Johnson',  avatar: '🧑‍💻', color: '#10b981' }
-    const clarke  = { id: 'fvey-uk',  name: 'Flt Lt Emma Clarke',  avatar: '🇬🇧', color: '#0ea5e9' }
-    const dubois  = { id: 'nato-fr',  name: 'Maj. Henri Dubois',   avatar: '🇫🇷', color: '#f97316' }
-    const richter = { id: 'nato-de',  name: 'Maj. Klaus Richter',  avatar: '🇩🇪', color: '#a3a3a3' }
+    const sarah   = { id: 'sarah',    name: 'Maj. Sarah Williams', avatar: '👩‍✈️', color: '#3b82f6', fqns: ['https://demo.com/attr/clearance/value/ts-sci', 'https://demo.com/attr/mission/value/intel', 'https://demo.com/attr/relto/value/fvey'] }
+    const james   = { id: 'james',    name: 'CPT. James Rivera',   avatar: '👨‍💼', color: '#f59e0b', fqns: ['https://demo.com/attr/clearance/value/secret', 'https://demo.com/attr/relto/value/fvey'] }
+    const patricia= { id: 'patricia', name: 'Col. Patricia Lee',   avatar: '👩‍⚖️', color: '#8b5cf6', fqns: ['https://demo.com/attr/clearance/value/secret', 'https://demo.com/attr/mission/value/legal', 'https://demo.com/attr/relto/value/fvey'] }
+    const marcus  = { id: 'marcus',   name: 'CW3 Marcus Johnson',  avatar: '🧑‍💻', color: '#10b981', fqns: ['https://demo.com/attr/clearance/value/secret', 'https://demo.com/attr/mission/value/cyber', 'https://demo.com/attr/relto/value/fvey'] }
+    const clarke  = { id: 'fvey-uk',  name: 'Flt Lt Emma Clarke',  avatar: '🇬🇧', color: '#0ea5e9', fqns: ['https://demo.com/attr/clearance/value/secret', 'https://demo.com/attr/relto/value/fvey'] }
+    const dubois  = { id: 'nato-fr',  name: 'Maj. Henri Dubois',   avatar: '🇫🇷', color: '#f97316', fqns: ['https://demo.com/attr/clearance/value/secret', 'https://demo.com/attr/relto/value/nato'] }
+    const richter = { id: 'nato-de',  name: 'Maj. Klaus Richter',  avatar: '🇩🇪', color: '#a3a3a3', fqns: ['https://demo.com/attr/clearance/value/secret', 'https://demo.com/attr/relto/value/nato'] }
     return [
       { id: 1,  ts: new Date(now - 9000000).toISOString(), type: 'access', persona: sarah,    document: 'Intel Briefing Q3 — NOFORN',         result: 'granted', reason: 'All required attributes satisfied' },
       { id: 2,  ts: new Date(now - 8200000).toISOString(), type: 'access', persona: clarke,   document: 'FVEY Intelligence Summary',           result: 'granted', reason: 'clearance:secret + relto:fvey satisfied' },
