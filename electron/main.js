@@ -14,6 +14,15 @@ const isDev = !app.isPackaged
 function setupUpdater() {
   if (isDev) return  // don't check for updates in dev
 
+  // Private repo — token required for releases API (GH_TOKEN not available outside terminal)
+  autoUpdater.setFeedURL({
+    provider: 'github',
+    owner: 'smaxhart',
+    repo: 'virtru-demo-center',
+    private: true,
+    token: process.env.GH_TOKEN || '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',
+  })
+
   autoUpdater.autoDownload = true
   autoUpdater.autoInstallOnAppQuit = true
 
@@ -37,6 +46,8 @@ function setupUpdater() {
 ipcMain.handle('install-update', () => {
   autoUpdater.quitAndInstall()
 })
+
+ipcMain.handle('get-app-version', () => app.getVersion())
 
 let mainWindow = null
 let platformStatus = 'starting' // 'starting' | 'ready' | 'error'

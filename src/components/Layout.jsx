@@ -43,6 +43,7 @@ export default function Layout() {
   const prevLogLen = useRef(0)
   const [pulse, setPulse]       = useState(false)
   const [updateInfo, setUpdateInfo] = useState(null) // { state, version?, percent? }
+  const [appVersion, setAppVersion] = useState(null)
   const devRef   = useRef(null)
   const location = useLocation()
 
@@ -50,6 +51,10 @@ export default function Layout() {
     if (!window.electronAPI?.onUpdateStatus) return
     const unsub = window.electronAPI.onUpdateStatus(setUpdateInfo)
     return unsub
+  }, [])
+
+  useEffect(() => {
+    window.electronAPI?.getAppVersion?.().then(setAppVersion).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -247,6 +252,23 @@ export default function Layout() {
             )
           })}
         </nav>
+
+        {/* Version footer */}
+        <div style={{
+          padding: '10px 16px',
+          borderTop: '1px solid rgba(106,170,228,0.08)',
+          flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+          <span style={{ fontSize: 10, color: 'rgba(147,197,253,0.35)', fontFamily: 'monospace', letterSpacing: '0.05em' }}>
+            {appVersion ? `v${appVersion}` : 'dev'}
+          </span>
+          {updateInfo?.state === 'ready' && (
+            <span style={{ fontSize: 10, color: '#4ade80' }}>v{updateInfo.version} ready ↑</span>
+          )}
+        </div>
 
       </aside>
 
