@@ -1,0 +1,7 @@
+node_modules/
+dist/
+resources/bin/
+*.dmg
+*.app
+out/
+/tmp/opentdf-platform-build

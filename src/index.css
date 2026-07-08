@@ -1,0 +1,174 @@
+@import "tailwindcss";
+
+/* ── Virtru brand palette ────────────────────────────────── */
+/* #001E4A  deep navy                                         */
+/* #004987  primary blue                                      */
+/* #6AAAE4  mid blue                                          */
+/* #92C0E9  light blue                                        */
+/* #C2D5ED  very light blue                                   */
+
+/* ── Design tokens (light mode only) ────────────────────── */
+:root {
+  --c-bg:         #f1f5f9;   /* slate-100 */
+  --c-surface:    #ffffff;
+  --c-surface-2:  #f8fafc;   /* slate-50 */
+  --c-border:     #e2e8f0;   /* slate-200 */
+  --c-border-2:   #cbd5e1;   /* slate-300 */
+  --c-text-1:     #0f172a;   /* slate-900 — headings */
+  --c-text-2:     #1e293b;   /* slate-800 — body */
+  --c-text-3:     #334155;   /* slate-700 — secondary */
+  --c-text-4:     #475569;   /* slate-600 — supporting */
+  --c-text-5:     #64748b;   /* slate-500 — captions */
+  --c-text-6:     #94a3b8;   /* slate-400 — chrome/disabled */
+  --c-accent:     #2563eb;   /* blue-600 */
+  --c-info-bg:    #dbeafe;
+  --c-success-bg: #dcfce7;
+  --c-purple-bg:  #f3e8ff;
+  --c-error-bg:   #fee2e2;
+
+  --c-shadow-sm: 0 1px 3px rgba(15,23,42,0.08), 0 1px 2px rgba(15,23,42,0.05);
+  --c-shadow-md: 0 4px 12px rgba(15,23,42,0.1), 0 2px 4px rgba(15,23,42,0.06);
+  --c-shadow-lg: 0 8px 32px rgba(15,23,42,0.12), 0 4px 8px rgba(15,23,42,0.07);
+  --c-radius-card: 12px;
+  --c-radius-btn:  8px;
+  --c-radius-chip: 6px;
+
+  --c-diagram-bg:   #e2e8f0;  /* slate-200 */
+  --c-diagram-node: #ffffff;
+  --c-diagram-edge: #94a3b8;  /* slate-400 */
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: 'Barlow', system-ui, -apple-system, sans-serif;
+  background: var(--c-bg);
+  color: var(--c-text-2);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root { height: 100%; }
+
+/* ── Utility: card ─────────────────────────────────────────── */
+.card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--c-radius-card);
+  box-shadow: var(--c-shadow-md);
+}
+
+.card-raised {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border-2);
+  border-radius: var(--c-radius-card);
+  box-shadow: var(--c-shadow-lg);
+}
+
+/* ── Utility: page hero ────────────────────────────────────── */
+.page-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--c-border);
+}
+.page-subtitle {
+  font-size: 13px;
+  color: var(--c-text-5);
+  margin: 0;
+  max-width: 620px;
+  line-height: 1.5;
+}
+.page-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ── Utility: badge ────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+.badge-blue   { background: #001E4A; color: #6AAAE4; border: 1px solid #004987; }
+.badge-green  { background: #052e16; color: #4ade80; border: 1px solid #166534; }
+.badge-amber  { background: #2d1a00; color: #fbbf24; border: 1px solid #78350f; }
+.badge-purple { background: #130d1f; color: #c084fc; border: 1px solid #6b21a8; }
+
+/* Spinner */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Animated flow dot */
+@keyframes flow {
+  0%   { offset-distance: 0%;   opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
+
+.flow-dot {
+  animation: flow 2s ease-in-out infinite;
+  offset-rotate: 0deg;
+}
+
+/* Pulse ring for active nodes */
+@keyframes pulse-ring {
+  0%   { transform: scale(1);   opacity: 0.6; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+.pulse-ring {
+  animation: pulse-ring 1.5s ease-out infinite;
+}
+
+/* Shimmer for loading states */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, var(--c-border) 25%, var(--c-border-2) 50%, var(--c-border) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Step appear */
+@keyframes step-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.step-in {
+  animation: step-in 0.3s ease-out forwards;
+}
+
+/* Glow effect */
+.glow-blue  { box-shadow: 0 0 20px rgba(59, 130, 246, 0.4); }
+.glow-green { box-shadow: 0 0 20px rgba(34, 197, 94, 0.4); }
+.glow-red   { box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--c-bg); }
+::-webkit-scrollbar-thumb { background: var(--c-border-2); border-radius: 3px; }
