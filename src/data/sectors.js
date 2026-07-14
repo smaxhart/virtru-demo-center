@@ -1,7 +1,7 @@
 // Single source of truth for all sector-specific content
 // Used by DemoContext, Layout, and all page components
 
-const NS = 'https://example.com/attr'
+const NS = 'https://demo.com/attr'
 
 // ─── Commercial ───────────────────────────────────────────────────────────────
 
@@ -529,7 +529,7 @@ export const FEDERAL_FILE_PREVIEWS = {
   pws:    'PERFORMANCE WORK STATEMENT — SOCOM Support\n\nUnclassified\n\nScope, deliverables, and security requirements for contractor support of SOCOM information operations.',
 }
 
-const FED_NS = 'example.com'
+const FED_NS = 'demo.com'
 export const FEDERAL_FLAT_ATTRS = [
   // clearance (HIERARCHY — higher levels satisfy lower)
   { fqn: `https://${FED_NS}/attr/clearance/value/ts-sci`,       ns: FED_NS, name: 'clearance',    value: 'ts-sci',       label: 'clearance:ts-sci',       rule: 'HIERARCHY' },

@@ -55,7 +55,7 @@ export default function PolicyPage() {
         const name = attr.name
         ;(attr.values || []).forEach(v => {
           flat.push({
-            fqn: `https://${ns}/attr/${name}/value/${v.value}`,
+            fqn: v.fqn || `https://${ns}/attr/${name}/value/${v.value}`,
             ns, name, value: v.value,
             label: `${name}:${v.value}`,
           })
@@ -299,13 +299,13 @@ export default function PolicyPage() {
           <div style={{ display: 'flex', gap: 10 }}>
             {policyAttrs.length > 0 && (
               <button
-                onClick={() => navigate('/encrypt', { state: { fromPolicy: true, policy: { dataAttributes: policyAttrs.map(f => ({ attribute: f })) } } })}
+                onClick={() => navigate('/tdf-explorer')}
                 style={{
                   flex: 1, padding: '11px 0', borderRadius: 10, fontSize: 13, fontWeight: 600,
                   cursor: 'pointer', background: 'linear-gradient(135deg, #2d1a5f, #3a2575)',
                   color: '#a78bfa', border: '1px solid #7c3aed',
                 }}>
-                Encrypt with this Policy →
+                Try in TDF Explorer →
               </button>
             )}
             <button

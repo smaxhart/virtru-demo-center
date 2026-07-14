@@ -251,7 +251,7 @@ function CheckCard({ check, result, onRun, anyRunning, techMode }) {
                 .filter(([k]) => SHOW_HEADERS.includes(k))
                 .map(([k, v]) => (
                   <div key={k}>
-                    <span style={{ color: '#94a3b8' }}>{k}: </span>
+                    <span style={{ color: '#cbd5e1' }}>{k}: </span>
                     <span style={{ color: '#e2e8f0' }}>{v}</span>
                   </div>
                 ))}
@@ -270,8 +270,8 @@ function CheckCard({ check, result, onRun, anyRunning, techMode }) {
             {showRaw && (
               <pre className="text-xs rounded p-3 overflow-auto"
                 style={{
-                  background: 'var(--c-bg)',
-                  color: '#e2e8f0',
+                  background: '#f8fafc',
+                  color: '#0f172a',
                   border: '1px solid var(--c-border)',
                   maxHeight: '12rem',
                   fontFamily: 'monospace',
@@ -496,12 +496,12 @@ export default function PlatformPage() {
               </div>
               <div className="text-xs font-semibold mb-1" style={{ color: 'var(--c-text-4)' }}>Header</div>
               <pre className="text-xs rounded p-2 mb-3 overflow-auto"
-                style={{ background: 'var(--c-bg)', color: '#06b6d4', border: '1px solid var(--c-border)', maxHeight: '6rem', fontFamily: 'monospace' }}>
+                style={{ background: 'var(--c-bg)', color: '#e2e8f0', border: '1px solid var(--c-border)', maxHeight: '6rem', fontFamily: 'monospace' }}>
                 {JSON.stringify(jwt.decoded.header, null, 2)}
               </pre>
               <div className="text-xs font-semibold mb-1" style={{ color: 'var(--c-text-4)' }}>Claims</div>
               <pre className="text-xs rounded p-2 overflow-auto"
-                style={{ background: 'var(--c-bg)', color: '#06b6d4', border: '1px solid var(--c-border)', maxHeight: '16rem', fontFamily: 'monospace' }}>
+                style={{ background: 'var(--c-bg)', color: '#e2e8f0', border: '1px solid var(--c-border)', maxHeight: '16rem', fontFamily: 'monospace' }}>
                 {JSON.stringify(jwt.decoded.payload, null, 2)}
               </pre>
             </div>

@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { useDemo } from '../context/DemoContext.jsx'
 import Icon from '../components/Icon.jsx'
-import { FEDERAL_COMPLIANCE_FRAMEWORKS } from '../data/sectors.js'
 
 const FILTERS = ['All', 'Granted', 'Denied', 'Revoked']
 
@@ -105,27 +104,6 @@ export default function AuditPage() {
           }}>
             ⬇ Export CSV
           </button>
-        </div>
-      </div>
-
-      {/* Compliance frameworks row */}
-      <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 12, padding: '16px 20px' }}>
-        <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--c-text-5)', marginBottom: 12 }}>
-          Satisfies requirements for:
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-          {FEDERAL_COMPLIANCE_FRAMEWORKS.map(fw => (
-            <div key={fw.id} style={{
-              borderLeft: `3px solid ${fw.color}`,
-              paddingLeft: 12,
-              paddingTop: 4,
-              paddingBottom: 4,
-            }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--c-text-1)' }}>{fw.label}</div>
-              <div style={{ fontSize: 11, color: fw.color, fontWeight: 600 }}>{fw.level}</div>
-              <div style={{ fontSize: 10, color: 'var(--c-text-5)', marginTop: 2, lineHeight: 1.4 }}>{fw.detail}</div>
-            </div>
-          ))}
         </div>
       </div>
 

@@ -17,6 +17,8 @@ const isDev = !app.isPackaged
 
 // ── Auto-updater ──────────────────────────────────────────────────────────────
 
+let pendingUpdateZip = null
+
 function setupUpdater() {
   if (isDev) return  // don't check for updates in dev
 
@@ -30,8 +32,7 @@ function setupUpdater() {
   })
 
   autoUpdater.autoDownload = true
-  autoUpdater.autoInstallOnAppQuit = true
-  autoUpdater.verifyUpdateCodeSignature = false
+  autoUpdater.autoInstallOnAppQuit = false  // we install via shell script, not Squirrel
 
   autoUpdater.on('update-available', info => {
     log.info(`[updater] Update available: v${info.version}`)
@@ -58,7 +59,17 @@ function setupUpdater() {
   })
 
   autoUpdater.on('update-downloaded', info => {
-    log.info(`[updater] Download complete — v${info.version} ready to install`)
+    const current = app.getVersion()
+    const isNewer = info.version.localeCompare(current, undefined, { numeric: true, sensitivity: 'base' }) > 0
+    if (!isNewer) {
+      log.info(`[updater] Downloaded v${info.version} is not newer than current v${current} — ignoring`)
+      return
+    }
+    pendingUpdateZip = info.downloadedFile
+    // Always install back to wherever this app is running from.
+    const appBundlePath = path.dirname(path.dirname(path.dirname(process.execPath)))
+    writeInstallerScript(pendingUpdateZip, appBundlePath)
+    log.info(`[updater] Download complete — v${info.version} ready, installer written to ${INSTALLER_SCRIPT_PATH}`)
     if (mainWindow) mainWindow.webContents.send('update-status', { state: 'ready', version: info.version })
   })
 
@@ -68,8 +79,71 @@ function setupUpdater() {
   })
 }
 
+// The installer script is written to a fixed path on every launch, so when a quit
+// happens the script on disk is always the CURRENT version's code — no bootstrap lag.
+const INSTALLER_SCRIPT_PATH = path.join(app.getPath('home'), '.virtru', 'updater.sh')
+
+function buildInstallScript(zipPath, destPath) {
+  // Bake paths as single-quoted literals — no arg passing, no word-split risk on spaces
+  const safeZip  = zipPath.replace(/'/g, "'\\''")
+  const safeDest = destPath.replace(/'/g, "'\\''")
+  return [
+    '#!/bin/bash',
+    'exec > /tmp/virtru-update.log 2>&1',
+    'set -e',
+    `ZIP='${safeZip}'`,
+    `DEST='${safeDest}'`,
+    'LOCK=/tmp/virtru-update.lock',
+    'echo "=== virtru updater v1.5.4 ==="',
+    'echo "PID: $$  ZIP: $ZIP  DEST: $DEST"',
+    'if [ -f "$LOCK" ]; then echo "Another install in progress — exiting"; exit 0; fi',
+    'echo $$ > "$LOCK"',
+    'trap \'rm -f "$LOCK"\' EXIT',
+    'echo "Waiting for app to quit..."',
+    'sleep 5',
+    'echo "Extracting..."',
+    'WORKDIR=$(mktemp -d)',
+    'ditto -x -k "$ZIP" "$WORKDIR"',
+    'NEW_APP=$(find "$WORKDIR" -maxdepth 1 -name "*.app" -type d | head -1)',
+    'echo "Found app: $NEW_APP"',
+    'if [ -z "$NEW_APP" ]; then echo "ERROR: no .app in zip"; exit 1; fi',
+    // Atomic swap: copy to Dest.new first, then rename — old app stays intact until copy is done
+    'DEST_NEW="${DEST}.new"',
+    'echo "Copying to staging area..."',
+    'rm -rf "$DEST_NEW"',
+    'ditto "$NEW_APP" "$DEST_NEW"',
+    'xattr -cr "$DEST_NEW"',
+    'echo "Swapping in new app..."',
+    'rm -rf "$DEST"',
+    'mv "$DEST_NEW" "$DEST"',
+    'echo "Launching..."',
+    'open "$DEST"',
+    'rm -rf "$WORKDIR"',
+    'echo "Done."',
+  ].join('\n')
+}
+
+function writeInstallerScript(zipPath, destPath) {
+  const dir = path.dirname(INSTALLER_SCRIPT_PATH)
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  const script = buildInstallScript(zipPath, destPath)
+  fs.writeFileSync(INSTALLER_SCRIPT_PATH, script, { mode: 0o755 })
+}
+
+function runInstaller() {
+  if (!fs.existsSync(INSTALLER_SCRIPT_PATH)) {
+    log.error('[updater] Installer script missing — cannot install')
+    return false
+  }
+  const { spawn } = require('child_process')
+  spawn('bash', [INSTALLER_SCRIPT_PATH], { detached: true, stdio: 'ignore' }).unref()
+  log.info(`[updater] Launched installer: ${INSTALLER_SCRIPT_PATH}`)
+  return true
+}
+
 ipcMain.handle('install-update', () => {
-  autoUpdater.quitAndInstall()
+  if (!pendingUpdateZip) { log.error('[updater] install-update called but no pending zip'); return }
+  if (runInstaller()) { sidecar.stop(); jwtIssuer.stop(); app.exit(0) }
 })
 
 ipcMain.handle('get-app-version', () => app.getVersion())
@@ -214,16 +288,25 @@ async function boot() {
     console.warn('[main] Seed warning (non-fatal):', err.message)
   }
 
-  // 6. Check for updates (packaged builds only)
+  // 6. Check for updates (packaged builds only) — on launch + every 30 minutes
   setupUpdater()
-  if (!isDev) autoUpdater.checkForUpdates()
+  if (!isDev) {
+    autoUpdater.checkForUpdates()
+    setInterval(() => autoUpdater.checkForUpdates(), 30 * 60 * 1000)
+  }
 }
 
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
 
 app.whenReady().then(boot)
 
-app.on('before-quit', () => {
+app.on('before-quit', (e) => {
+  if (pendingUpdateZip) {
+    e.preventDefault()
+    log.info(`[updater] Installing on quit via ${INSTALLER_SCRIPT_PATH}`)
+    pendingUpdateZip = null
+    if (runInstaller()) { sidecar.stop(); jwtIssuer.stop(); app.exit(0); return }
+  }
   sidecar.stop()
   jwtIssuer.stop()
 })

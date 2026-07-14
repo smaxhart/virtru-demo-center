@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import Icon from '../components/Icon.jsx'
 import ClassificationBanner from '../components/ClassificationBanner.jsx'
 import { useDemo } from '../context/DemoContext.jsx'
@@ -34,6 +34,24 @@ function bytesToHexRows(bytes, rows = 8) {
   })
 }
 
+function extractPayloadBytesFromZip(bytes) {
+  // Walk ZIP local file headers to find 0.payload
+  const sig = [0x50, 0x4b, 0x03, 0x04]
+  for (let i = 0; i < bytes.length - 30; i++) {
+    if (bytes[i] === sig[0] && bytes[i+1] === sig[1] && bytes[i+2] === sig[2] && bytes[i+3] === sig[3]) {
+      const fnLen   = bytes[i+26] | (bytes[i+27] << 8)
+      const extraLen = bytes[i+28] | (bytes[i+29] << 8)
+      const compSize = bytes[i+18] | (bytes[i+19] << 8) | (bytes[i+20] << 16) | (bytes[i+21] << 24)
+      const fname = new TextDecoder().decode(bytes.slice(i+30, i+30+fnLen))
+      if (fname === '0.payload') {
+        const dataStart = i + 30 + fnLen + extraLen
+        return bytes.slice(dataStart, dataStart + compSize)
+      }
+    }
+  }
+  return bytes
+}
+
 export default function TdfExplorerPage() {
   const { platformReady, logEvent } = useDemo()
 
@@ -45,6 +63,11 @@ export default function TdfExplorerPage() {
   const [tdfBytes, setTdfBytes] = useState(null)
   const [manifest, setManifest] = useState(null)
   const [importedFilename, setImportedFilename] = useState(null)
+
+  // Uploaded native file state
+  const [uploadedFile, setUploadedFile] = useState(null) // { name, text, size }
+  const nativeFileInputRef = useRef(null)
+  const tdfFileInputRef = useRef(null)
 
   // UI state
   const [manifestOpen, setManifestOpen] = useState(true)
@@ -75,6 +98,50 @@ export default function TdfExplorerPage() {
     })
   }
 
+  // Handle native file upload via browser file picker
+  function handleNativeFileChange(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      setUploadedFile({ name: file.name, text: ev.target.result, size: file.size })
+      // Keep selectedId so the selected sample's policy still applies
+      setTdfBytes(null)
+      setManifest(null)
+      setImportedFilename(null)
+      setEncryptError(null)
+      setDecryptResults({})
+    }
+    reader.readAsText(file)
+    e.target.value = ''
+  }
+
+  // Handle TDF file upload via browser file picker (web fallback when no electronAPI)
+  function handleTdfFileChange(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const bytes = new Uint8Array(ev.target.result)
+      setTdfBytes(bytes)
+      setImportedFilename(file.name)
+      setUploadedFile(null)
+      setSelectedId(null)
+      setDecryptResults({})
+      setPolicyDecoded(false)
+      try {
+        const mf = parseManifestFromZip(bytes)
+        setManifest(mf)
+        setManifestOpen(true)
+        setPayloadOpen(false)
+      } catch {
+        setManifest(null)
+      }
+    }
+    reader.readAsArrayBuffer(file)
+    e.target.value = ''
+  }
+
   async function handleEncrypt() {
     setEncrypting(true)
     setEncryptError(null)
@@ -83,8 +150,8 @@ export default function TdfExplorerPage() {
     setDecryptResults({})
     setPolicyDecoded(false)
     try {
-      const plaintext = FEDERAL_FILE_PREVIEWS[selectedId] ?? 'Sample document content.'
-      const fqns = FILE_POLICIES[selectedId] ?? []
+      const plaintext = uploadedFile?.text ?? FEDERAL_FILE_PREVIEWS[selectedId] ?? 'Sample document content.'
+      const fqns = FILE_POLICIES[selectedId] ?? FILE_POLICIES['opord']
       const { tdfBytes: bytes, manifest: mf } = await encryptText(plaintext, fqns, 'sarah')
       setTdfBytes(bytes)
       setManifest(mf)
@@ -113,22 +180,26 @@ export default function TdfExplorerPage() {
   }
 
   async function handleImport() {
-    if (!window.electronAPI) return
-    const result = await window.electronAPI.openTdf()
-    if (!result) return
-    const bytes = new Uint8Array(result.bytes)
-    setTdfBytes(bytes)
-    setImportedFilename(result.filename)
-    setDecryptResults({})
-    setPolicyDecoded(false)
-    // Parse manifest from ZIP
-    try {
-      const mf = parseManifestFromZip(bytes)
-      setManifest(mf)
-      setManifestOpen(true)
-      setPayloadOpen(false)
-    } catch {
-      setManifest(null)
+    if (window.electronAPI) {
+      const result = await window.electronAPI.openTdf()
+      if (!result) return
+      const bytes = new Uint8Array(result.bytes)
+      setTdfBytes(bytes)
+      setImportedFilename(result.filename)
+      setUploadedFile(null)
+      setSelectedId(null)
+      setDecryptResults({})
+      setPolicyDecoded(false)
+      try {
+        const mf = parseManifestFromZip(bytes)
+        setManifest(mf)
+        setManifestOpen(true)
+        setPayloadOpen(false)
+      } catch {
+        setManifest(null)
+      }
+    } else {
+      tdfFileInputRef.current?.click()
     }
   }
 
@@ -180,7 +251,8 @@ export default function TdfExplorerPage() {
   }
 
   const file = FEDERAL_SAMPLE_FILES.find(f => f.id === selectedId)
-  const hexRows = tdfBytes ? bytesToHexRows(tdfBytes) : null
+  const payloadBytes = tdfBytes ? extractPayloadBytesFromZip(tdfBytes) : null
+  const hexRows = payloadBytes ? bytesToHexRows(payloadBytes) : null
 
   // Parse manifest sections
   const encInfo = manifest?.encryptionInformation
@@ -207,14 +279,38 @@ export default function TdfExplorerPage() {
 
       <div className="flex gap-5">
 
+        {/* Hidden file inputs */}
+        <input ref={nativeFileInputRef} type="file" style={{ display: 'none' }} onChange={handleNativeFileChange} />
+        <input ref={tdfFileInputRef} type="file" accept=".tdf,.zip" style={{ display: 'none' }} onChange={handleTdfFileChange} />
+
         {/* Left: file picker */}
         <div style={{ width: 224, flexShrink: 0 }}>
           <div className="text-xs font-bold mb-2" style={{ color: 'var(--c-text-5)' }}>SELECT A FILE</div>
+
+          {/* Upload your own file button */}
+          <button
+            onClick={() => nativeFileInputRef.current?.click()}
+            className="w-full mb-3 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-all flex items-center justify-center gap-1.5"
+            style={{ background: 'var(--c-surface-2)', color: 'var(--c-text-3)', border: '1px dashed var(--c-border-2)' }}>
+            ↑ Upload your own file
+          </button>
+
+          {/* Uploaded file indicator */}
+          {uploadedFile && (
+            <div className="mb-3 p-2.5 rounded-lg text-xs"
+              style={{ background: 'var(--c-surface)', border: '1px solid #004987', color: 'var(--c-text-2)' }}>
+              <div className="font-medium truncate">{uploadedFile.name}</div>
+              <div style={{ color: 'var(--c-text-5)', marginTop: 2 }}>{(uploadedFile.size / 1024).toFixed(1)} KB · ready to encrypt</div>
+              <div style={{ color: '#6aaae4', marginTop: 4 }}>Policy: {selectedId ? `${selectedId} (selected below)` : 'select a sample to set policy'}</div>
+            </div>
+          )}
+
+          <div className="text-xs mb-1.5" style={{ color: 'var(--c-text-6)' }}>— or pick a sample —</div>
           <div className="flex flex-col gap-1.5 mb-4">
             {FEDERAL_SAMPLE_FILES.map(f => (
               <button
                 key={f.id}
-                onClick={() => selectFile(f.id)}
+                onClick={() => { selectFile(f.id); setUploadedFile(null) }}
                 className="text-left p-2.5 rounded-lg cursor-pointer transition-all"
                 style={{
                   background: f.id === selectedId ? 'var(--c-surface)' : 'transparent',
@@ -476,7 +572,7 @@ export default function TdfExplorerPage() {
                   <span>🔒</span>
                   <div className="flex-1 min-w-0">
                     <span className="text-sm font-semibold" style={{ color: '#4ade80' }}>0.payload</span>
-                    <span className="ml-3 text-xs" style={{ color: 'var(--c-text-5)' }}>AES-256-GCM encrypted · {(tdfBytes.length / 1024).toFixed(1)} KB</span>
+                    <span className="ml-3 text-xs" style={{ color: 'var(--c-text-5)' }}>AES-256-GCM encrypted · {payloadBytes ? (payloadBytes.length / 1024).toFixed(1) : '?'} KB</span>
                   </div>
                   <span className="text-xs" style={{ color: '#4ade80' }}>{payloadOpen ? '▲' : '▼'}</span>
                 </button>

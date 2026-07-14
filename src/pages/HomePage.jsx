@@ -178,7 +178,7 @@ export default function HomePage() {
           }}>
             Share data and drive value without sacrificing security, privacy, or control.
             Persistent protection that travels with your data — beyond the perimeter,
-            across organizations, at every classification tier.
+            across organizations, at every classification tier. Policy-bound. Auditable. Always on.
           </p>
 
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
