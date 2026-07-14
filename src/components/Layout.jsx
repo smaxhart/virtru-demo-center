@@ -7,11 +7,11 @@ const NAV_ITEMS = [
   { to: '/home',         id: 'home',         label: 'Home',              icon: 'globe'   },
   { to: '/architecture', id: 'architecture', label: 'Architecture',      icon: 'boxes'   },
   { to: '/keywrap',      id: 'keywrap',      label: 'Key Management',    icon: 'key'     },
-  { to: '/revoke',       id: 'revoke',       label: 'Live Revocation',   icon: 'revoke'  },
+  { to: '/tdf-explorer', id: 'tdf-explorer', label: 'TDF Explorer',      icon: 'tdf'     },
+  { to: '/collaborate',  id: 'collaborate',  label: 'Collaborate',       icon: 'revoke'  },
   { to: '/tagging',      id: 'tagging',      label: 'Auto-Tagging',      icon: 'document'},
   { to: '/policy',       id: 'policy',       label: 'Policy Builder',    icon: 'document'},
   { to: '/platform',     id: 'platform',     label: 'Platform',          icon: 'globe'   },
-  { to: '/tdf-explorer', id: 'tdf-explorer', label: 'TDF Explorer',      icon: 'tdf'     },
   { to: '/audit',        id: 'audit',        label: 'Audit Log',         icon: 'tdf-doc' },
 ]
 
@@ -19,7 +19,7 @@ const PAGE_LABELS = {
   '/home':         'Home',
   '/architecture': 'Architecture',
   '/keywrap':      'Key Management',
-  '/revoke':       'Live Revocation',
+  '/collaborate':  'Collaborate',
   '/audit':        'Audit Log',
   '/tagging':      'Auto-Tagging',
   '/policy':       'Policy Builder',
@@ -205,18 +205,8 @@ export default function Layout() {
               </div>
             )}
             {updateInfo.state === 'ready' && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 11, color: '#4ade80' }}>✓ v{updateInfo.version} ready</span>
-                <button
-                  onClick={() => window.electronAPI.installUpdate()}
-                  style={{
-                    fontSize: 10, padding: '2px 8px', borderRadius: 4, cursor: 'pointer',
-                    background: 'rgba(74,222,128,0.15)', color: '#4ade80',
-                    border: '1px solid rgba(74,222,128,0.3)',
-                  }}
-                >
-                  Restart
-                </button>
+              <div style={{ fontSize: 11, color: '#4ade80' }}>
+                ✓ v{updateInfo.version} ready — installs on quit
               </div>
             )}
           </div>

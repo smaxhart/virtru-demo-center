@@ -4,7 +4,7 @@ import Layout from './components/Layout.jsx'
 import ArchitecturePage from './pages/ArchitecturePage.jsx'
 import PolicyPage from './pages/PolicyPage.jsx'
 import KeyWrapPage from './pages/KeyWrapPage.jsx'
-import RevocationPage from './pages/RevocationPage.jsx'
+import CollaboratePage from './pages/CollaboratePage.jsx'
 import PlatformPage from './pages/PlatformPage.jsx'
 import AuditPage from './pages/AuditPage.jsx'
 import TaggingPDPPage from './pages/TaggingPDPPage.jsx'
@@ -23,7 +23,7 @@ export default function App() {
             <Route path="/architecture" element={<ArchitecturePage />} />
             <Route path="/policy" element={<PolicyPage />} />
             <Route path="/keywrap" element={<KeyWrapPage />} />
-            <Route path="/revoke"   element={<RevocationPage />} />
+            <Route path="/collaborate" element={<CollaboratePage />} />
             <Route path="/platform" element={<PlatformPage />} />
             <Route path="/audit"    element={<AuditPage />} />
             <Route path="/tagging"  element={<TaggingPDPPage />} />
