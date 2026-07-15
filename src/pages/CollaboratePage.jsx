@@ -34,7 +34,7 @@ const BASE_FILES = [
     owner: 'Maj. Sarah Williams',
     ownerUser: 'sarah',
     modified: 'Today, 8:30 AM',
-    relTo: 'USA/FVEY',
+    relTo: 'FVEY',
     visible: ['clearance:ts-sci', 'mission:intel'],
     required: ['clearance:ts-sci', 'mission:intel'],
   },
@@ -76,8 +76,8 @@ const BASE_FILES = [
     owner: 'Maj. Sarah Williams',
     ownerUser: 'sarah',
     modified: 'July 8, 10:15 AM',
-    relTo: 'USA/GBR/AUS/CAN/NZL',
-    visible: ['clearance:secret', 'relto:fvey'],
+    relTo: 'FVEY',
+    visible: ['clearance:secret'],
     required: ['clearance:secret', 'relto:fvey'],
   },
   {
@@ -91,7 +91,7 @@ const BASE_FILES = [
     ownerUser: 'emma.clarke',
     modified: 'July 7, 2:00 PM',
     relTo: 'NATO',
-    visible: ['clearance:secret', 'relto:nato'],
+    visible: ['clearance:secret'],
     required: ['clearance:secret', 'relto:nato'],
   },
   {
