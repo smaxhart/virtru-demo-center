@@ -77,7 +77,7 @@ const BASE_FILES = [
     ownerUser: 'sarah',
     modified: 'July 8, 10:15 AM',
     relTo: 'FVEY',
-    visible: ['clearance:secret'],
+    visible: ['clearance:secret', 'relto:fvey'],
     required: ['clearance:secret', 'relto:fvey'],
   },
   {
@@ -91,7 +91,7 @@ const BASE_FILES = [
     ownerUser: 'emma.clarke',
     modified: 'July 7, 2:00 PM',
     relTo: 'NATO',
-    visible: ['clearance:secret'],
+    visible: ['clearance:secret', 'relto:nato'],
     required: ['clearance:secret', 'relto:nato'],
   },
   {
