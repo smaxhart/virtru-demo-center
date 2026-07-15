@@ -105,7 +105,7 @@ const BASE_FILES = [
     ownerUser: 'james',
     modified: 'July 6, 9:00 AM',
     relTo: '—',
-    visible: [],
+    visible: ['mission:external'],
     required: ['mission:external'],
   },
   {
@@ -626,7 +626,7 @@ function S3Shell({ files, activeFile, onSelect, onUpload, onDownload }) {
                       ...(f.required.length
                         ? { background: 'rgba(29,78,216,0.13)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.27)' }
                         : { background: 'rgba(134,239,172,0.07)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.2)' }),
-                    }}>{f.required.length ? 'TDF' : 'plaintext'}</span>
+                    }}>TDF</span>
                   </td>
                   <td style={{ padding: '9px 10px', whiteSpace: 'nowrap' }}>
                     <button
@@ -685,18 +685,191 @@ function SecurityToggle({ label, value, onChange }) {
   )
 }
 
-function CollaborateShell({ files, activeFile, onSelect, onUpload, onDownload, userEmail }) {
+// ── Preview Modal ─────────────────────────────────────────────────────────────
+const PREVIEW_CONTENT = {
+  pdf:  { lines: [28, 22, 26, 18, 24, 20, 26, 14, 22, 24, 18, 26, 20, 16, 24], color: '#374151' },
+  docx: { lines: [20, 24, 18, 26, 22, 16, 28, 20, 24, 18, 22, 26, 14, 20, 24], color: '#1e3a5f' },
+  xlsx: { lines: [null, null, null, null, null, null, null, null],                color: '#14532d' },
+  txt:  { lines: [18, 22, 26, 20, 24, 18, 28, 22, 16, 24, 20, 26, 18, 22, 24], color: '#374151' },
+}
+
+function PreviewModal({ file, onClose, getSetting }) {
+  const settings = getSetting(file.id)
+  const ext = file.ext.toLowerCase()
+  const isXlsx = ext === 'xlsx'
+  const content = PREVIEW_CONTENT[ext] || PREVIEW_CONTENT.txt
+  const cls = MS_CLASS[file.msClass] || MS_CLASS.u
+  const wmLabel = `${file.owner.split(' ').pop()} — ${file.modified}`
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 1000,
+        background: 'rgba(0,0,0,0.6)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: 680, maxHeight: '90vh', borderRadius: 12, overflow: 'hidden',
+          display: 'flex', flexDirection: 'column',
+          background: '#fff', boxShadow: '0 24px 60px rgba(0,0,0,0.4)',
+        }}
+      >
+        {/* Modal header */}
+        <div style={{ padding: '12px 16px', background: '#1a2b45', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+          <OfficeIcon ext={ext} size={20} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', marginTop: 1 }}>{file.owner} · {file.size}</div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, background: cls.bg, color: cls.color, border: `1px solid ${cls.border}` }}>{file.msLabel.toUpperCase()}</span>
+            <span style={{ fontSize: 11, padding: '2px 8px', background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)', borderRadius: 4 }}>🔐 TDF Protected</span>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: 18, lineHeight: 1, marginLeft: 4 }}>✕</button>
+        </div>
+
+        {/* Security badge bar */}
+        {(settings.watermark || settings.preventDownload) && (
+          <div style={{ padding: '6px 16px', background: '#1a56db', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+            {settings.watermark && <span style={{ fontSize: 11, color: '#fff', fontWeight: 600 }}>◈ Watermark active</span>}
+            {settings.preventDownload && <span style={{ fontSize: 11, color: '#fff', fontWeight: 600 }}>⊘ Download disabled</span>}
+          </div>
+        )}
+
+        {/* Document preview */}
+        <div style={{ flex: 1, overflowY: 'auto', position: 'relative', background: '#f3f4f6' }}>
+          <div style={{
+            margin: '24px auto', width: 500,
+            background: '#fff', borderRadius: 4,
+            boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
+            padding: '40px 48px', minHeight: 600,
+            position: 'relative', overflow: 'hidden',
+          }}>
+            {/* Classification banner top */}
+            <div style={{ textAlign: 'center', marginBottom: 28 }}>
+              <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.15em', color: cls.color, textTransform: 'uppercase' }}>
+                {file.msLabel}{file.relTo && file.relTo !== '—' ? ` // REL TO ${file.relTo}` : ''}
+              </span>
+            </div>
+
+            {/* Simulated document body */}
+            {isXlsx ? (
+              // Spreadsheet preview
+              <div>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                  <thead>
+                    <tr style={{ background: '#16a34a', color: '#fff' }}>
+                      {['Asset', 'Status', 'Priority', 'Assignee', 'Due'].map(h => (
+                        <th key={h} style={{ padding: '6px 10px', textAlign: 'left', fontWeight: 600 }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      ['FW-01', 'Critical', 'High', 'Chen, L.', 'Jul 20'],
+                      ['NET-04', 'Warning', 'High', 'Rivera, J.', 'Jul 22'],
+                      ['SRV-12', 'Nominal', 'Med', 'Johnson, M.', 'Jul 30'],
+                      ['VPN-03', 'Critical', 'High', 'Chen, L.', 'Jul 18'],
+                      ['DB-07', 'Warning', 'Med', 'Rivera, J.', 'Aug 01'],
+                    ].map((row, i) => (
+                      <tr key={i} style={{ background: i % 2 ? '#f9fafb' : '#fff', borderBottom: '1px solid #e5e7eb' }}>
+                        {row.map((cell, j) => (
+                          <td key={j} style={{ padding: '5px 10px', color: j === 1 ? (cell === 'Critical' ? '#dc2626' : cell === 'Warning' ? '#d97706' : '#16a34a') : '#374151' }}>{cell}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div style={{ marginTop: 20 }}>
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} style={{ height: 8, background: '#e5e7eb', borderRadius: 4, marginBottom: 10, width: `${[90, 70, 85, 60][i]}%` }} />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              // Text/PDF/DOCX preview
+              <div>
+                {/* Title */}
+                <div style={{ height: 14, background: '#d1d5db', borderRadius: 4, marginBottom: 20, width: '70%' }} />
+                {/* Body lines */}
+                {content.lines.map((w, i) => (
+                  <div key={i} style={{ height: 8, background: '#e5e7eb', borderRadius: 4, marginBottom: 8, width: `${w * 3.2}%` }} />
+                ))}
+                {/* Section break */}
+                <div style={{ height: 10, background: '#d1d5db', borderRadius: 4, margin: '20px 0 14px', width: '50%' }} />
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} style={{ height: 8, background: '#e5e7eb', borderRadius: 4, marginBottom: 8, width: `${[88, 75, 92, 68, 80, 55][i]}%` }} />
+                ))}
+              </div>
+            )}
+
+            {/* Classification banner bottom */}
+            <div style={{ textAlign: 'center', marginTop: 28 }}>
+              <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.15em', color: cls.color, textTransform: 'uppercase' }}>
+                {file.msLabel}{file.relTo && file.relTo !== '—' ? ` // REL TO ${file.relTo}` : ''}
+              </span>
+            </div>
+
+            {/* Watermark overlay */}
+            {settings.watermark && (
+              <div style={{
+                position: 'absolute', inset: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                pointerEvents: 'none', overflow: 'hidden',
+              }}>
+                {[...Array(9)].map((_, i) => (
+                  <div key={i} style={{
+                    position: 'absolute',
+                    fontSize: 11, fontWeight: 700,
+                    color: 'rgba(26,86,219,0.12)',
+                    letterSpacing: '0.04em',
+                    transform: 'rotate(-35deg)',
+                    whiteSpace: 'nowrap',
+                    left: `${(i % 3) * 38 - 10}%`,
+                    top: `${Math.floor(i / 3) * 32 + 8}%`,
+                  }}>
+                    {wmLabel}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Prevent download overlay */}
+            {settings.preventDownload && (
+              <div style={{
+                position: 'absolute', inset: 0,
+                background: 'rgba(220,38,38,0.04)',
+                border: '2px solid rgba(220,38,38,0.2)',
+                borderRadius: 4,
+                display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+                paddingBottom: 16,
+                pointerEvents: 'none',
+              }}>
+                <div style={{ background: 'rgba(220,38,38,0.9)', color: '#fff', fontSize: 11, fontWeight: 700, padding: '5px 14px', borderRadius: 20, letterSpacing: '0.06em' }}>
+                  ⊘ DOWNLOAD DISABLED BY POLICY
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: '10px 16px', background: '#f9fafb', borderTop: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+          <span style={{ fontSize: 11, color: '#8a96a3' }}>Viewed via Virtru Collaborate · KAS access verified</span>
+          <button onClick={onClose} style={{ padding: '6px 16px', borderRadius: 6, background: '#1a56db', color: '#fff', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Close</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function CollaborateShell({ files, activeFile, onSelect, onUpload, onDownload, userEmail, fileSettings, getSetting, setSetting }) {
   const initials = userEmail.slice(0, 2).toUpperCase()
   const [panelId, setPanelId] = useState(null)
-  const [fileSettings, setFileSettings] = useState({})
-
-  function getSetting(id) {
-    return fileSettings[id] ?? { watermark: false, preventDownload: false }
-  }
-
-  function setSetting(id, key, val) {
-    setFileSettings(prev => ({ ...prev, [id]: { ...getSetting(id), [key]: val } }))
-  }
 
   function handleRowClick(f) {
     onSelect(f.id)
@@ -757,7 +930,7 @@ function CollaborateShell({ files, activeFile, onSelect, onUpload, onDownload, u
                     <td style={{ padding: '10px 0 10px 14px' }}><VcFileIcon ext={f.ext} /></td>
                     <td style={{ padding: '10px 14px', maxWidth: 220 }}>
                       <div style={{ fontSize: 13, color: '#1a2b45', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 200 }}>{f.name}</div>
-                      <div style={{ fontSize: 11, color: '#8a96a3', marginTop: 2 }}>{f.required.length ? '🔐 TDF Protected' : 'No policy'}</div>
+                      <div style={{ fontSize: 11, color: '#8a96a3', marginTop: 2 }}>🔐 TDF Protected</div>
                     </td>
                     <td style={{ padding: '10px 14px', fontSize: 13, color: '#4a5568', whiteSpace: 'nowrap' }}>{f.size}</td>
                     <td style={{ padding: '10px 14px', fontSize: 13, color: '#4a5568', whiteSpace: 'nowrap' }}>
@@ -867,8 +1040,17 @@ export default function CollaboratePage() {
   const [activeBucket, setActiveBucket] = useState('sharepoint')
   const [activeFile, setActiveFile] = useState(null)
   const [showUpload, setShowUpload] = useState(false)
+  const [previewFile, setPreviewFile] = useState(null)
+  const [fileSettings, setFileSettings] = useState({})
   const [toast, setToast] = useState(null)
   const toastTimer = useRef(null)
+
+  function getSetting(id) {
+    return fileSettings[id] ?? { watermark: false, preventDownload: false }
+  }
+  function setSetting(id, key, val) {
+    setFileSettings(prev => ({ ...prev, [id]: { ...getSetting(id), [key]: val } }))
+  }
 
   const allFiles = [...extraFiles, ...BASE_FILES]
   const visibleFiles = allFiles.filter(f => canSee(f, attrs))
@@ -951,7 +1133,7 @@ export default function CollaboratePage() {
             <S3Shell files={visibleFiles} activeFile={activeFile} onSelect={setActiveFile} onUpload={() => setShowUpload(true)} onDownload={handleDownload} />
           )}
           {activeBucket === 'collaborate' && (
-            <CollaborateShell files={visibleFiles} activeFile={activeFile} onSelect={setActiveFile} onUpload={() => setShowUpload(true)} onDownload={handleDownload} userEmail={userEmail} />
+            <CollaborateShell files={visibleFiles} activeFile={activeFile} onSelect={setActiveFile} onUpload={() => setShowUpload(true)} onDownload={handleDownload} userEmail={userEmail} fileSettings={fileSettings} getSetting={getSetting} setSetting={setSetting} />
           )}
         </div>
 
@@ -1001,10 +1183,11 @@ export default function CollaboratePage() {
             </div>
 
             <button
-              onClick={() => {}}
-              style={{ marginTop: 12, width: '100%', padding: '9px 0', borderRadius: 8, background: '#1d4ed8', color: '#fff', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+              onClick={() => selectedFile && setPreviewFile(selectedFile)}
+              disabled={!selectedFile}
+              style={{ marginTop: 12, width: '100%', padding: '9px 0', borderRadius: 8, background: selectedFile ? '#1d4ed8' : 'var(--c-surface-2)', color: selectedFile ? '#fff' : 'var(--c-text-5)', border: 'none', fontSize: 13, fontWeight: 600, cursor: selectedFile ? 'pointer' : 'default' }}
             >
-              {selectedFile ? `Open "${selectedFile.name.split('_')[0]}…"` : 'Select a file to open'}
+              {selectedFile ? `Preview "${selectedFile.name.split('_')[0]}…"` : 'Select a file to preview'}
             </button>
           </div>
 
@@ -1015,6 +1198,7 @@ export default function CollaboratePage() {
       </div>
 
       {showUpload && <UploadModal onClose={() => setShowUpload(false)} onComplete={handleUploadComplete} />}
+      {previewFile && <PreviewModal file={previewFile} onClose={() => setPreviewFile(null)} getSetting={getSetting} />}
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
     </div>
   )
