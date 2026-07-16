@@ -693,13 +693,13 @@ const PREVIEW_CONTENT = {
   txt:  { lines: [18, 22, 26, 20, 24, 18, 28, 22, 16, 24, 20, 26, 18, 22, 24], color: '#374151' },
 }
 
-function PreviewModal({ file, onClose, getSetting }) {
+function PreviewModal({ file, onClose, getSetting, viewerName, viewerEmail }) {
   const settings = getSetting(file.id)
   const ext = file.ext.toLowerCase()
   const isXlsx = ext === 'xlsx'
   const content = PREVIEW_CONTENT[ext] || PREVIEW_CONTENT.txt
   const cls = MS_LABEL_STYLES[file.msClass] || MS_LABEL_STYLES.u
-  const wmLabel = `${file.owner.split(' ').pop()} — ${file.modified}`
+  const wmLabel = `${viewerEmail} · ${viewerName}`
 
   return (
     <div
@@ -1198,7 +1198,7 @@ export default function CollaboratePage() {
       </div>
 
       {showUpload && <UploadModal onClose={() => setShowUpload(false)} onComplete={handleUploadComplete} />}
-      {previewFile && <PreviewModal file={previewFile} onClose={() => setPreviewFile(null)} getSetting={getSetting} />}
+      {previewFile && <PreviewModal file={previewFile} onClose={() => setPreviewFile(null)} getSetting={getSetting} viewerName={activePersona.name} viewerEmail={userEmail} />}
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
     </div>
   )
