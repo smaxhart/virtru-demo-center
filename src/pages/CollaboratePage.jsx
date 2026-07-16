@@ -698,7 +698,7 @@ function PreviewModal({ file, onClose, getSetting }) {
   const ext = file.ext.toLowerCase()
   const isXlsx = ext === 'xlsx'
   const content = PREVIEW_CONTENT[ext] || PREVIEW_CONTENT.txt
-  const cls = MS_CLASS[file.msClass] || MS_CLASS.u
+  const cls = MS_LABEL_STYLES[file.msClass] || MS_LABEL_STYLES.u
   const wmLabel = `${file.owner.split(' ').pop()} — ${file.modified}`
 
   return (
