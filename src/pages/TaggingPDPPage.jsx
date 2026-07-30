@@ -16,10 +16,10 @@ const STEP_BUSINESS_MEANING = [
 
 function classificationColor(banner) {
   const b = banner.toUpperCase()
-  if (b.startsWith('TOP SECRET') || b.startsWith('TS-SCI')) return '#ef4444'
-  if (b.startsWith('SECRET')) return '#f97316'
-  if (b.startsWith('CONFIDENTIAL')) return '#eab308'
-  return '#22c55e'
+  if (b.startsWith('TOP SECRET') || b.startsWith('TS-SCI')) return '#b91c1c'
+  if (b.startsWith('SECRET')) return '#b91c1c'
+  if (b.startsWith('CONFIDENTIAL')) return 'var(--c-text-3)'
+  return '#15803d'
 }
 
 function borderColor(banner) {
@@ -27,10 +27,7 @@ function borderColor(banner) {
 }
 
 function ruleBadgeColor(rule) {
-  if (rule === 'HIERARCHY') return '#f97316'
-  if (rule === 'ANY_OF')    return '#3b82f6'
-  if (rule === 'ALL_OF')    return '#8b5cf6'
-  return '#6b7280'
+  return 'var(--c-text-4)'
 }
 
 function truncateFqn(fqn, max = 48) {
@@ -150,11 +147,11 @@ function DictLookupRow({ input, dict, output, outputColor }) {
       className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-mono"
       style={{ background: 'var(--c-bg)', border: '1px solid var(--c-border)' }}
     >
-      <span style={{ color: '#f59e0b' }}>{input}</span>
+      <span style={{ color: 'var(--c-text-3)' }}>{input}</span>
       <span style={{ color: 'var(--c-text-5)' }}>→</span>
       <span style={{ color: 'var(--c-text-5)', fontSize: '0.7rem' }}>[{dict}]</span>
       <span style={{ color: 'var(--c-text-5)' }}>→</span>
-      <span style={{ color: outputColor || '#22c55e', fontWeight: 600 }}>{output}</span>
+      <span style={{ color: outputColor || '#15803d', fontWeight: 600 }}>{output}</span>
     </div>
   )
 }
@@ -191,7 +188,7 @@ function ManifestSnippet({ doc }) {
         fontFamily: 'monospace',
         background: 'var(--c-bg)',
         border: '1px solid var(--c-border-2)',
-        color: '#22c55e',
+        color: '#15803d',
         maxHeight: 220,
         lineHeight: 1.6,
       }}
@@ -206,8 +203,8 @@ function ManifestSnippet({ doc }) {
 function Step0({ doc }) {
   return (
     <div className="flex flex-col gap-4">
-      <InfoBox color="#0ea5e9">
-        <span style={{ color: '#0ea5e9', fontWeight: 600 }}>Apache Tika OCR</span> extracting text content from document…
+      <InfoBox color="#0369a1">
+        <span style={{ color: 'var(--c-text-2)', fontWeight: 600 }}>Apache Tika OCR</span> extracting text content from document…
       </InfoBox>
       <div>
         <SectionLabel>Extracted Text</SectionLabel>
@@ -217,7 +214,7 @@ function Step0({ doc }) {
         <SectionLabel>Classification Regex Pattern</SectionLabel>
         <div
           className="text-sm font-mono rounded-lg px-3 py-2"
-          style={{ background: 'var(--c-bg)', border: '1px solid var(--c-border)', color: '#a78bfa' }}
+          style={{ background: 'var(--c-bg)', border: '1px solid var(--c-border)', color: 'var(--c-text-3)' }}
         >
           /(SECRET|TOP SECRET|CONFIDENTIAL|UNCLASSIFIED|TS-SCI)/
         </div>
@@ -254,10 +251,10 @@ function Step1({ doc }) {
 function Step2({ doc }) {
   const classAttr = doc.extractedAttrs.find(a => a.type === 'classification')
   const syn = doc.synonym
-  const highlightTerms2 = classAttr ? [{ term: classAttr.matched, color: '#ef4444' }] : []
+  const highlightTerms2 = classAttr ? [{ term: classAttr.matched, color: '#b91c1c' }] : []
   return (
     <div className="flex flex-col gap-4">
-      <InfoBox color="#ef4444">
+      <InfoBox color="#b91c1c">
         Classification term matched in banner. Synonym dictionary normalizes the raw token to a canonical attribute value.
       </InfoBox>
       <div>
@@ -271,7 +268,7 @@ function Step2({ doc }) {
             input={syn.input}
             dict={syn.dict}
             output={classAttr ? classAttr.label : syn.output}
-            outputColor={classAttr ? classAttr.color : '#22c55e'}
+            outputColor={classAttr ? classAttr.color : '#15803d'}
           />
         </div>
       )}
@@ -280,7 +277,7 @@ function Step2({ doc }) {
           <SectionLabel>Generated Attribute FQN</SectionLabel>
           <div
             className="text-xs font-mono rounded-lg px-3 py-2 break-all"
-            style={{ background: '#ef444415', border: '1px solid #ef444440', color: '#ef4444' }}
+            style={{ background: '#b91c1c15', border: '1px solid #b91c1c40', color: '#b91c1c' }}
           >
             {classAttr.fqn}
           </div>
@@ -292,12 +289,12 @@ function Step2({ doc }) {
 
 function Step3({ doc }) {
   const reltoAttrs = doc.extractedAttrs.filter(a => a.type === 'relto')
-  const bannerTerms = reltoAttrs.map(a => ({ term: a.matched, color: '#3b82f6' }))
+  const bannerTerms = reltoAttrs.map(a => ({ term: a.matched, color: 'var(--c-text-2)' }))
   const hasRelto = reltoAttrs.length > 0
 
   return (
     <div className="flex flex-col gap-4">
-      <InfoBox color="#3b82f6">
+      <InfoBox color="#1d4ed8">
         {hasRelto
           ? 'REL TO field parsed — each country or coalition code maps to a nationality attribute.'
           : 'No REL TO found — access limited to originating nation only.'}
@@ -316,9 +313,9 @@ function Step3({ doc }) {
                 className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-mono"
                 style={{ background: 'var(--c-bg)', border: '1px solid var(--c-border)' }}
               >
-                <span style={{ color: '#3b82f6', fontWeight: 700 }}>{attr.matched}</span>
+                <span style={{ color: 'var(--c-text-2)', fontWeight: 700 }}>{attr.matched}</span>
                 <span style={{ color: 'var(--c-text-5)' }}>→</span>
-                <span style={{ color: '#3b82f6' }}>{attr.label}</span>
+                <span style={{ color: 'var(--c-text-2)' }}>{attr.label}</span>
                 <span style={{ marginLeft: 'auto' }}><RuleBadge rule={attr.rule} /></span>
               </div>
             ))}
@@ -327,7 +324,7 @@ function Step3({ doc }) {
       ) : (
         <div
           className="text-sm rounded-lg px-3 py-2"
-          style={{ background: '#3b82f615', border: '1px solid #3b82f630', color: 'var(--c-text-4)' }}
+          style={{ background: '#1d4ed815', border: '1px solid #1d4ed830', color: 'var(--c-text-4)' }}
         >
           No foreign release attributes generated for this document.
         </div>
@@ -338,12 +335,12 @@ function Step3({ doc }) {
 
 function Step4({ doc }) {
   const ntkAttrs = doc.extractedAttrs.filter(a => a.type === 'needtoknow')
-  const bannerTerms = ntkAttrs.map(a => ({ term: a.matched, color: '#8b5cf6' }))
+  const bannerTerms = ntkAttrs.map(a => ({ term: a.matched, color: 'var(--c-text-2)' }))
   const hasNtk = ntkAttrs.length > 0
 
   return (
     <div className="flex flex-col gap-4">
-      <InfoBox color="#8b5cf6">
+      <InfoBox color="#6d28d9">
         {hasNtk
           ? 'NTK compartments extracted — each token becomes a needtoknow attribute with ALL_OF enforcement.'
           : 'No NTK compartments found — standard clearance applies.'}
@@ -362,9 +359,9 @@ function Step4({ doc }) {
                 className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-mono"
                 style={{ background: 'var(--c-bg)', border: '1px solid var(--c-border)' }}
               >
-                <span style={{ color: '#8b5cf6', fontWeight: 700 }}>{attr.matched}</span>
+                <span style={{ color: 'var(--c-text-2)', fontWeight: 700 }}>{attr.matched}</span>
                 <span style={{ color: 'var(--c-text-5)' }}>→</span>
-                <span style={{ color: '#8b5cf6' }}>{attr.label}</span>
+                <span style={{ color: 'var(--c-text-2)' }}>{attr.label}</span>
                 <span style={{ marginLeft: 'auto' }}><RuleBadge rule={attr.rule} /></span>
               </div>
             ))}
@@ -373,7 +370,7 @@ function Step4({ doc }) {
       ) : (
         <div
           className="text-sm rounded-lg px-3 py-2"
-          style={{ background: '#8b5cf615', border: '1px solid #8b5cf630', color: 'var(--c-text-4)' }}
+          style={{ background: '#6d28d915', border: '1px solid #6d28d930', color: 'var(--c-text-4)' }}
         >
           No NTK compartment attributes generated for this document.
         </div>
@@ -385,7 +382,7 @@ function Step4({ doc }) {
 function Step5({ doc }) {
   return (
     <div className="flex flex-col gap-4">
-      <InfoBox color="#10b981">
+      <InfoBox color="#047857">
         Policy assembly complete. All extracted attributes rolled up into the final TDF policy object.
       </InfoBox>
       <div>
@@ -424,12 +421,12 @@ function Step5({ doc }) {
 }
 
 const STEP_META = [
-  { title: 'Content Extraction',    icon: 'search',    color: '#0ea5e9' },
-  { title: 'Banner Detection',      icon: 'document',  color: '#f59e0b' },
-  { title: 'Classification Match',  icon: 'shield',    color: '#ef4444' },
-  { title: 'REL TO Parsing',        icon: 'globe',     color: '#3b82f6' },
-  { title: 'NTK Parsing',           icon: 'key',       color: '#8b5cf6' },
-  { title: 'Rollup & Final Policy', icon: 'tdf',       color: '#10b981' },
+  { title: 'Content Extraction',    icon: 'search',    color: 'var(--c-text-2)' },
+  { title: 'Banner Detection',      icon: 'document',  color: 'var(--c-text-3)' },
+  { title: 'Classification Match',  icon: 'shield',    color: '#b91c1c' },
+  { title: 'REL TO Parsing',        icon: 'globe',     color: 'var(--c-text-2)' },
+  { title: 'NTK Parsing',           icon: 'key',       color: 'var(--c-text-2)' },
+  { title: 'Rollup & Final Policy', icon: 'tdf',       color: '#047857' },
 ]
 
 // ─── Right panel: revealed attributes by step ─────────────────────────────────
@@ -478,7 +475,7 @@ function RevealedAttrs({ doc, step }) {
           </div>
           <div
             className="text-xs font-mono rounded-lg px-3 py-2 break-all"
-            style={{ background: 'var(--c-bg)', border: '1px solid #10b98140', color: '#10b981' }}
+            style={{ background: 'var(--c-bg)', border: '1px solid #04785740', color: '#047857' }}
           >
             {btoa(JSON.stringify({ body: { dataAttributes: all.map(a => ({ attribute: a.fqn })) } }))}
           </div>
@@ -537,13 +534,13 @@ export default function TaggingPDPPage() {
         <div className="px-6 py-3" style={{ background: 'var(--c-info-bg)', borderBottom: '1px solid #1e3a5f' }}>
           <div className="flex items-start gap-4">
             <div className="flex-1">
-              <div className="text-xs font-bold mb-1" style={{ color: '#60a5fa' }}>🔌 External Processor Integration</div>
+              <div className="text-xs font-bold mb-1" style={{ color: 'var(--c-text-2)' }}>🔌 External Processor Integration</div>
               <p className="text-xs" style={{ color: 'var(--c-text-4)' }}>
                 Tagging Service supports pluggable external processors (gRPC or HTTP). Hook into any stage: content extraction, tag extraction, processing, or rollup. Apache Tika handles document parsing by default.
               </p>
             </div>
             <div className="flex-1">
-              <div className="text-xs font-bold mb-1" style={{ color: '#60a5fa' }}>🎯 Remote Tagging by Default</div>
+              <div className="text-xs font-bold mb-1" style={{ color: 'var(--c-text-2)' }}>🎯 Remote Tagging by Default</div>
               <p className="text-xs" style={{ color: 'var(--c-text-4)' }}>
                 <code style={{ background: '#0f172a', padding: '1px 4px', borderRadius: 3, color: '#4ade80' }}>tructl tag</code> now hits the remote tagging service by default (use <code style={{ background: '#0f172a', padding: '1px 4px', borderRadius: 3 }}>--local</code> for offline mode). Tag rollup logic improved for proper hierarchy consolidation.
               </p>
@@ -716,12 +713,12 @@ export default function TaggingPDPPage() {
             className="px-4 py-3 flex items-center gap-2"
             style={{ borderBottom: '1px solid var(--c-border)' }}
           >
-            <Icon name="shield" size={16} style={{ color: '#8b5cf6' }} />
+            <Icon name="shield" size={16} style={{ color: 'var(--c-text-2)' }} />
             <span className="text-sm font-semibold" style={{ color: 'var(--c-text-1)' }}>Extracted Policy</span>
             {step >= 2 && (
               <span
                 className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full"
-                style={{ background: '#8b5cf622', color: '#8b5cf6', border: '1px solid #8b5cf644' }}
+                style={{ background: '#6d28d922', color: 'var(--c-text-2)', border: '1px solid #6d28d944' }}
               >
                 {[
                   ...doc.extractedAttrs.filter(a => a.type === 'classification' || a.type === 'caveat').slice(0, step >= 2 ? undefined : 0),
@@ -742,9 +739,9 @@ export default function TaggingPDPPage() {
             style={{ borderBottom: '1px solid var(--c-border)', background: 'var(--c-bg)' }}
           >
             {[
-              { label: 'HIERARCHY', color: '#f97316' },
-              { label: 'ANY_OF', color: '#3b82f6' },
-              { label: 'ALL_OF', color: '#8b5cf6' },
+              { label: 'HIERARCHY', color: 'var(--c-text-4)' },
+              { label: 'ANY_OF', color: 'var(--c-text-4)' },
+              { label: 'ALL_OF', color: 'var(--c-text-4)' },
             ].map(r => (
               <div key={r.label} className="flex items-center gap-1">
                 <div className="w-2 h-2 rounded-full" style={{ background: r.color }} />
@@ -763,8 +760,8 @@ export default function TaggingPDPPage() {
               className="px-4 py-3 flex items-center gap-2"
               style={{ borderTop: '1px solid var(--c-border)', background: 'var(--c-bg)' }}
             >
-              <Icon name="checkmark" size={14} style={{ color: '#10b981' }} />
-              <span className="text-xs" style={{ color: '#10b981' }}>
+              <Icon name="checkmark" size={14} style={{ color: '#047857' }} />
+              <span className="text-xs" style={{ color: '#047857' }}>
                 Policy complete — {doc.extractedAttrs.length} attribute{doc.extractedAttrs.length !== 1 ? 's' : ''} bound to TDF
               </span>
             </div>

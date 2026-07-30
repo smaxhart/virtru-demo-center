@@ -449,6 +449,48 @@ export const FEDERAL_PERSONAS = [
   },
 ]
 
+export const AI_PERSONAS = [
+  {
+    id: 'ai-intel',
+    name: 'Intel Analyst AI',
+    title: 'TS/SCI Clearance • mission:intel',
+    avatar: '🤖',
+    username: 'ai-intel',
+    attributes: ['clearance:ts-sci', 'mission:intel', 'relto:fvey', 'relto:nato'],
+    fqns: [
+      `${NS}/clearance/value/ts-sci`,
+      `${NS}/mission/value/intel`,
+      `${NS}/relto/value/fvey`,
+      `${NS}/relto/value/nato`,
+    ],
+    color: '#8b5cf6',
+  },
+  {
+    id: 'ai-ops',
+    name: 'Ops Assistant AI',
+    title: 'Secret Clearance • mission:ops',
+    avatar: '🤖',
+    username: 'ai-ops',
+    attributes: ['clearance:secret', 'mission:ops', 'relto:nato'],
+    fqns: [
+      `${NS}/clearance/value/secret`,
+      `${NS}/mission/value/ops`,
+      `${NS}/relto/value/nato`,
+    ],
+    color: '#3b82f6',
+  },
+  {
+    id: 'ai-logistics',
+    name: 'Logistics AI',
+    title: 'Unclassified • no mission',
+    avatar: '🤖',
+    username: 'ai-logistics',
+    attributes: [],
+    fqns: [],
+    color: '#6b7280',
+  },
+]
+
 export const FEDERAL_PERSONA_DOCS = {
   sarah: {
     title: 'Intel Briefing Q3 — NOFORN',
@@ -786,10 +828,10 @@ export const TAGGING_SAMPLES = [
     banner: 'SECRET // REL TO USA, GBR // NTK OPS',
     body: 'JOINT OPERATIONS INTELLIGENCE REPORT\n\nSECRET // REL TO USA, GBR // NTK OPS\n\nAdversary activity in the northern sector indicates increased SIGINT collection operations. All units should maintain communications discipline. Distribution limited to US and UK personnel with OPS compartment.',
     extractedAttrs: [
-      { type: 'classification', label: 'clearance:secret',       fqn: `https://${FED_NS}/attr/clearance/value/secret`,     matched: 'SECRET',   rule: 'HIERARCHY', color: '#ef4444' },
-      { type: 'relto',         label: 'nationality:USA',         fqn: `https://${FED_NS}/attr/nationality/value/USA`,      matched: 'USA',      rule: 'ANY_OF',    color: '#3b82f6' },
-      { type: 'relto',         label: 'nationality:GBR',         fqn: `https://${FED_NS}/attr/nationality/value/GBR`,      matched: 'GBR',      rule: 'ANY_OF',    color: '#3b82f6' },
-      { type: 'needtoknow',    label: 'needtoknow:ops',          fqn: `https://${FED_NS}/attr/needtoknow/value/ops`,       matched: 'OPS',      rule: 'ALL_OF',    color: '#8b5cf6' },
+      { type: 'classification', label: 'clearance:secret',       fqn: `https://${FED_NS}/attr/clearance/value/secret`,     matched: 'SECRET',   rule: 'HIERARCHY', color: '#b91c1c' },
+      { type: 'relto',         label: 'nationality:USA',         fqn: `https://${FED_NS}/attr/nationality/value/USA`,      matched: 'USA',      rule: 'ANY_OF',    color: 'var(--c-text-2)' },
+      { type: 'relto',         label: 'nationality:GBR',         fqn: `https://${FED_NS}/attr/nationality/value/GBR`,      matched: 'GBR',      rule: 'ANY_OF',    color: 'var(--c-text-2)' },
+      { type: 'needtoknow',    label: 'needtoknow:ops',          fqn: `https://${FED_NS}/attr/needtoknow/value/ops`,       matched: 'OPS',      rule: 'ALL_OF',    color: 'var(--c-text-2)' },
     ],
     synonym: { input: 'SECRET', output: 'secret', dict: 'classification-dict' },
     rollup: 'High watermark: SECRET (HIERARCHY) — kept as-is. REL TO list becomes ANY_OF nationality attributes. NTK becomes ALL_OF needtoknow.',
@@ -800,10 +842,10 @@ export const TAGGING_SAMPLES = [
     banner: 'TOP SECRET // NOFORN // NTK INTEL OPS',
     body: 'SIGNALS INTELLIGENCE ASSESSMENT\n\nTOP SECRET // NOFORN // NTK INTEL OPS\n\nSECTION 1: COLLECTION SUMMARY\nCollection activities indicate significant adversary command and control activity. This product is NOT RELEASABLE TO FOREIGN NATIONALS. Access requires INTEL and OPS compartment authorization.',
     extractedAttrs: [
-      { type: 'classification', label: 'clearance:ts-sci',        fqn: `https://${FED_NS}/attr/clearance/value/ts-sci`,     matched: 'TOP SECRET', rule: 'HIERARCHY', color: '#ef4444' },
+      { type: 'classification', label: 'clearance:ts-sci',        fqn: `https://${FED_NS}/attr/clearance/value/ts-sci`,     matched: 'TOP SECRET', rule: 'HIERARCHY', color: '#b91c1c' },
       { type: 'caveat',        label: 'caveats:noforn',           fqn: `https://${FED_NS}/attr/caveats/value/noforn`,       matched: 'NOFORN',     rule: 'ALL_OF',    color: '#dc2626' },
-      { type: 'needtoknow',    label: 'needtoknow:intel',         fqn: `https://${FED_NS}/attr/needtoknow/value/intel`,     matched: 'INTEL',      rule: 'ALL_OF',    color: '#8b5cf6' },
-      { type: 'needtoknow',    label: 'needtoknow:ops',           fqn: `https://${FED_NS}/attr/needtoknow/value/ops`,       matched: 'OPS',        rule: 'ALL_OF',    color: '#8b5cf6' },
+      { type: 'needtoknow',    label: 'needtoknow:intel',         fqn: `https://${FED_NS}/attr/needtoknow/value/intel`,     matched: 'INTEL',      rule: 'ALL_OF',    color: 'var(--c-text-2)' },
+      { type: 'needtoknow',    label: 'needtoknow:ops',           fqn: `https://${FED_NS}/attr/needtoknow/value/ops`,       matched: 'OPS',        rule: 'ALL_OF',    color: 'var(--c-text-2)' },
     ],
     synonym: { input: 'TOP SECRET', output: 'ts-sci', dict: 'classification-dict' },
     rollup: 'High watermark: TOP SECRET → ts-sci (HIERARCHY). NOFORN triggers caveats:noforn (ALL_OF). NTK INTEL and OPS both become needtoknow ALL_OF — user must have BOTH.',
@@ -814,8 +856,8 @@ export const TAGGING_SAMPLES = [
     banner: 'CONFIDENTIAL // REL TO NATO',
     body: 'NATO LOGISTICS COORDINATION MEMORANDUM\n\nCONFIDENTIAL // REL TO NATO\n\nLogistics coordination for Exercise Steadfast Defender. Releasable to all NATO member nations. Distribution to non-NATO parties requires prior authorization from NATO HQ.',
     extractedAttrs: [
-      { type: 'classification', label: 'clearance:secret',        fqn: `https://${FED_NS}/attr/clearance/value/secret`,     matched: 'CONFIDENTIAL', rule: 'HIERARCHY', color: '#ef4444' },
-      { type: 'relto',         label: 'relto:nato',               fqn: `https://${FED_NS}/attr/relto/value/nato`,           matched: 'NATO',         rule: 'ANY_OF',    color: '#3b82f6' },
+      { type: 'classification', label: 'clearance:secret',        fqn: `https://${FED_NS}/attr/clearance/value/secret`,     matched: 'CONFIDENTIAL', rule: 'HIERARCHY', color: '#b91c1c' },
+      { type: 'relto',         label: 'relto:nato',               fqn: `https://${FED_NS}/attr/relto/value/nato`,           matched: 'NATO',         rule: 'ANY_OF',    color: 'var(--c-text-2)' },
     ],
     synonym: { input: 'CONFIDENTIAL', output: 'confidential', dict: 'classification-dict' },
     rollup: 'CONFIDENTIAL maps to confidential (HIERARCHY). NATO is a recognized coalition alias — maps to relto:nato (ANY_OF), which covers all 32 member nations via group membership.',
@@ -826,9 +868,9 @@ export const TAGGING_SAMPLES = [
     banner: 'TS-SCI // REL TO FVEY // NTK INTEL',
     body: 'FIVE EYES SIGINT PRODUCT\n\nTS-SCI // REL TO FVEY // NTK INTEL\n\nJoint SIGINT product derived from allied collection. Releasable only to Five Eyes partners with INTEL compartment clearance. Handle per SCI procedures and FVEY sharing protocols.',
     extractedAttrs: [
-      { type: 'classification', label: 'clearance:ts-sci',        fqn: `https://${FED_NS}/attr/clearance/value/ts-sci`,     matched: 'TS-SCI',   rule: 'HIERARCHY', color: '#ef4444' },
-      { type: 'relto',         label: 'relto:fvey',               fqn: `https://${FED_NS}/attr/relto/value/fvey`,           matched: 'FVEY',     rule: 'ANY_OF',    color: '#3b82f6' },
-      { type: 'needtoknow',    label: 'needtoknow:intel',         fqn: `https://${FED_NS}/attr/needtoknow/value/intel`,     matched: 'INTEL',    rule: 'ALL_OF',    color: '#8b5cf6' },
+      { type: 'classification', label: 'clearance:ts-sci',        fqn: `https://${FED_NS}/attr/clearance/value/ts-sci`,     matched: 'TS-SCI',   rule: 'HIERARCHY', color: '#b91c1c' },
+      { type: 'relto',         label: 'relto:fvey',               fqn: `https://${FED_NS}/attr/relto/value/fvey`,           matched: 'FVEY',     rule: 'ANY_OF',    color: 'var(--c-text-2)' },
+      { type: 'needtoknow',    label: 'needtoknow:intel',         fqn: `https://${FED_NS}/attr/needtoknow/value/intel`,     matched: 'INTEL',    rule: 'ALL_OF',    color: 'var(--c-text-2)' },
     ],
     synonym: { input: 'TS-SCI', output: 'ts-sci', dict: 'classification-dict' },
     rollup: 'TS-SCI is a direct match → ts-sci attribute. FVEY resolves to relto:fvey coalition group. NTK INTEL → needtoknow:intel ALL_OF. Three attributes, all must be satisfied.',
@@ -839,7 +881,7 @@ export const TAGGING_SAMPLES = [
     banner: 'UNCLASSIFIED // FOR OFFICIAL USE ONLY',
     body: 'TRAINING DIRECTIVE — EXERCISE PLANNING\n\nUNCLASSIFIED // FOR OFFICIAL USE ONLY\n\nThis document contains information intended for official use only. It may not be released to the public or foreign nationals without authorization from the originating agency.',
     extractedAttrs: [
-      { type: 'classification', label: 'clearance:unclassified',  fqn: `https://${FED_NS}/attr/clearance/value/unclassified`, matched: 'UNCLASSIFIED', rule: 'HIERARCHY', color: '#22c55e' },
+      { type: 'classification', label: 'clearance:unclassified',  fqn: `https://${FED_NS}/attr/clearance/value/unclassified`, matched: 'UNCLASSIFIED', rule: 'HIERARCHY', color: '#15803d' },
     ],
     synonym: { input: 'UNCLASSIFIED', output: 'unclassified', dict: 'classification-dict' },
     rollup: 'UNCLASSIFIED maps to clearance:unclassified. FOUO is not a TDF-standard caveat — no attribute generated. Minimum access restriction applied.',

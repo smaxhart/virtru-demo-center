@@ -9,11 +9,11 @@
 
 /* ── Design tokens (light mode only) ────────────────────── */
 :root {
-  --c-bg:         #f1f5f9;   /* slate-100 */
-  --c-surface:    #ffffff;
-  --c-surface-2:  #f8fafc;   /* slate-50 */
-  --c-border:     #e2e8f0;   /* slate-200 */
-  --c-border-2:   #cbd5e1;   /* slate-300 */
+  --c-bg:         #e5e7eb;   /* gray-200 — neutral chrome */
+  --c-surface:    #ffffff;   /* white cards */
+  --c-surface-2:  #f9fafb;   /* gray-50 — nested surfaces */
+  --c-border:     #d1d5db;   /* gray-300 */
+  --c-border-2:   #9ca3af;   /* gray-400 */
   --c-text-1:     #0f172a;   /* slate-900 — headings */
   --c-text-2:     #1e293b;   /* slate-800 — body */
   --c-text-3:     #334155;   /* slate-700 — secondary */

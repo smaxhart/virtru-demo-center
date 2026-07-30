@@ -137,8 +137,8 @@ function StatusBadge({ s }) {
   const styles = {
     idle:    { bg: 'var(--c-border)',    color: 'var(--c-text-5)', border: 'var(--c-border-2)', label: 'idle' },
     running: { bg: '#1e3a5f',            color: '#60a5fa',         border: '#3b82f6',            label: '◌ running' },
-    ok:      { bg: 'var(--c-success-bg)', color: '#4ade80',        border: '#166534',            label: '✓ 200 OK' },
-    error:   { bg: 'var(--c-error-bg)',  color: '#f87171',         border: '#7f1d1d',            label: '✗ error' },
+    ok:      { bg: 'var(--c-success-bg)', color: '#15803d',        border: '#166534',            label: '✓ 200 OK' },
+    error:   { bg: 'var(--c-error-bg)',  color: '#b91c1c',         border: '#7f1d1d',            label: '✗ error' },
   }[s] || styles.idle
   return (
     <span className="text-xs px-2 py-0.5 rounded-full"
@@ -178,7 +178,7 @@ function CheckCard({ check, result, onRun, anyRunning, techMode }) {
         <div className="flex items-center gap-2 flex-shrink-0">
           {r.latency != null && (
             <span className="text-xs font-mono"
-              style={{ color: r.latency > 400 ? '#f59e0b' : 'var(--c-text-5)' }}>
+              style={{ color: r.latency > 400 ? '#b45309' : 'var(--c-text-5)' }}>
               {r.latency}ms
             </span>
           )}
@@ -196,9 +196,9 @@ function CheckCard({ check, result, onRun, anyRunning, techMode }) {
         <button onClick={() => setShowReq(x => !x)}
           className="flex items-center gap-2 text-xs cursor-pointer w-full text-left"
           style={{ color: 'var(--c-text-5)' }}>
-          <span style={{ color: '#a78bfa' }}>{showReq ? '▼' : '▶'}</span>
+          <span style={{ color: 'var(--c-text-2)' }}>{showReq ? '▼' : '▶'}</span>
           <span className="font-mono">
-            <span style={{ color: '#60a5fa' }}>{check.method}</span>
+            <span style={{ color: 'var(--c-text-2)' }}>{check.method}</span>
             {' '}
             <span style={{ color: 'var(--c-text-3)' }}>{check.url}</span>
           </span>
@@ -244,7 +244,7 @@ function CheckCard({ check, result, onRun, anyRunning, techMode }) {
             {/* Response headers */}
             <div className="mb-3 font-mono text-xs rounded px-3 py-2 leading-relaxed"
               style={{ background: 'var(--c-bg)', border: '1px solid var(--c-border)' }}>
-              <div style={{ color: '#4ade80', marginBottom: 2 }}>
+              <div style={{ color: '#15803d', marginBottom: 2 }}>
                 ← {r.response.httpStatus} OK · {r.latency}ms
               </div>
               {Object.entries(r.response.headers)
@@ -258,13 +258,13 @@ function CheckCard({ check, result, onRun, anyRunning, techMode }) {
             </div>
             {/* Summary */}
             <div className="mb-3 text-xs px-3 py-1.5 rounded"
-              style={{ background: 'var(--c-success-bg)', color: '#86efac', border: '1px solid #166534' }}>
+              style={{ background: 'var(--c-success-bg)', color: '#15803d', border: '1px solid #166534' }}>
               {check.summarize(r.response.data)}
             </div>
             {/* Raw JSON */}
             <button onClick={() => setShowRaw(x => !x)}
               className="text-xs cursor-pointer mb-2 flex items-center gap-1"
-              style={{ color: '#a78bfa' }}>
+              style={{ color: 'var(--c-text-2)' }}>
               <span>{showRaw ? '▼' : '▶'}</span> RAW RESPONSE
             </button>
             {showRaw && (
@@ -402,8 +402,8 @@ export default function PlatformPage() {
             {allDone && (
               <div className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-lg"
                 style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)' }}>
-                {okCount > 0 && <span style={{ color: '#4ade80' }}>✓ {okCount} healthy</span>}
-                {errCount > 0 && <span style={{ color: '#f87171' }}>✗ {errCount} error</span>}
+                {okCount > 0 && <span style={{ color: '#15803d' }}>✓ {okCount} healthy</span>}
+                {errCount > 0 && <span style={{ color: '#b91c1c' }}>✗ {errCount} error</span>}
                 {ranAt && <span style={{ color: 'var(--c-text-6)', fontSize: 11 }}>· {ranAt.toLocaleTimeString()}</span>}
               </div>
             )}
@@ -411,7 +411,7 @@ export default function PlatformPage() {
               onClick={runAll}
               disabled={anyRunning}
               className="px-4 py-2 rounded-lg font-medium text-sm transition-all cursor-pointer disabled:opacity-40"
-              style={{ background: 'var(--c-surface-2)', color: '#60a5fa', border: '1px solid var(--c-border)' }}>
+              style={{ background: 'var(--c-surface-2)', color: 'var(--c-text-2)', border: '1px solid var(--c-border)' }}>
               {anyRunning ? '◌ Running…' : '↺ Refresh All'}
             </button>
           </div>
@@ -450,7 +450,7 @@ export default function PlatformPage() {
                 <span className="text-xs px-1.5 py-0.5 rounded-full ml-auto"
                   style={{
                     background: chainOfTrust.every(i => i.ok) ? 'var(--c-success-bg)' : 'var(--c-error-bg)',
-                    color: chainOfTrust.every(i => i.ok) ? '#4ade80' : '#f87171',
+                    color: chainOfTrust.every(i => i.ok) ? '#15803d' : '#b91c1c',
                     border: `1px solid ${chainOfTrust.every(i => i.ok) ? '#166534' : '#7f1d1d'}`,
                   }}>
                   {chainOfTrust.filter(i => i.ok).length}/{chainOfTrust.length} passed
@@ -466,12 +466,12 @@ export default function PlatformPage() {
                 {chainOfTrust.map((item, i) => (
                   <div key={i} className="flex items-start gap-2 step-in">
                     <span className="flex-shrink-0 text-sm mt-0.5"
-                      style={{ color: item.ok ? '#4ade80' : '#f87171' }}>
+                      style={{ color: item.ok ? '#15803d' : '#b91c1c' }}>
                       {item.ok ? '✓' : '✗'}
                     </span>
                     <div>
                       <div className="text-xs font-medium"
-                        style={{ color: item.ok ? '#4ade80' : '#f87171' }}>
+                        style={{ color: item.ok ? '#15803d' : '#b91c1c' }}>
                         {item.label}
                       </div>
                       {item.detail && (
@@ -510,7 +510,7 @@ export default function PlatformPage() {
           {jwt?.error && (
             <div className="rounded-xl p-4" style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)' }}>
               <div className="text-xs font-bold mb-2" style={{ color: 'var(--c-text-5)' }}>PLATFORM TOKEN</div>
-              <div className="text-xs p-2 rounded" style={{ background: 'var(--c-error-bg)', color: '#f87171' }}>
+              <div className="text-xs p-2 rounded" style={{ background: 'var(--c-error-bg)', color: '#b91c1c' }}>
                 {jwt.error}
               </div>
             </div>
@@ -529,9 +529,9 @@ export default function PlatformPage() {
                   <div key={entry.id} className="flex items-center gap-2 text-xs px-2 py-1 rounded"
                     style={{ background: 'var(--c-bg)', border: '1px solid var(--c-border)' }}>
                     <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                      style={{ background: entry.ok !== false ? '#4ade80' : '#f87171' }} />
+                      style={{ background: entry.ok !== false ? '#15803d' : '#b91c1c' }} />
                     <span className="font-mono flex-shrink-0"
-                      style={{ color: entry.ok !== false ? '#4ade80' : '#f87171' }}>
+                      style={{ color: entry.ok !== false ? '#15803d' : '#b91c1c' }}>
                       {entry.status ?? '?'}
                     </span>
                     <span className="truncate flex-1" style={{ color: 'var(--c-text-5)' }} title={entry.url}>

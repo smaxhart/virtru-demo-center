@@ -111,19 +111,19 @@ export default function AuditPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
         {[
           {
-            label: 'Total Events', value: total, color: '#60a5fa',
+            label: 'Total Events', value: total, color: 'var(--c-text-2)',
             sub: mostActive ? `Most active: ${mostActive[0]}` : null,
           },
           {
-            label: 'Granted', value: granted, color: '#4ade80',
+            label: 'Granted', value: granted, color: '#15803d',
             sub: `${grantRate}% grant rate ${last3Rate !== null ? (trendUp ? '↑ trending up' : '↓ trending down') : ''}`,
           },
           {
-            label: 'Denied', value: denied, color: '#f87171',
+            label: 'Denied', value: denied, color: '#b91c1c',
             sub: denied > total * 0.4 ? '⚠ elevated denial rate' : 'nominal',
           },
           {
-            label: 'Revoked', value: revoked, color: '#fb923c',
+            label: 'Revoked', value: revoked, color: 'var(--c-text-3)',
             sub: revoked > 0 ? 'policy changes logged' : 'no revocations',
           },
         ].map(s => (
@@ -157,9 +157,9 @@ export default function AuditPage() {
           <button key={f} onClick={() => setFilter(f)} style={{
             padding: '6px 16px', borderRadius: 99, fontSize: 13, fontWeight: 500,
             cursor: 'pointer', transition: 'all 0.15s',
-            background: filter === f ? '#1e3a5f' : 'var(--c-surface)',
-            color: filter === f ? '#60a5fa' : 'var(--c-text-4)',
-            border: `1px solid ${filter === f ? '#3b82f6' : 'var(--c-border)'}`,
+            background: filter === f ? '#1e293b' : 'var(--c-surface)',
+            color: filter === f ? '#ffffff' : 'var(--c-text-4)',
+            border: `1px solid ${filter === f ? '#1e293b' : 'var(--c-border)'}`,
           }}>
             {f}
             {f !== 'All' && (

@@ -127,7 +127,7 @@ const BASE_FILES = [
 const MS_LABEL_STYLES = {
   ts: { bg: '#fef2f2', color: '#991b1b', border: '#fca5a5' },
   s:  { bg: '#fff7ed', color: '#9a3412', border: '#fdba74' },
-  c:  { bg: '#fefce8', color: '#854d0e', border: '#fde047' },
+  c:  { bg: '#fefce8', color: 'var(--c-text-3)', border: '#fde047' },
   u:  { bg: '#f0fdf4', color: '#14532d', border: '#86efac' },
 }
 
@@ -254,7 +254,7 @@ function KasPanel({ file, attrs }) {
       }}>
         <span style={{ fontSize: 18 }}>{granted ? '✅' : '🚫'}</span>
         <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: granted ? '#4ade80' : '#f87171' }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: granted ? '#15803d' : '#b91c1c' }}>
             KAS: {granted ? 'ACCESS GRANTED' : 'ACCESS DENIED'}
           </div>
           <div style={{ fontSize: 11, color: '#64748b' }}>{file.name}</div>
@@ -265,7 +265,7 @@ function KasPanel({ file, attrs }) {
           File Policy
         </div>
         {file.required.length === 0 ? (
-          <div style={{ fontSize: 12, color: '#4ade80' }}>No restrictions — public</div>
+          <div style={{ fontSize: 12, color: '#15803d' }}>No restrictions — public</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {file.required.map(attr => {
@@ -277,8 +277,8 @@ function KasPanel({ file, attrs }) {
                   background: has ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
                   border: `1px solid ${has ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`,
                 }}>
-                  <span style={{ fontSize: 12, color: has ? '#4ade80' : '#f87171' }}>{has ? '✓' : '✗'}</span>
-                  <span style={{ fontSize: 12, fontFamily: 'monospace', color: has ? '#a7f3d0' : '#fca5a5' }}>{attr}</span>
+                  <span style={{ fontSize: 12, color: has ? '#15803d' : '#b91c1c' }}>{has ? '✓' : '✗'}</span>
+                  <span style={{ fontSize: 12, fontFamily: 'monospace', color: has ? '#166534' : '#b91c1c' }}>{attr}</span>
                 </div>
               )
             })}

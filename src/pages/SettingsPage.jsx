@@ -100,7 +100,7 @@ export default function SettingsPage() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         <div className="rounded-xl p-4" style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)' }}>
-          <div className="text-2xl font-bold mb-1" style={{ color: '#3b82f6' }}>{visibleCount}</div>
+          <div className="text-2xl font-bold mb-1" style={{ color: 'var(--c-text-2)' }}>{visibleCount}</div>
           <div className="text-xs" style={{ color: 'var(--c-text-5)' }}>Visible Pages</div>
         </div>
         <div className="rounded-xl p-4" style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)' }}>
@@ -198,7 +198,7 @@ export default function SettingsPage() {
 
       {/* Help Text */}
       <div className="rounded-lg p-4" style={{ background: 'var(--c-info-bg)', border: '1px solid #1e3a5f' }}>
-        <div className="text-xs font-bold mb-1" style={{ color: '#60a5fa' }}>💡 TIP</div>
+        <div className="text-xs font-bold mb-1" style={{ color: 'var(--c-text-2)' }}>💡 TIP</div>
         <p className="text-xs" style={{ color: 'var(--c-text-4)' }}>
           Settings are stored in your browser's local storage and persist across sessions.
           Use this to customize the demo for different presentation scenarios or to focus on specific features.

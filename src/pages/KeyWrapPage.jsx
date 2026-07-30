@@ -19,7 +19,7 @@ const STEPS = [
     headline: 'A one-time key is born',
     title: 'Data Encryption Key (DEK)',
     icon: 'innovation',
-    color: '#3b82f6',
+    color: 'var(--c-text-2)',
     simple: 'A random, one-time key is generated just for this piece of data. It\'s never reused.',
     technical: 'A 256-bit AES key generated using crypto.getRandomValues(). Unique per object.',
   },
@@ -28,7 +28,7 @@ const STEPS = [
     headline: 'Data becomes unreadable bytes',
     title: 'Encrypt Payload',
     icon: 'lock',
-    color: '#8b5cf6',
+    color: 'var(--c-text-2)',
     simple: 'The DEK encrypts your data using military-grade AES encryption. The result is unreadable without the key.',
     technical: 'AES-256-GCM encryption with a 96-bit random IV. Produces ciphertext + authentication tag.',
   },
@@ -37,7 +37,7 @@ const STEPS = [
     headline: 'KAS provides a padlock',
     title: 'KAS Public Key',
     icon: 'key',
-    color: '#f59e0b',
+    color: 'var(--c-text-3)',
     simple: 'KAS has a public key — like a padlock anyone can lock, but only KAS can open.',
     technical: 'RSA-2048 or EC P-256 public key fetched from /kas/v2/kas_public_key. Used for asymmetric wrapping.',
   },
@@ -46,7 +46,7 @@ const STEPS = [
     headline: 'Key is locked inside the padlock',
     title: 'Wrap the DEK',
     icon: 'safe',
-    color: '#ec4899',
+    color: 'var(--c-text-2)',
     simple: 'The DEK is locked inside the KAS padlock. Now only KAS can recover it — and only for authorized users.',
     technical: 'RSA-OAEP or ECDH key agreement used to encrypt (wrap) the DEK with the KAS public key. Result is the "wrapped key" stored in the TDF manifest.',
   },
@@ -64,7 +64,7 @@ const STEPS = [
     headline: 'Decryption begins with identity',
     title: 'Key Request (Decrypt)',
     icon: 'globe',
-    color: '#06b6d4',
+    color: 'var(--c-text-2)',
     simple: 'When someone tries to open the file, their identity is sent to KAS. KAS checks their attributes against the policy.',
     technical: 'POST /kas/v2/rewrap with the wrapped key + a signed entity object (JWT). KAS performs entitlement check via the platform AuthorizationService.',
   },
@@ -73,7 +73,7 @@ const STEPS = [
     headline: 'Plaintext appears — only on your device',
     title: 'Unwrap & Decrypt',
     icon: 'unlock',
-    color: '#4ade80',
+    color: '#15803d',
     simple: 'If authorized, KAS returns the DEK. The client decrypts the data locally. The plaintext never touches the server.',
     technical: 'KAS decrypts (unwraps) the DEK using its private key, then re-encrypts it for the requesting entity. Client derives the DEK and runs AES-GCM decrypt locally.',
   },
@@ -254,7 +254,7 @@ export default function KeyWrapPage() {
                     color={step.color}
                   />
                   {!kasKeyData.simulated && (
-                    <div className="mt-2 text-xs px-2 py-1 rounded inline-block" style={{ background: 'var(--c-success-bg)', color: '#4ade80' }}>
+                    <div className="mt-2 text-xs px-2 py-1 rounded inline-block" style={{ background: 'var(--c-success-bg)', color: '#15803d' }}>
                       ✓ Live key from kas.dsp.vm
                     </div>
                   )}
@@ -264,7 +264,7 @@ export default function KeyWrapPage() {
 
             {step.id === 'wrap' && (
               <div className="flex flex-col gap-2">
-                <HexBox label="Input: DEK (plaintext)" value={DEK_HEX} color="#3b82f6" />
+                <HexBox label="Input: DEK (plaintext)" value={DEK_HEX} color="#1d4ed8" />
                 <Arrow color={step.color} label="RSA-OAEP encrypt with KAS public key" />
                 <HexBox label="Output: wrapped key (only KAS can open)" value={WRAPPED} color={step.color} />
               </div>
@@ -294,7 +294,7 @@ export default function KeyWrapPage() {
                   &nbsp;&nbsp;<span style={{ color: '#8b5cf6' }}>"entity"</span>: <span style={{ color: '#4ade80' }}>{`"${activePersona.username || 'user'}"`}</span><br />
                   <span style={{ color: 'var(--c-text-5)' }}>{'}'}</span>
                 </div>
-                <div className="text-xs p-2 rounded" style={{ background: 'var(--c-success-bg)', color: '#4ade80', border: '1px solid #166534' }}>
+                <div className="text-xs p-2 rounded" style={{ background: 'var(--c-success-bg)', color: '#15803d', border: '1px solid #166534' }}>
                   → GetEntitlements({activePersona.username || 'user'}) → {activePersona.attributes.length > 0 ? '✓ entitled' : '✗ no attributes'}
                 </div>
               </div>
@@ -308,11 +308,11 @@ export default function KeyWrapPage() {
                   <div className="px-3 py-1.5 text-xs" style={{ background: '#0d2018', color: '#4ade80', borderBottom: '1px solid #166534' }}>
                     ✓ Decrypted — {PLAINTEXT_TITLE}
                   </div>
-                  <div className="p-3 text-sm" style={{ background: 'var(--c-success-bg)', color: '#86efac' }}>
+                  <div className="p-3 text-sm" style={{ background: 'var(--c-success-bg)', color: '#15803d' }}>
                     {PLAINTEXT_PREVIEW}
                   </div>
                 </div>
-                <div className="text-xs" style={{ color: '#4ade80' }}>
+                <div className="text-xs" style={{ color: '#15803d' }}>
                   Plaintext never left the client. KAS only returned the DEK — it never saw the payload.
                 </div>
               </div>
@@ -413,11 +413,11 @@ export default function KeyWrapPage() {
             <p className="text-sm leading-relaxed mb-2" style={{ color: 'var(--c-text-3)' }}>{mode.desc}</p>
             <div className="flex gap-8 text-xs">
               <div className="flex flex-col gap-1">
-                {mode.pros.map(p => <span key={p} style={{ color: '#4ade80' }}>✓ {p}</span>)}
+                {mode.pros.map(p => <span key={p} style={{ color: '#15803d' }}>✓ {p}</span>)}
               </div>
               {mode.cons.length > 0 && (
                 <div className="flex flex-col gap-1">
-                  {mode.cons.map(c => <span key={c} style={{ color: '#f87171' }}>− {c}</span>)}
+                  {mode.cons.map(c => <span key={c} style={{ color: '#b91c1c' }}>− {c}</span>)}
                 </div>
               )}
             </div>

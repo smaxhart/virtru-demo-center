@@ -18,16 +18,16 @@ const CLEARANCE_TO_CLASSIFICATION = {
 
 // Groups: clearance has hierarchy note, relto has ANY_OF note, needtoknow has ALL_OF note
 const ATTR_GROUP_META = {
-  clearance:    { color: '#ef4444', note: 'HIERARCHY — higher clearance satisfies lower requirements', priority: 1 },
-  classification: { color: '#f87171', note: 'HIERARCHY — classification level of the data', priority: 2 },
-  mission:      { color: '#f59e0b', note: 'ANY_OF — user needs at least one matching mission attribute', priority: 3 },
-  relto:        { color: '#3b82f6', note: 'ANY_OF — any coalition membership satisfies', priority: 4 },
-  needtoknow:   { color: '#8b5cf6', note: 'ALL_OF — user must hold every listed compartment', priority: 5 },
-  caveats:      { color: '#06b6d4', note: null, priority: 6 },
-  nationality:  { color: '#10b981', note: null, priority: 7 },
-  role:         { color: '#60a5fa', note: null, priority: 8 },
-  department:   { color: '#a78bfa', note: null, priority: 9 },
-  project:      { color: '#f472b6', note: null, priority: 10 },
+  clearance:    { color: '#b91c1c', note: 'HIERARCHY — higher clearance satisfies lower requirements', priority: 1 },
+  classification: { color: '#b91c1c', note: 'HIERARCHY — classification level of the data', priority: 2 },
+  mission:      { color: 'var(--c-text-3)', note: 'ANY_OF — user needs at least one matching mission attribute', priority: 3 },
+  relto:        { color: 'var(--c-text-2)', note: 'ANY_OF — any coalition membership satisfies', priority: 4 },
+  needtoknow:   { color: 'var(--c-text-2)', note: 'ALL_OF — user must hold every listed compartment', priority: 5 },
+  caveats:      { color: 'var(--c-text-2)', note: null, priority: 6 },
+  nationality:  { color: '#047857', note: null, priority: 7 },
+  role:         { color: 'var(--c-text-2)', note: null, priority: 8 },
+  department:   { color: 'var(--c-text-2)', note: null, priority: 9 },
+  project:      { color: 'var(--c-text-2)', note: null, priority: 10 },
 }
 
 // Which groups are hidden behind "show more"
@@ -436,7 +436,7 @@ export default function PolicyPage() {
                   transition: 'all 0.12s',
                 }}>
                   <div style={{ color: 'var(--c-text-3)', fontWeight: 500 }}>{s.label}</div>
-                  <div style={{ fontSize: 11, marginTop: 2, color: s.hint.startsWith('✓') ? '#4ade80' : '#f87171' }}>{s.hint}</div>
+                  <div style={{ fontSize: 11, marginTop: 2, color: s.hint.startsWith('✓') ? '#15803d' : '#b91c1c' }}>{s.hint}</div>
                 </button>
               ))}
             </div>

@@ -306,7 +306,7 @@ export default function RevocationPage() {
                       }}>
                         {done ? '✓' : active ? <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>◌</span> : i + 1}
                       </div>
-                      <div style={{ fontSize: 10, textAlign: 'center', color: done ? '#16a34a' : active ? '#2563eb' : 'var(--c-text-5)', lineHeight: 1.3 }}>
+                      <div style={{ fontSize: 10, textAlign: 'center', color: done ? '#15803d' : active ? '#1d4ed8' : 'var(--c-text-5)', lineHeight: 1.3 }}>
                         {s.label}
                       </div>
                     </div>

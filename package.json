@@ -1,6 +1,6 @@
 {
   "name": "virtru-demo-center",
-  "version": "1.5.13",
+  "version": "1.5.14",
   "description": "Virtru Demo Center — self-contained Electron app with embedded OpenTDF platform",
   "author": "Virtru",
   "license": "UNLICENSED",
@@ -21,9 +21,11 @@
     "autoprefixer": "^10.4.27",
     "electron-log": "^5.4.4",
     "electron-updater": "^6.8.9",
+    "leaflet": "^1.9.4",
     "postcss": "^8.5.8",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.13.1",
     "tailwindcss": "^4.2.1"
   },

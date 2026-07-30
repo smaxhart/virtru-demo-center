@@ -365,10 +365,10 @@ export default function EncryptPage() {
             <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--c-text-5)', marginBottom: 12 }}>How it works</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {[
-                { icon: 'document', color: '#60a5fa', step: '1', label: 'File selected', desc: 'Classification determines which attribute is required to decrypt' },
-                { icon: 'lock', color: '#8b5cf6', step: '2', label: 'Policy binding', desc: 'Required attribute is written into the TDF manifest at encrypt time' },
-                { icon: 'key', color: '#f59e0b', step: '3', label: 'AES-256-GCM + key wrap', desc: "DEK encrypted with KAS's public key — only KAS can recover it" },
-                { icon: 'globe', color: '#22c55e', step: '4', label: 'KAS decision', desc: "On decrypt, KAS checks the user's live JWT attributes against the policy" },
+                { icon: 'document', color: 'var(--c-text-2)', step: '1', label: 'File selected', desc: 'Classification determines which attribute is required to decrypt' },
+                { icon: 'lock', color: 'var(--c-text-2)', step: '2', label: 'Policy binding', desc: 'Required attribute is written into the TDF manifest at encrypt time' },
+                { icon: 'key', color: 'var(--c-text-3)', step: '3', label: 'AES-256-GCM + key wrap', desc: "DEK encrypted with KAS's public key — only KAS can recover it" },
+                { icon: 'globe', color: '#15803d', step: '4', label: 'KAS decision', desc: "On decrypt, KAS checks the user's live JWT attributes against the policy" },
               ].map(s => (
                 <div key={s.step} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
                   <div style={{

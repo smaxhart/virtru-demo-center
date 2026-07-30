@@ -490,7 +490,7 @@ export default function TdfExplorerPage() {
                           <div className="flex flex-wrap gap-1.5 mb-2">
                             {policyFqns.map(fqn => (
                               <span key={fqn} className="px-2 py-1 rounded font-mono text-xs"
-                                style={{ background: '#60a5fa18', color: '#60a5fa', border: '1px solid #60a5fa44' }}>
+                                style={{ background: '#1d4ed810', color: 'var(--c-text-2)', border: '1px solid #1d4ed844' }}>
                                 {fqnLabel(fqn)}
                               </span>
                             ))}
@@ -529,7 +529,7 @@ export default function TdfExplorerPage() {
                             </div>
                             <div>
                               <span style={{ color: '#60a5fa' }}>"isStreamable"</span><span style={{ color: 'var(--c-text-5)' }}>: </span>
-                              <span style={{ color: '#f87171' }}>{String(!!method.isStreamable)}</span>
+                              <span style={{ color: '#b91c1c' }}>{String(!!method.isStreamable)}</span>
                             </div>
                           </div>
                         )}
@@ -571,10 +571,10 @@ export default function TdfExplorerPage() {
                   style={{ background: payloadOpen ? '#050f0a' : 'var(--c-surface)' }}>
                   <span>🔒</span>
                   <div className="flex-1 min-w-0">
-                    <span className="text-sm font-semibold" style={{ color: '#4ade80' }}>0.payload</span>
+                    <span className="text-sm font-semibold" style={{ color: payloadOpen ? '#4ade80' : '#15803d' }}>0.payload</span>
                     <span className="ml-3 text-xs" style={{ color: 'var(--c-text-5)' }}>AES-256-GCM encrypted · {payloadBytes ? (payloadBytes.length / 1024).toFixed(1) : '?'} KB</span>
                   </div>
-                  <span className="text-xs" style={{ color: '#4ade80' }}>{payloadOpen ? '▲' : '▼'}</span>
+                  <span className="text-xs" style={{ color: payloadOpen ? '#4ade80' : '#15803d' }}>{payloadOpen ? '▲' : '▼'}</span>
                 </button>
 
                 {payloadOpen && hexRows && (

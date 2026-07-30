@@ -6,11 +6,10 @@ import Icon from './Icon.jsx'
 const NAV_ITEMS = [
   { to: '/home',         id: 'home',         label: 'Home',              icon: 'globe'   },
   { to: '/architecture', id: 'architecture', label: 'Architecture',      icon: 'boxes'   },
-  { to: '/keywrap',      id: 'keywrap',      label: 'Key Management',    icon: 'key'     },
-  { to: '/tdf-explorer', id: 'tdf-explorer', label: 'TDF Explorer',      icon: 'tdf'     },
+  { to: '/cop',          id: 'cop',          label: 'COP',               icon: 'globe'   },
   { to: '/collaborate',  id: 'collaborate',  label: 'Collaborate',       icon: 'revoke'  },
-  { to: '/tagging',      id: 'tagging',      label: 'Auto-Tagging',      icon: 'document'},
-  { to: '/policy',       id: 'policy',       label: 'Policy Builder',    icon: 'document'},
+  { to: '/ai-agent',     id: 'ai-agent',     label: 'AI Protection',     icon: 'shield'  },
+  { to: '/tdf-explorer', id: 'tdf-explorer', label: 'TDF Explorer',      icon: 'tdf'     },
   { to: '/platform',     id: 'platform',     label: 'Platform',          icon: 'globe'   },
   { to: '/audit',        id: 'audit',        label: 'Audit Log',         icon: 'tdf-doc' },
 ]
@@ -18,11 +17,10 @@ const NAV_ITEMS = [
 const PAGE_LABELS = {
   '/home':         'Home',
   '/architecture': 'Architecture',
-  '/keywrap':      'Key Management',
+  '/cop':          'Common Operating Picture',
   '/collaborate':  'Collaborate',
+  '/ai-agent':     'AI Protection',
   '/audit':        'Audit Log',
-  '/tagging':      'Auto-Tagging',
-  '/policy':       'Policy Builder',
   '/platform':     'Platform',
   '/tdf-explorer': 'TDF Explorer',
   '/settings':     'Settings',
@@ -177,17 +175,17 @@ export default function Layout() {
             flexShrink: 0,
           }}>
             {updateInfo.state === 'available' && (
-              <div style={{ fontSize: 11, color: '#60a5fa' }}>
+              <div style={{ fontSize: 11, color: 'var(--c-text-2)' }}>
                 ↑ v{updateInfo.version} available — downloading…
               </div>
             )}
             {updateInfo.state === 'error' && (
-              <div style={{ fontSize: 11, color: '#f87171' }}>
+              <div style={{ fontSize: 11, color: '#b91c1c' }}>
                 ⚠ Update failed — check logs
               </div>
             )}
             {updateInfo.state === 'downloading' && (
-              <div style={{ fontSize: 11, color: '#60a5fa' }}>
+              <div style={{ fontSize: 11, color: 'var(--c-text-2)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                   <span>↓ Updating… {updateInfo.percent}%</span>
                   <span style={{ color: 'rgba(96,165,250,0.6)' }}>
@@ -205,7 +203,7 @@ export default function Layout() {
               </div>
             )}
             {updateInfo.state === 'ready' && (
-              <div style={{ fontSize: 11, color: '#4ade80' }}>
+              <div style={{ fontSize: 11, color: '#15803d' }}>
                 ✓ v{updateInfo.version} ready — installs on quit
               </div>
             )}
@@ -317,8 +315,8 @@ export default function Layout() {
                       borderRadius: '50%',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: 13,
-                      background: activePersona.id === p.id ? p.color + '22' : 'var(--c-surface-2)',
-                      border: `2px solid ${activePersona.id === p.id ? p.color : 'transparent'}`,
+                      background: activePersona.id === p.id ? 'var(--c-border)' : 'var(--c-surface-2)',
+                      border: `2px solid ${activePersona.id === p.id ? 'var(--c-text-4)' : 'transparent'}`,
                       transform: activePersona.id === p.id ? 'scale(1.15)' : 'scale(1)',
                       cursor: 'pointer',
                       transition: 'all 0.15s',
@@ -331,9 +329,9 @@ export default function Layout() {
               <span style={{
                 fontSize: 12, fontWeight: 500,
                 padding: '3px 10px', borderRadius: 6,
-                background: activePersona.color + '15',
-                color: activePersona.color,
-                border: `1px solid ${activePersona.color}30`,
+                background: 'var(--c-surface-2)',
+                color: 'var(--c-text-2)',
+                border: '1px solid var(--c-border)',
               }}>
                 {activePersona.name}
               </span>
@@ -346,9 +344,9 @@ export default function Layout() {
                   <span key={a} style={{
                     fontSize: 11, fontWeight: 500,
                     padding: '2px 8px', borderRadius: 4,
-                    background: activePersona.color + '12',
-                    color: activePersona.color,
-                    border: `1px solid ${activePersona.color}25`,
+                    background: 'var(--c-surface-2)',
+                    color: 'var(--c-text-3)',
+                    border: '1px solid var(--c-border)',
                   }}>
                     {a}
                   </span>
@@ -437,7 +435,7 @@ export default function Layout() {
         </header>
 
         {/* Page content */}
-        <main style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+        <main style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', position: 'relative' }}>
           <Outlet />
         </main>
 
@@ -458,7 +456,7 @@ export default function Layout() {
               borderBottom: '1px solid var(--c-border)',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#60a5fa', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--c-text-2)', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Icon name="web" size={13} /> LIVE API LOG
                 </span>
                 <span style={{ fontSize: 11, color: 'var(--c-text-5)' }}>
@@ -488,10 +486,10 @@ export default function Layout() {
                   <tbody>
                     {apiLog.slice(0, 30).map(entry => (
                       <tr key={entry.id} style={{ borderBottom: '1px solid var(--c-border)' }}>
-                        <td style={{ padding: '4px 12px 4px 0', color: entry.ok !== false ? '#4ade80' : '#f87171' }}>{entry.status ?? '?'}</td>
-                        <td style={{ padding: '4px 12px 4px 0', color: '#a78bfa' }}>{entry.method}</td>
+                        <td style={{ padding: '4px 12px 4px 0', color: entry.ok !== false ? '#15803d' : '#b91c1c' }}>{entry.status ?? '?'}</td>
+                        <td style={{ padding: '4px 12px 4px 0', color: 'var(--c-text-2)' }}>{entry.method}</td>
                         <td style={{ padding: '4px 0', color: 'var(--c-text-3)', maxWidth: '60vw', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={entry.url}>{entry.url}</td>
-                        <td style={{ padding: '4px 0', textAlign: 'right', color: entry.latency > 300 ? '#f59e0b' : 'var(--c-text-5)' }}>{entry.latency != null ? `${entry.latency}ms` : '—'}</td>
+                        <td style={{ padding: '4px 0', textAlign: 'right', color: entry.latency > 300 ? '#b45309' : 'var(--c-text-5)' }}>{entry.latency != null ? `${entry.latency}ms` : '—'}</td>
                       </tr>
                     ))}
                   </tbody>

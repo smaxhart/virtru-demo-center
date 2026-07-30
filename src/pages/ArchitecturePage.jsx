@@ -70,10 +70,10 @@ const MULTI_KAS_FLOW = [
 ]
 
 const FLOWS = [
-  { key: 'encrypt',  label: 'Encrypt Flow',   color: '#60a5fa', bg: 'rgba(59,130,246,0.12)',  border: '#3b82f6',  data: ENCRYPT_FLOW  },
-  { key: 'decrypt',  label: 'Decrypt Flow',   color: '#4ade80', bg: 'rgba(34,197,94,0.1)',    border: '#22c55e',  data: DECRYPT_FLOW  },
-  { key: 'abac',     label: 'ABAC Flow',      color: '#c084fc', bg: 'rgba(168,85,247,0.1)',   border: '#a855f7',  data: ABAC_FLOW     },
-  { key: 'multikas', label: 'Multi-KAS Flow', color: '#fbbf24', bg: 'rgba(245,158,11,0.1)',   border: '#f59e0b',  data: MULTI_KAS_FLOW},
+  { key: 'encrypt',  label: 'Encrypt Flow',   color: 'var(--c-text-2)', bg: 'rgba(29,78,216,0.10)',   border: '#1d4ed8',  data: ENCRYPT_FLOW  },
+  { key: 'decrypt',  label: 'Decrypt Flow',   color: '#15803d', bg: 'rgba(21,128,61,0.10)',   border: '#166534',  data: DECRYPT_FLOW  },
+  { key: 'abac',     label: 'ABAC Flow',      color: 'var(--c-text-2)', bg: 'rgba(109,40,217,0.10)',  border: '#6d28d9',  data: ABAC_FLOW     },
+  { key: 'multikas', label: 'Multi-KAS Flow', color: 'var(--c-text-3)', bg: 'rgba(180,83,9,0.10)',    border: '#b45309',  data: MULTI_KAS_FLOW},
 ]
 
 function nodeCenter(node) {
@@ -537,7 +537,7 @@ export default function ArchitecturePage() {
                 >
                   <span style={{ fontWeight: 700, fontSize: 10 }}>{s.step}</span>
                   {s.label}
-                  {i < flowStep && <span style={{ color: '#4ade80', fontSize: 10 }}>✓</span>}
+                  {i < flowStep && <span style={{ color: '#15803d', fontSize: 10 }}>✓</span>}
                 </button>
               ))}
             </div>
