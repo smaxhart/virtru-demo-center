@@ -31,8 +31,11 @@ const PERSONA_CLAIMS = {
   'fvey-uk':  { sub: 'fvey-uk',  name: 'Flt Lt Emma Clarke',   'clearance': 'secret', 'nationality': 'GBR',  'relto': 'fvey', ...STD },
   'nato-fr':  { sub: 'nato-fr',  name: 'Maj. Henri Dubois',    'clearance': 'secret', 'nationality': 'FRA',  'relto': 'nato', ...STD },
   'nato-de':  { sub: 'nato-de',  name: 'Maj. Klaus Richter',   'clearance': 'secret', 'nationality': 'DEU',  'relto': 'nato', ...STD },
-  'generic':  { sub: 'generic',  name: 'Generic User', ...STD },
-  'admin':    { sub: 'admin',    name: 'Platform Admin', azp: 'demo-client', 'clearance': 'ts-sci', 'mission': 'admin', 'role': 'admin', 'nationality': 'USA', 'realm_access': { roles: ['opentdf-admin', 'opentdf-standard'] } },
+  'generic':      { sub: 'generic',      name: 'Generic User', ...STD },
+  'admin':        { sub: 'admin',        name: 'Platform Admin', azp: 'demo-client', 'clearance': 'ts-sci', 'mission': 'admin', 'role': 'admin', 'nationality': 'USA', 'realm_access': { roles: ['opentdf-admin', 'opentdf-standard'] } },
+  'ai-intel':     { sub: 'ai-intel',     name: 'Intel Analyst AI',  'clearance': 'ts-sci', 'mission': 'intel',  'relto': 'fvey', ...STD },
+  'ai-ops':       { sub: 'ai-ops',       name: 'Ops Assistant AI',  'clearance': 'secret', 'mission': 'ops',   'relto': 'nato', ...STD },
+  'ai-logistics': { sub: 'ai-logistics', name: 'Logistics AI', ...STD },
 }
 
 let privateKey = null

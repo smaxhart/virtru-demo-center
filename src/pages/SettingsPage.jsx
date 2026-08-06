@@ -3,6 +3,11 @@ import { useDemo } from '../context/DemoContext.jsx'
 import Icon from '../components/Icon.jsx'
 
 const DEFAULT_PAGE_VISIBILITY = {
+  home: true,
+  cop: true,
+  collaborate: true,
+  'ai-agent': true,
+  'tdf-explorer': true,
   architecture: true,
   encrypt: true,
   policy: true,
@@ -14,6 +19,16 @@ const DEFAULT_PAGE_VISIBILITY = {
 }
 
 const PAGE_GROUPS = [
+  {
+    label: 'Demo',
+    pages: [
+      { id: 'home',         label: 'Home',          icon: 'globe'   },
+      { id: 'cop',          label: 'COP',           icon: 'globe'   },
+      { id: 'collaborate',  label: 'Collaborate',   icon: 'revoke'  },
+      { id: 'ai-agent',     label: 'AI Protection', icon: 'shield'  },
+      { id: 'tdf-explorer', label: 'TDF Explorer',  icon: 'tdf'     },
+    ]
+  },
   {
     label: 'Core',
     pages: [

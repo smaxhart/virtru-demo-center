@@ -179,7 +179,7 @@ function createWindow() {
           "default-src 'self' file:; " +
           "script-src 'self' 'unsafe-inline' 'unsafe-eval' file:; " +
           "style-src 'self' 'unsafe-inline' file:; " +
-          "img-src 'self' file: data:; " +
+          "img-src 'self' file: data: https://*.basemaps.cartocdn.com https://*.tile.openstreetmap.org; " +
           "font-src 'self' file: data:; " +
           "connect-src 'self' http://localhost:7777 http://localhost:7779;",
         ],
