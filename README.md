@@ -15,14 +15,14 @@ Go to the [latest release](https://github.com/smaxhart/virtru-demo-center/releas
 
 **2. Open the DMG and drag to Applications**
 
-Open the downloaded `.dmg` file, then drag **Virtru Demo Center** into your `Applications` folder.
+Open the downloaded `.dmg` file, then drag **Virtru Demo Center** into your `~/Applications` folder (your personal Applications folder, not `/Applications/`). Create the folder if it doesn't exist yet.
 
 **3. Bypass Gatekeeper on first launch**
 
 Because the app is not notarized, macOS may show a **"damaged and can't be opened"** error. To fix it, open Terminal and run:
 
 ```
-xattr -cr "/Applications/Virtru Demo Center.app"
+xattr -cr ~/Applications/Virtru\ Demo\ Center.app
 ```
 
 Then double-click the app to launch it normally. You only need to do this once.
