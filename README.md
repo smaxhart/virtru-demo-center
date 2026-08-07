@@ -19,13 +19,13 @@ Open the downloaded `.dmg` file, then drag **Virtru Demo Center** into your `App
 
 **3. Bypass Gatekeeper on first launch**
 
-Because the app is not notarized, macOS will block it on the first open. To allow it:
+Because the app is not notarized, macOS may show a **"damaged and can't be opened"** error. To fix it, open Terminal and run:
 
-- Right-click (or Control-click) **Virtru Demo Center** in your Applications folder
-- Select **Open**
-- Click **Open** in the dialog that appears
+```
+xattr -cr "/Applications/Virtru Demo Center.app"
+```
 
-You only need to do this once. After that, the app opens normally.
+Then double-click the app to launch it normally. You only need to do this once.
 
 ## First Launch
 
