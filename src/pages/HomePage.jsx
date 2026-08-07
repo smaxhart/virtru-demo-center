@@ -115,7 +115,7 @@ const PROOF_POINTS = [
 
 export default function HomePage() {
   const navigate = useNavigate()
-  const { platformReady } = useDemo()
+  const { platformReady, platformError } = useDemo()
 
   return (
     <div style={{ overflowY: 'auto', height: '100%' }}>
@@ -154,15 +154,38 @@ export default function HomePage() {
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: 8,
             padding: '4px 12px', borderRadius: 99,
-            background: 'rgba(106,170,228,0.1)',
-            border: '1px solid rgba(106,170,228,0.2)',
+            background: platformReady === false ? 'rgba(185,28,28,0.1)' : 'rgba(106,170,228,0.1)',
+            border: `1px solid ${platformReady === false ? 'rgba(185,28,28,0.3)' : 'rgba(106,170,228,0.2)'}`,
             marginBottom: 20,
           }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: platformReady ? '#4ade80' : '#f59e0b', flexShrink: 0 }} />
+            <span style={{
+              width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
+              background: platformReady === true ? '#4ade80' : platformReady === false ? '#ef4444' : '#f59e0b',
+            }} />
             <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(147,197,253,0.8)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-              {platformReady ? 'Platform online — live demo ready' : 'Platform starting…'}
+              {platformReady === true
+                ? 'Platform online — live demo ready'
+                : platformReady === false
+                  ? 'Platform error — check logs'
+                  : 'Platform starting…'}
             </span>
           </div>
+
+          {platformReady === false && platformError && (
+            <div style={{
+              marginBottom: 20, padding: '10px 14px', borderRadius: 8,
+              background: 'rgba(185,28,28,0.08)', border: '1px solid rgba(185,28,28,0.25)',
+              maxWidth: 620,
+            }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#fca5a5', marginBottom: 4 }}>PLATFORM FAILED TO START</div>
+              <pre style={{ fontSize: 11, color: 'rgba(252,165,165,0.8)', margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'monospace', lineHeight: 1.5 }}>
+                {platformError}
+              </pre>
+              <div style={{ marginTop: 8, fontSize: 11, color: 'rgba(147,197,253,0.5)' }}>
+                Logs: ~/Library/Logs/virtru-demo-center/main.log
+              </div>
+            </div>
+          )}
 
           <h1 style={{
             fontSize: 42, fontWeight: 800, lineHeight: 1.1,

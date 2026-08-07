@@ -12,10 +12,12 @@ const HEALTH_URL = `http://localhost:${PLATFORM_PORT}/healthz`
 const MAX_RESTARTS = 3
 const HEALTH_POLL_MS = 500
 const HEALTH_TIMEOUT_MS = 30000
+const HEALTH_REQ_TIMEOUT_MS = 1500  // per-request timeout so a hung connection doesn't block the loop
 
 let proc = null
 let restarts = 0
 let stopped = false
+let lastStderr = ''
 
 function getBinaryPath(app) {
   if (app.isPackaged) {
@@ -110,11 +112,21 @@ function pollHealth(timeoutMs) {
   return new Promise((resolve, reject) => {
     const deadline = Date.now() + timeoutMs
     function check() {
-      if (Date.now() > deadline) return reject(new Error('Platform health check timed out'))
-      http.get(HEALTH_URL, res => {
+      if (Date.now() > deadline) {
+        const detail = lastStderr ? `\n\nPlatform output:\n${lastStderr.slice(-800)}` : ''
+        return reject(new Error(`Platform health check timed out after ${timeoutMs / 1000}s${detail}`))
+      }
+      const req = http.get(HEALTH_URL, res => {
+        // Must consume the body or the socket stays open and blocks future requests
+        res.resume()
         if (res.statusCode === 200) return resolve()
         setTimeout(check, HEALTH_POLL_MS)
-      }).on('error', () => setTimeout(check, HEALTH_POLL_MS))
+      })
+      req.setTimeout(HEALTH_REQ_TIMEOUT_MS, () => {
+        req.destroy()
+        setTimeout(check, HEALTH_POLL_MS)
+      })
+      req.on('error', () => setTimeout(check, HEALTH_POLL_MS))
     }
     check()
   })
@@ -128,7 +140,13 @@ function spawnPlatform(binaryPath, configPath) {
   })
 
   proc.stdout.on('data', d => process.stdout.write(`[platform] ${d}`))
-  proc.stderr.on('data', d => process.stderr.write(`[platform] ${d}`))
+  proc.stderr.on('data', d => {
+    const s = d.toString()
+    lastStderr += s
+    // Keep only the last 2KB to avoid unbounded growth
+    if (lastStderr.length > 2048) lastStderr = lastStderr.slice(-2048)
+    process.stderr.write(`[platform] ${s}`)
+  })
 
   proc.on('exit', (code, signal) => {
     if (stopped) return
@@ -140,11 +158,28 @@ function spawnPlatform(binaryPath, configPath) {
   })
 }
 
+function checkPortFree(port) {
+  return new Promise(resolve => {
+    const test = require('net').createServer()
+    test.once('error', () => resolve(false))
+    test.once('listening', () => { test.close(); resolve(true) })
+    test.listen(port, '127.0.0.1')
+  })
+}
+
 async function start(app, issuerUrl) {
   const binaryPath = getBinaryPath(app)
   if (!fs.existsSync(binaryPath)) {
     throw new Error(
       `OpenTDF platform binary not found at:\n${binaryPath}\n\nRun: npm run build:platform`
+    )
+  }
+
+  const portFree = await checkPortFree(PLATFORM_PORT)
+  if (!portFree) {
+    throw new Error(
+      `Port ${PLATFORM_PORT} is already in use.\n\nAnother process is occupying the port the platform needs. ` +
+      `Close the conflicting app, then relaunch Virtru Demo Center.`
     )
   }
 

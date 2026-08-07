@@ -15,6 +15,7 @@ export function DemoProvider({ children }) {
   const [techMode,         setTechMode]         = useState(false)
   const [presentationMode, setPresentationMode] = useState(true)
   const [platformReady,    setPlatformReady]    = useState(null)
+  const [platformError,    setPlatformError]    = useState(null)
 
   const theme     = 'light'
   const setSector = useCallback(() => {}, [])
@@ -34,31 +35,27 @@ export function DemoProvider({ children }) {
 
   useEffect(() => { setApiLogger(logCall) }, [logCall])
 
+  const applyStatus = useCallback((status) => {
+    if (status === 'ready') {
+      setPlatformReady(true)
+      listAttributes().then(setAttributes).catch(() => {})
+    } else if (status === 'error' || status?.state === 'error') {
+      setPlatformReady(false)
+      if (status?.message) setPlatformError(status.message)
+    }
+  }, [])
+
   useEffect(() => {
     if (window.electronAPI?.onPlatformStatus) {
-      const unsub = window.electronAPI.onPlatformStatus(status => {
-        if (status === 'ready') {
-          setPlatformReady(true)
-          listAttributes().then(setAttributes).catch(() => {})
-        } else if (status === 'error') {
-          setPlatformReady(false)
-        }
-      })
-      window.electronAPI.getPlatformStatus?.().then(status => {
-        if (status === 'ready') {
-          setPlatformReady(true)
-          listAttributes().then(setAttributes).catch(() => {})
-        } else if (status === 'error') {
-          setPlatformReady(false)
-        }
-      })
+      const unsub = window.electronAPI.onPlatformStatus(applyStatus)
+      window.electronAPI.getPlatformStatus?.().then(applyStatus)
       return unsub
     } else {
       listAttributes()
         .then(attrs => { setAttributes(attrs); setPlatformReady(true) })
         .catch(() => setPlatformReady(false))
     }
-  }, [])
+  }, [applyStatus])
 
   return (
     <DemoContext.Provider value={{
@@ -71,7 +68,7 @@ export function DemoProvider({ children }) {
       eventLog, logEvent,
       techMode, setTechMode,
       theme, toggleTheme,
-      platformReady,
+      platformReady, platformError,
       presentationMode, setPresentationMode,
     }}>
       {children}

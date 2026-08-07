@@ -152,14 +152,14 @@ export default function Layout() {
                 Demo Center
               </div>
             </div>
-            {platformReady === true && (
+            {platformReady !== null && (
               <div style={{
                 marginLeft: 2,
                 width: 6, height: 6,
                 borderRadius: '50%',
-                background: '#4ade80',
-                boxShadow: '0 0 6px rgba(74,222,128,0.7)',
-                animation: 'pulse-ring 2s ease-out infinite',
+                background: platformReady ? '#4ade80' : '#ef4444',
+                boxShadow: platformReady ? '0 0 6px rgba(74,222,128,0.7)' : '0 0 6px rgba(239,68,68,0.7)',
+                animation: platformReady ? 'pulse-ring 2s ease-out infinite' : 'none',
                 flexShrink: 0,
               }} />
             )}

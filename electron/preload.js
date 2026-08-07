@@ -19,6 +19,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeAllListeners('platform-status')
   },
 
+  getLogPath: () => ipcRenderer.invoke('get-log-path'),
+
   // Auto-updater
   onUpdateStatus: (callback) => {
     ipcRenderer.on('update-status', (_event, info) => callback(info))

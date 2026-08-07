@@ -270,11 +270,11 @@ async function boot() {
     await sidecar.start(app, jwtIssuer.ISSUER)
     platformStatus = 'ready'
     if (mainWindow) mainWindow.webContents.send('platform-status', 'ready')
-    console.log('[main] Platform ready')
+    log.info('[main] Platform ready')
   } catch (err) {
     platformStatus = 'error'
-    if (mainWindow) mainWindow.webContents.send('platform-status', 'error')
-    console.error('[main] Platform failed to start:', err.message)
+    log.error('[main] Platform failed to start:', err.message)
+    if (mainWindow) mainWindow.webContents.send('platform-status', { state: 'error', message: err.message })
     // App still opens — shows error state rather than crashing
     return
   }
