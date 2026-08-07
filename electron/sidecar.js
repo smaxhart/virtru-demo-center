@@ -182,7 +182,8 @@ async function startPostgres(app) {
   pgProc.stderr.on('data', d => console.error(`[postgres] ${d.toString().trim()}`))
 
   pgProc.on('exit', (code) => {
-    if (!stopped) console.warn(`[sidecar] pg_ctl exited with code ${code}`)
+    // pg_ctl start -w exits 0 after the server is ready — that's normal
+    if (!stopped && code !== 0) console.warn(`[sidecar] pg_ctl exited with code ${code}`)
   })
 
   // pg_ctl -w waits until the server is ready, but wait for port just in case
@@ -337,6 +338,14 @@ async function start(app, issuerUrl) {
     throw new Error(
       `Port ${PLATFORM_PORT} is already in use.\n\nAnother process is occupying the port the platform needs. ` +
       `Close the conflicting app, then relaunch Virtru Demo Center.`
+    )
+  }
+
+  const pgPortFree = await checkPortFree(PG_PORT)
+  if (!pgPortFree) {
+    throw new Error(
+      `Port ${PG_PORT} is already in use.\n\nThis port is needed for the embedded database. ` +
+      `Close any conflicting app, then relaunch Virtru Demo Center.`
     )
   }
 

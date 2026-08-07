@@ -489,7 +489,7 @@ export default function ArchitecturePage() {
                       <text x={x + NW / 2} y={y + NH - 8}
                         textAnchor="middle" fontSize="8" fontFamily="monospace"
                         fill={color} opacity="0.6">
-                        {node.id === 'kas' ? 'kas.dsp.vm' : node.id === 'platform' ? 'platform.dsp.vm' : node.id === 'keycloak' ? 'keycloak.dsp.vm' : ''}
+                        {node.id === 'kas' ? 'localhost:7777/kas' : node.id === 'platform' ? 'localhost:7777' : node.id === 'keycloak' ? 'localhost:7779' : ''}
                       </text>
                     )}
 

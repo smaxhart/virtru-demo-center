@@ -249,13 +249,13 @@ export default function KeyWrapPage() {
               ) : (
                 <div>
                   <HexBox
-                    label={kasKeyData.simulated ? 'KAS Public Key (simulated)' : 'KAS Public Key (live from kas.dsp.vm)'}
+                    label={kasKeyData.simulated ? 'KAS Public Key (simulated)' : 'KAS Public Key (live)'}
                     value={typeof kasKeyData.publicKey === 'string' ? kasKeyData.publicKey.slice(0, 120) + '…' : JSON.stringify(kasKeyData).slice(0, 120) + '…'}
                     color={step.color}
                   />
                   {!kasKeyData.simulated && (
                     <div className="mt-2 text-xs px-2 py-1 rounded inline-block" style={{ background: 'var(--c-success-bg)', color: '#15803d' }}>
-                      ✓ Live key from kas.dsp.vm
+                      ✓ Live key from localhost:7777
                     </div>
                   )}
                 </div>
@@ -278,7 +278,7 @@ export default function KeyWrapPage() {
                 <div className="p-3 text-xs font-mono" style={{ background: 'var(--c-bg)', color: 'var(--c-text-3)', lineHeight: 1.8 }}>
                   <div><span style={{ color: step.color }}>payload:</span> 0.payload (ciphertext)</div>
                   <div><span style={{ color: step.color }}>keyAccess[0].wrappedKey:</span> {WRAPPED.slice(0, 20)}…</div>
-                  <div><span style={{ color: step.color }}>keyAccess[0].url:</span> https://kas.dsp.vm</div>
+                  <div><span style={{ color: step.color }}>keyAccess[0].url:</span> http://localhost:7777/kas</div>
                   <div><span style={{ color: step.color }}>policy:</span> {POLICY.slice(0, 40)}…</div>
                   <div><span style={{ color: step.color }}>method.algorithm:</span> AES-256-GCM</div>
                 </div>
@@ -288,7 +288,7 @@ export default function KeyWrapPage() {
             {step.id === 'rewrap' && (
               <div className="flex flex-col gap-2">
                 <div className="p-3 rounded-lg text-xs font-mono" style={{ background: 'var(--c-bg)', color: '#06b6d4', border: '1px solid #06b6d433' }}>
-                  POST https://kas.dsp.vm/kas/v2/rewrap<br />
+                  POST http://localhost:7777/kas/v2/rewrap<br />
                   <span style={{ color: 'var(--c-text-5)' }}>{'{'}</span><br />
                   &nbsp;&nbsp;<span style={{ color: '#8b5cf6' }}>"signedRequestToken"</span>: <span style={{ color: '#4ade80' }}>"eyJhb…"</span>,<br />
                   &nbsp;&nbsp;<span style={{ color: '#8b5cf6' }}>"entity"</span>: <span style={{ color: '#4ade80' }}>{`"${activePersona.username || 'user'}"`}</span><br />
