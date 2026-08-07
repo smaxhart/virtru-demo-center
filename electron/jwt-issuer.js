@@ -123,14 +123,42 @@ function issueToken(personaId, expiresInSeconds = 3600) {
   }
 }
 
+// Clearance ranks highest→lowest; a holder gets this level and everything below it
+const CLEARANCE_HIERARCHY = ['ts-sci', 'secret', 'cui', 'unclassified']
+
+const FVEY_NATIONS = new Set(['USA', 'AUS', 'CAN', 'GBR', 'NZL'])
+const NATO_NATIONS = new Set([
+  'USA', 'CAN', 'GBR', 'FRA', 'BEL', 'NLD', 'LUX', 'NOR', 'DNK', 'ISL', 'ITA', 'PRT',
+  'GRC', 'TUR', 'DEU', 'ESP', 'HUN', 'POL', 'CZE', 'BGR', 'EST', 'LVA', 'LTU', 'ROU',
+  'SVK', 'SVN', 'ALB', 'HRV', 'MNE', 'MKD', 'FIN', 'SWE',
+])
+
 function buildEntityAttributes(claims) {
   const NS = 'https://demo.com/attr'
   const attrs = []
-  if (claims.clearance)    attrs.push({ attribute: `${NS}/clearance/value/${claims.clearance}` })
-  if (claims.mission)      attrs.push({ attribute: `${NS}/mission/value/${claims.mission}` })
-  if (claims.role)         attrs.push({ attribute: `${NS}/role/value/${claims.role}` })
-  if (claims.nationality)  attrs.push({ attribute: `${NS}/nationality/value/${claims.nationality}` })
-  if (claims.relto)        attrs.push({ attribute: `${NS}/relto/value/${claims.relto}` })
+
+  // Expand clearance downward so KAS string-matching honors hierarchy
+  if (claims.clearance) {
+    const idx = CLEARANCE_HIERARCHY.indexOf(claims.clearance)
+    for (let i = idx >= 0 ? idx : 0; i < CLEARANCE_HIERARCHY.length; i++) {
+      attrs.push({ attribute: `${NS}/clearance/value/${CLEARANCE_HIERARCHY[i]}` })
+    }
+  }
+
+  if (claims.mission)     attrs.push({ attribute: `${NS}/mission/value/${claims.mission}` })
+  if (claims.role)        attrs.push({ attribute: `${NS}/role/value/${claims.role}` })
+  if (claims.nationality) attrs.push({ attribute: `${NS}/nationality/value/${claims.nationality}` })
+
+  // Derive coalition access from nationality; fall back to explicit relto for personas without one
+  const coalitions = new Set()
+  const nat = claims.nationality
+  if (nat && FVEY_NATIONS.has(nat)) coalitions.add('fvey')
+  if (nat && NATO_NATIONS.has(nat)) coalitions.add('nato')
+  if (claims.relto && !coalitions.size) coalitions.add(claims.relto)
+  for (const c of coalitions) {
+    attrs.push({ attribute: `${NS}/relto/value/${c}` })
+  }
+
   return attrs
 }
 

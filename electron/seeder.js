@@ -7,6 +7,8 @@ const fs = require('fs')
 const path = require('path')
 
 const PLATFORM_BASE = 'http://localhost:7777'
+// Bump this when the seed data changes — triggers re-seed on existing installs
+const SEED_VERSION = '2'
 
 async function rpc(token, service, method, body = {}) {
   const res = await fetch(`${PLATFORM_BASE}/${service}/${method}`, {
@@ -26,8 +28,12 @@ async function rpc(token, service, method, body = {}) {
 
 async function seed(adminToken, markerPath) {
   if (fs.existsSync(markerPath)) {
-    console.log('[seeder] Already seeded — skipping')
-    return
+    const existing = fs.readFileSync(markerPath, 'utf8').trim()
+    if (existing === SEED_VERSION) {
+      console.log('[seeder] Already seeded (version', SEED_VERSION, ') — skipping')
+      return
+    }
+    console.log('[seeder] Seed version mismatch (have:', existing, 'need:', SEED_VERSION, ') — re-seeding')
   }
 
   console.log('[seeder] Starting platform seed...')
@@ -50,8 +56,6 @@ async function seed(adminToken, markerPath) {
 
   if (!nsId) {
     console.warn('[seeder] Could not get namespace ID — skipping attributes')
-    fs.mkdirSync(path.dirname(markerPath), { recursive: true })
-    fs.writeFileSync(markerPath, new Date().toISOString())
     return
   }
 
@@ -60,7 +64,7 @@ async function seed(adminToken, markerPath) {
     { name: 'clearance',   rule: 'ATTRIBUTE_RULE_TYPE_ENUM_HIERARCHY', values: ['ts-sci', 'secret', 'cui', 'unclassified'] },
     { name: 'mission',     rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ANY_OF',    values: ['intel', 'ops', 'legal', 'cyber', 'external', 'admin'] },
     { name: 'role',        rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ANY_OF',    values: ['analyst', 'contractor', 'counsel', 'operator', 'commander', 'admin'] },
-    { name: 'nationality', rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ANY_OF',    values: ['USA', 'GBR', 'CAN', 'AUS', 'NZL'] },
+    { name: 'nationality', rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ANY_OF',    values: ['USA', 'GBR', 'CAN', 'AUS', 'NZL', 'FRA', 'DEU', 'BEL', 'NLD', 'NOR', 'DNK', 'ITA', 'ESP', 'POL', 'TUR'] },
     { name: 'relto',       rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ANY_OF',    values: ['fvey', 'nato', 'usa-only'] },
   ]
 
@@ -177,8 +181,8 @@ async function seed(adminToken, markerPath) {
   }
 
   fs.mkdirSync(path.dirname(markerPath), { recursive: true })
-  fs.writeFileSync(markerPath, new Date().toISOString())
-  console.log('[seeder] Seeding complete')
+  fs.writeFileSync(markerPath, SEED_VERSION)
+  console.log('[seeder] Seeding complete (version', SEED_VERSION, ')')
 }
 
 module.exports = { seed }
