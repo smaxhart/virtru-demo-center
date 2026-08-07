@@ -1,23 +1,37 @@
 /**
- * OpenTDF platform sidecar — spawns the Go binary, monitors health, restarts on crash.
+ * OpenTDF platform sidecar — starts embedded Postgres, then spawns the Go binary.
  */
 
-const { spawn } = require('child_process')
+const { spawn, execFileSync } = require('child_process')
 const http = require('http')
+const net = require('net')
 const path = require('path')
 const fs = require('fs')
 
 const PLATFORM_PORT = 7777
+const PG_PORT = 7778
+const PG_USER = 'postgres'
+const PG_PASSWORD = 'demo'
+const PG_DATABASE = 'opentdf'
+
 const HEALTH_URL = `http://localhost:${PLATFORM_PORT}/healthz`
 const MAX_RESTARTS = 3
 const HEALTH_POLL_MS = 500
 const HEALTH_TIMEOUT_MS = 30000
-const HEALTH_REQ_TIMEOUT_MS = 1500  // per-request timeout so a hung connection doesn't block the loop
+const HEALTH_REQ_TIMEOUT_MS = 1500
 
-let proc = null
+let pgProc = null
+let platformProc = null
 let restarts = 0
 let stopped = false
 let lastStderr = ''
+
+function getPostgresBinDir(app) {
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, 'postgres', 'bin')
+  }
+  return path.join(__dirname, '..', 'resources', 'postgres', 'bin')
+}
 
 function getBinaryPath(app) {
   if (app.isPackaged) {
@@ -27,8 +41,166 @@ function getBinaryPath(app) {
 }
 
 function getConfigPath(app) {
-  // At runtime we write a resolved config to userData (so key paths are absolute)
   return path.join(app.getPath('userData'), 'opentdf.yaml')
+}
+
+function checkPortFree(port) {
+  return new Promise(resolve => {
+    const test = net.createServer()
+    test.once('error', () => resolve(false))
+    test.once('listening', () => { test.close(); resolve(true) })
+    test.listen(port, '127.0.0.1')
+  })
+}
+
+function waitForPort(port, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const deadline = Date.now() + timeoutMs
+    function check() {
+      if (Date.now() > deadline) return reject(new Error(`Timed out waiting for port ${port}`))
+      const sock = net.createConnection(port, '127.0.0.1')
+      sock.once('connect', () => { sock.destroy(); resolve() })
+      sock.once('error', () => setTimeout(check, 300))
+    }
+    check()
+  })
+}
+
+/**
+ * Sends a single SQL statement to Postgres via the wire protocol (no psql needed).
+ * Uses trust auth — only works after pg_hba.conf is set to trust for 127.0.0.1.
+ */
+function pgExec(database, sql) {
+  return new Promise((resolve, reject) => {
+    const sock = net.createConnection(PG_PORT, '127.0.0.1')
+    let done = false
+    const finish = (err) => { if (!done) { done = true; sock.destroy(); err ? reject(err) : resolve() } }
+
+    // Build startup message: user + database
+    function buildStartup() {
+      const params = `user\0${PG_USER}\0database\0${database}\0\0`
+      const len = 4 + 4 + params.length
+      const buf = Buffer.allocUnsafe(len)
+      buf.writeInt32BE(len, 0)
+      buf.writeInt32BE(196608, 4) // protocol 3.0
+      Buffer.from(params).copy(buf, 8)
+      return buf
+    }
+
+    // Build simple query message
+    function buildQuery(q) {
+      const str = q + '\0'
+      const buf = Buffer.allocUnsafe(1 + 4 + str.length)
+      buf.write('Q', 0)
+      buf.writeInt32BE(4 + str.length, 1)
+      Buffer.from(str).copy(buf, 5)
+      return buf
+    }
+
+    let phase = 'startup'
+    let buf = Buffer.alloc(0)
+
+    sock.on('connect', () => sock.write(buildStartup()))
+    sock.on('data', (chunk) => {
+      buf = Buffer.concat([buf, chunk])
+      while (buf.length >= 5) {
+        const type = String.fromCharCode(buf[0])
+        const msgLen = buf.readInt32BE(1)
+        if (buf.length < 1 + msgLen) break
+        const body = buf.slice(5, 1 + msgLen)
+        buf = buf.slice(1 + msgLen)
+
+        if (type === 'E') { // ErrorResponse
+          const msg = body.toString('utf8')
+          if (msg.includes('already exists')) return finish()
+          return finish(new Error(`pgExec error: ${msg}`))
+        }
+        if (phase === 'startup' && type === 'R') { // AuthenticationOk (should be 0 for trust)
+          phase = 'ready'
+        }
+        if (type === 'Z') { // ReadyForQuery
+          if (phase === 'ready') {
+            phase = 'query'
+            sock.write(buildQuery(sql))
+          } else if (phase === 'query') {
+            finish()
+          }
+        }
+      }
+    })
+    sock.on('error', finish)
+    sock.setTimeout(5000, () => finish(new Error('pgExec timed out')))
+  })
+}
+
+async function startPostgres(app) {
+  const pgBin = getPostgresBinDir(app)
+  const initdb = path.join(pgBin, 'initdb')
+  const pgCtl = path.join(pgBin, 'pg_ctl')
+  const dataDir = path.join(app.getPath('userData'), 'pgdata')
+  const pgLog = path.join(app.getPath('userData'), 'postgres.log')
+
+  // Fix permissions on binaries — xattr stripping can remove exec bit on some machines
+  for (const bin of [initdb, pgCtl, path.join(pgBin, 'postgres')]) {
+    try { fs.chmodSync(bin, 0o755) } catch (_) {}
+  }
+
+  if (!fs.existsSync(path.join(dataDir, 'PG_VERSION'))) {
+    console.log('[sidecar] Initializing Postgres cluster...')
+    fs.mkdirSync(dataDir, { recursive: true })
+    execFileSync(initdb, [
+      '-D', dataDir,
+      '-U', PG_USER,
+      '--auth=trust',
+      '--encoding=UTF8',
+    ], { env: { ...process.env, LC_ALL: 'en_US.UTF-8' } })
+
+    // Use trust for all local connections — this is a loopback-only embedded DB
+    const hba = [
+      'local   all             all                                     trust',
+      'host    all             all             127.0.0.1/32            trust',
+      'host    all             all             ::1/128                 trust',
+    ].join('\n') + '\n'
+    fs.writeFileSync(path.join(dataDir, 'pg_hba.conf'), hba)
+    const pgConf = path.join(dataDir, 'postgresql.conf')
+    fs.appendFileSync(pgConf, `\nport = ${PG_PORT}\n`)
+  }
+
+  console.log(`[sidecar] Starting Postgres on port ${PG_PORT}...`)
+  pgProc = spawn(pgCtl, [
+    'start',
+    '-D', dataDir,
+    '-l', pgLog,
+    '-o', `-p ${PG_PORT}`,
+    '-w',
+  ], {
+    stdio: 'pipe',
+    env: { ...process.env },
+  })
+
+  pgProc.stdout.on('data', d => console.log(`[postgres] ${d.toString().trim()}`))
+  pgProc.stderr.on('data', d => console.error(`[postgres] ${d.toString().trim()}`))
+
+  pgProc.on('exit', (code) => {
+    if (!stopped) console.warn(`[sidecar] pg_ctl exited with code ${code}`)
+  })
+
+  // pg_ctl -w waits until the server is ready, but wait for port just in case
+  await waitForPort(PG_PORT, 20000)
+  console.log('[sidecar] Postgres is ready')
+
+  // Create the opentdf database — required before OpenTDF's runMigrations runs.
+  // No psql is bundled, so use the minimal PG wire protocol directly.
+  await pgExec('postgres', `CREATE DATABASE ${PG_DATABASE}`)
+}
+
+function stopPostgres(app) {
+  const pgBin = getPostgresBinDir(app)
+  const pgCtl = path.join(pgBin, 'pg_ctl')
+  const dataDir = path.join(app.getPath('userData'), 'pgdata')
+  try {
+    execFileSync(pgCtl, ['stop', '-D', dataDir, '-m', 'fast'], { stdio: 'pipe' })
+  } catch (_) {}
 }
 
 function writeRuntimeConfig(app, issuerUrl) {
@@ -36,27 +208,17 @@ function writeRuntimeConfig(app, issuerUrl) {
   const kasPriv = path.join(keyDir, 'kas-private.pem')
   const kasCert = path.join(keyDir, 'kas-cert.pem')
 
-  // Generate KAS keypair + self-signed cert if not present
   if (!fs.existsSync(kasPriv)) {
     fs.mkdirSync(keyDir, { recursive: true })
-    const { execFileSync } = require('child_process')
     const OPENSSL = '/usr/bin/openssl'
-    // Generate private key
-    execFileSync(OPENSSL, [
-      'genrsa', '-out', kasPriv, '2048',
-    ])
+    execFileSync(OPENSSL, ['genrsa', '-out', kasPriv, '2048'])
     fs.chmodSync(kasPriv, 0o600)
-    // Self-signed certificate
     execFileSync(OPENSSL, [
       'req', '-new', '-x509',
-      '-key', kasPriv,
-      '-out', kasCert,
-      '-days', '3650',
-      '-subj', '/CN=kas-demo/O=Virtru/C=US',
+      '-key', kasPriv, '-out', kasCert,
+      '-days', '3650', '-subj', '/CN=kas-demo/O=Virtru/C=US',
     ])
   }
-
-  const dbPath = path.join(app.getPath('userData'), 'platform.db')
 
   const config = `
 mode: all
@@ -67,7 +229,13 @@ logger:
   output: stdout
 
 db:
-  file: "${dbPath}"
+  host: "127.0.0.1"
+  port: ${PG_PORT}
+  database: "${PG_DATABASE}"
+  user: "${PG_USER}"
+  password: "${PG_PASSWORD}"
+  sslmode: "disable"
+  runMigrations: true
 
 server:
   port: ${PLATFORM_PORT}
@@ -117,7 +285,6 @@ function pollHealth(timeoutMs) {
         return reject(new Error(`Platform health check timed out after ${timeoutMs / 1000}s${detail}`))
       }
       const req = http.get(HEALTH_URL, res => {
-        // Must consume the body or the socket stays open and blocks future requests
         res.resume()
         if (res.statusCode === 200) return resolve()
         setTimeout(check, HEALTH_POLL_MS)
@@ -134,36 +301,26 @@ function pollHealth(timeoutMs) {
 
 function spawnPlatform(binaryPath, configPath) {
   console.log(`[sidecar] Spawning: ${binaryPath}`)
-  proc = spawn(binaryPath, ['start', '--config-file', configPath], {
+  platformProc = spawn(binaryPath, ['start', '--config-file', configPath], {
     stdio: 'pipe',
     env: { ...process.env, GOMAXPROCS: '2' },
   })
 
-  proc.stdout.on('data', d => process.stdout.write(`[platform] ${d}`))
-  proc.stderr.on('data', d => {
+  platformProc.stdout.on('data', d => process.stdout.write(`[platform] ${d}`))
+  platformProc.stderr.on('data', d => {
     const s = d.toString()
     lastStderr += s
-    // Keep only the last 2KB to avoid unbounded growth
     if (lastStderr.length > 2048) lastStderr = lastStderr.slice(-2048)
     process.stderr.write(`[platform] ${s}`)
   })
 
-  proc.on('exit', (code, signal) => {
+  platformProc.on('exit', (code, signal) => {
     if (stopped) return
     console.warn(`[sidecar] Platform exited (code=${code} signal=${signal}), restart ${restarts + 1}/${MAX_RESTARTS}`)
     if (restarts < MAX_RESTARTS) {
       restarts++
       setTimeout(() => spawnPlatform(binaryPath, configPath), 1000)
     }
-  })
-}
-
-function checkPortFree(port) {
-  return new Promise(resolve => {
-    const test = require('net').createServer()
-    test.once('error', () => resolve(false))
-    test.once('listening', () => { test.close(); resolve(true) })
-    test.listen(port, '127.0.0.1')
   })
 }
 
@@ -175,13 +332,15 @@ async function start(app, issuerUrl) {
     )
   }
 
-  const portFree = await checkPortFree(PLATFORM_PORT)
-  if (!portFree) {
+  const platformPortFree = await checkPortFree(PLATFORM_PORT)
+  if (!platformPortFree) {
     throw new Error(
       `Port ${PLATFORM_PORT} is already in use.\n\nAnother process is occupying the port the platform needs. ` +
       `Close the conflicting app, then relaunch Virtru Demo Center.`
     )
   }
+
+  await startPostgres(app)
 
   writeRuntimeConfig(app, issuerUrl)
   spawnPlatform(binaryPath, getConfigPath(app))
@@ -191,11 +350,14 @@ async function start(app, issuerUrl) {
   console.log('[sidecar] Platform is healthy')
 }
 
-function stop() {
+function stop(app) {
   stopped = true
-  if (proc && !proc.killed) {
-    proc.kill('SIGTERM')
-    proc = null
+  if (platformProc && !platformProc.killed) {
+    platformProc.kill('SIGTERM')
+    platformProc = null
+  }
+  if (app) {
+    try { stopPostgres(app) } catch (_) {}
   }
 }
 

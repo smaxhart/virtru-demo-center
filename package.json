@@ -1,6 +1,6 @@
 {
   "name": "virtru-demo-center",
-  "version": "1.5.16",
+  "version": "1.5.17",
   "description": "Virtru Demo Center — self-contained Electron app with embedded OpenTDF platform",
   "author": "Virtru",
   "license": "UNLICENSED",
@@ -70,6 +70,10 @@
       {
         "from": "resources/bin/opentdf-platform-darwin-arm64",
         "to": "bin/opentdf-platform"
+      },
+      {
+        "from": "resources/postgres",
+        "to": "postgres"
       }
     ],
     "publish": {

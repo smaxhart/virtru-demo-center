@@ -143,7 +143,7 @@ function runInstaller() {
 
 ipcMain.handle('install-update', () => {
   if (!pendingUpdateZip) { log.error('[updater] install-update called but no pending zip'); return }
-  if (runInstaller()) { sidecar.stop(); jwtIssuer.stop(); app.exit(0) }
+  if (runInstaller()) { sidecar.stop(app); jwtIssuer.stop(); app.exit(0) }
 })
 
 ipcMain.handle('get-app-version', () => app.getVersion())
@@ -305,9 +305,9 @@ app.on('before-quit', (e) => {
     e.preventDefault()
     log.info(`[updater] Installing on quit via ${INSTALLER_SCRIPT_PATH}`)
     pendingUpdateZip = null
-    if (runInstaller()) { sidecar.stop(); jwtIssuer.stop(); app.exit(0); return }
+    if (runInstaller()) { sidecar.stop(app); jwtIssuer.stop(); app.exit(0); return }
   }
-  sidecar.stop()
+  sidecar.stop(app)
   jwtIssuer.stop()
 })
 
