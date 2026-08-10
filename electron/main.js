@@ -167,7 +167,10 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      webSecurity: true,
+      // In dev, the page loads via file:// and onHeadersReceived never fires,
+      // so external tile fetches (Carto, OSM) are blocked by default same-origin
+      // policy. Disable webSecurity only in dev to allow those requests through.
+      webSecurity: !isDev,
     },
   })
 
@@ -181,7 +184,7 @@ function createWindow() {
           "style-src 'self' 'unsafe-inline' file:; " +
           "img-src 'self' file: data: https://*.basemaps.cartocdn.com https://*.tile.openstreetmap.org; " +
           "font-src 'self' file: data:; " +
-          "connect-src 'self' http://localhost:7777 http://localhost:7779;",
+          "connect-src 'self' http://localhost:7777 http://localhost:7779 https://developer-ai-gateway.virtru.com;",
         ],
       },
     })
