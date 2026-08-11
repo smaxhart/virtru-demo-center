@@ -11,11 +11,11 @@ import { parseMarkingToFqns, fqnsToShortLabels } from '../ai/markingParser.js'
 // COI (Community of Interest): FVEY/NATO membership is expressed via nationality FQNs.
 // nationality uses ANY_OF — a policy listing [USA, GBR, AUS, NZL, CAN] grants access if the
 // user holds any ONE of those values. This mirrors how a real REL TO marking works.
-const COI_FVEY = ['USA', 'GBR', 'AUS', 'NZL', 'CAN'].map(n => `https://demo.com/attr/nationality/value/${n}`)
+const COI_FVEY = ['usa', 'gbr', 'aus', 'nzl', 'can'].map(n => `https://demo.com/attr/nationality/value/${n}`)
 const COI_NATO = [
-  'USA', 'CAN', 'GBR', 'FRA', 'BEL', 'NLD', 'LUX', 'NOR', 'DNK', 'ISL', 'ITA', 'PRT',
-  'GRC', 'TUR', 'DEU', 'ESP', 'HUN', 'POL', 'CZE', 'BGR', 'EST', 'LVA', 'LTU', 'ROU',
-  'SVK', 'SVN', 'ALB', 'HRV', 'MNE', 'MKD', 'FIN', 'SWE',
+  'usa', 'can', 'gbr', 'fra', 'bel', 'nld', 'lux', 'nor', 'dnk', 'isl', 'ita', 'prt',
+  'grc', 'tur', 'deu', 'esp', 'hun', 'pol', 'cze', 'bgr', 'est', 'lva', 'ltu', 'rou',
+  'svk', 'svn', 'alb', 'hrv', 'mne', 'mkd', 'fin', 'swe',
 ].map(n => `https://demo.com/attr/nationality/value/${n}`)
 
 const FILE_POLICIES = {

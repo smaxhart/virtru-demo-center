@@ -140,7 +140,7 @@ function buildEntityAttributes(claims) {
 
   if (claims.mission)     attrs.push({ attribute: `${NS}/mission/value/${claims.mission}` })
   if (claims.role)        attrs.push({ attribute: `${NS}/role/value/${claims.role}` })
-  if (claims.nationality) attrs.push({ attribute: `${NS}/nationality/value/${claims.nationality}` })
+  if (claims.nationality) attrs.push({ attribute: `${NS}/nationality/value/${claims.nationality.toLowerCase()}` })
   if (claims.relto)       claims.relto.forEach(r => attrs.push({ attribute: `${NS}/relto/value/${r}` }))
 
   return attrs

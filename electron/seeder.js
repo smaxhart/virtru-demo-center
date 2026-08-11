@@ -8,7 +8,7 @@ const path = require('path')
 
 const PLATFORM_BASE = 'http://localhost:7777'
 // Bump this when the seed data changes — triggers re-seed on existing installs
-const SEED_VERSION = '8'
+const SEED_VERSION = '9'
 
 async function rpc(token, service, method, body = {}) {
   const res = await fetch(`${PLATFORM_BASE}/${service}/${method}`, {
@@ -167,13 +167,14 @@ async function seed(adminToken, markerPath) {
     // Nationality — COI membership is derived from nationality, not relto.
     // ANY_OF rule: a policy listing FVEY/NATO nationality FQNs grants access if the
     // user holds any ONE matching nationality value.
-    { selector: '.sub', value: 'sarah',    fqn: 'https://demo.com/attr/nationality/value/USA' },
-    { selector: '.sub', value: 'james',    fqn: 'https://demo.com/attr/nationality/value/USA' },
-    { selector: '.sub', value: 'patricia', fqn: 'https://demo.com/attr/nationality/value/USA' },
-    { selector: '.sub', value: 'marcus',   fqn: 'https://demo.com/attr/nationality/value/USA' },
-    { selector: '.sub', value: 'fvey-uk',  fqn: 'https://demo.com/attr/nationality/value/GBR' },
-    { selector: '.sub', value: 'nato-fr',  fqn: 'https://demo.com/attr/nationality/value/FRA' },
-    { selector: '.sub', value: 'nato-de',  fqn: 'https://demo.com/attr/nationality/value/DEU' },
+    // Platform stores attribute values lowercase — FQNs must match exactly.
+    { selector: '.sub', value: 'sarah',    fqn: 'https://demo.com/attr/nationality/value/usa' },
+    { selector: '.sub', value: 'james',    fqn: 'https://demo.com/attr/nationality/value/usa' },
+    { selector: '.sub', value: 'patricia', fqn: 'https://demo.com/attr/nationality/value/usa' },
+    { selector: '.sub', value: 'marcus',   fqn: 'https://demo.com/attr/nationality/value/usa' },
+    { selector: '.sub', value: 'fvey-uk',  fqn: 'https://demo.com/attr/nationality/value/gbr' },
+    { selector: '.sub', value: 'nato-fr',  fqn: 'https://demo.com/attr/nationality/value/fra' },
+    { selector: '.sub', value: 'nato-de',  fqn: 'https://demo.com/attr/nationality/value/deu' },
     // relto — kept for CollaboratePage simulation and Architecture page demos
     { selector: '.sub', value: 'sarah',    fqn: 'https://demo.com/attr/relto/value/usa'  },
     { selector: '.sub', value: 'sarah',    fqn: 'https://demo.com/attr/relto/value/fvey' },

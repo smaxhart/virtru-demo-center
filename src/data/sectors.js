@@ -326,7 +326,7 @@ export const FEDERAL_PERSONAS = [
       `${NS}/clearance/value/ts-sci`,
       `${NS}/mission/value/intel`,
       `${NS}/role/value/analyst`,
-      `${NS}/nationality/value/USA`,
+      `${NS}/nationality/value/usa`,
       `${NS}/relto/value/usa`,
       `${NS}/relto/value/fvey`,
       `${NS}/relto/value/nato`,
@@ -347,7 +347,7 @@ export const FEDERAL_PERSONAS = [
       `${NS}/clearance/value/secret`,
       `${NS}/mission/value/external`,
       `${NS}/role/value/contractor`,
-      `${NS}/nationality/value/USA`,
+      `${NS}/nationality/value/usa`,
       `${NS}/relto/value/usa`,
       `${NS}/relto/value/fvey`,
     ],
@@ -367,7 +367,7 @@ export const FEDERAL_PERSONAS = [
       `${NS}/clearance/value/secret`,
       `${NS}/mission/value/legal`,
       `${NS}/role/value/counsel`,
-      `${NS}/nationality/value/USA`,
+      `${NS}/nationality/value/usa`,
       `${NS}/relto/value/usa`,
     ],
     color: '#8b5cf6',
@@ -386,7 +386,7 @@ export const FEDERAL_PERSONAS = [
       `${NS}/clearance/value/secret`,
       `${NS}/mission/value/cyber`,
       `${NS}/role/value/admin`,
-      `${NS}/nationality/value/USA`,
+      `${NS}/nationality/value/usa`,
       `${NS}/relto/value/usa`,
       `${NS}/relto/value/nato`,
     ],
@@ -404,7 +404,7 @@ export const FEDERAL_PERSONAS = [
     attributes: ['clearance:secret', 'nationality:GBR', 'needtoknow:intel', 'relto:fvey', 'relto:nato'],
     fqns: [
       `${NS}/clearance/value/secret`,
-      `${NS}/nationality/value/GBR`,
+      `${NS}/nationality/value/gbr`,
       `${NS}/needtoknow/value/intel`,
       `${NS}/relto/value/fvey`,
       `${NS}/relto/value/nato`,
@@ -423,7 +423,7 @@ export const FEDERAL_PERSONAS = [
     attributes: ['clearance:secret', 'nationality:FRA', 'needtoknow:ops', 'relto:nato'],
     fqns: [
       `${NS}/clearance/value/secret`,
-      `${NS}/nationality/value/FRA`,
+      `${NS}/nationality/value/fra`,
       `${NS}/needtoknow/value/ops`,
       `${NS}/relto/value/nato`,
     ],
@@ -441,7 +441,7 @@ export const FEDERAL_PERSONAS = [
     attributes: ['clearance:secret', 'nationality:DEU', 'needtoknow:cyber', 'relto:nato'],
     fqns: [
       `${NS}/clearance/value/secret`,
-      `${NS}/nationality/value/DEU`,
+      `${NS}/nationality/value/deu`,
       `${NS}/needtoknow/value/cyber`,
       `${NS}/relto/value/nato`,
     ],
@@ -531,7 +531,7 @@ export const FEDERAL_PERSONA_DOCS = {
     plaintext: 'FIVE EYES INTELLIGENCE SUMMARY\n\nSECRET // REL TO FVEY\n\nJoint intelligence product from FVEY partner agencies. Releasable to USA, GBR, AUS, CAN, NZL only. Handle per FVEY sharing protocols.',
     policyFqns: [
       `${NS}/clearance/value/secret`,
-      ...['USA', 'GBR', 'AUS', 'NZL', 'CAN'].map(n => `${NS}/nationality/value/${n}`),
+      ...['usa', 'gbr', 'aus', 'nzl', 'can'].map(n => `${NS}/nationality/value/${n}`),
     ],
   },
   'nato-fr': {
@@ -540,9 +540,9 @@ export const FEDERAL_PERSONA_DOCS = {
     plaintext: 'NATO COLLECTIVE CYBER DEFENSE BRIEFING\n\nSECRET // REL TO NATO\n\nThreat assessment and defensive posture for NATO member-state infrastructure. Releasable to all NATO member nations.',
     policyFqns: [
       `${NS}/clearance/value/secret`,
-      ...['USA', 'CAN', 'GBR', 'FRA', 'BEL', 'NLD', 'LUX', 'NOR', 'DNK', 'ISL', 'ITA', 'PRT',
-          'GRC', 'TUR', 'DEU', 'ESP', 'HUN', 'POL', 'CZE', 'BGR', 'EST', 'LVA', 'LTU', 'ROU',
-          'SVK', 'SVN', 'ALB', 'HRV', 'MNE', 'MKD', 'FIN', 'SWE'].map(n => `${NS}/nationality/value/${n}`),
+      ...['usa', 'can', 'gbr', 'fra', 'bel', 'nld', 'lux', 'nor', 'dnk', 'isl', 'ita', 'prt',
+          'grc', 'tur', 'deu', 'esp', 'hun', 'pol', 'cze', 'bgr', 'est', 'lva', 'ltu', 'rou',
+          'svk', 'svn', 'alb', 'hrv', 'mne', 'mkd', 'fin', 'swe'].map(n => `${NS}/nationality/value/${n}`),
     ],
   },
   'nato-de': {
@@ -551,9 +551,9 @@ export const FEDERAL_PERSONA_DOCS = {
     plaintext: 'NATO COLLECTIVE CYBER DEFENSE BRIEFING\n\nSECRET // REL TO NATO\n\nThreat assessment and defensive posture for NATO member-state infrastructure. Releasable to all NATO member nations.',
     policyFqns: [
       `${NS}/clearance/value/secret`,
-      ...['USA', 'CAN', 'GBR', 'FRA', 'BEL', 'NLD', 'LUX', 'NOR', 'DNK', 'ISL', 'ITA', 'PRT',
-          'GRC', 'TUR', 'DEU', 'ESP', 'HUN', 'POL', 'CZE', 'BGR', 'EST', 'LVA', 'LTU', 'ROU',
-          'SVK', 'SVN', 'ALB', 'HRV', 'MNE', 'MKD', 'FIN', 'SWE'].map(n => `${NS}/nationality/value/${n}`),
+      ...['usa', 'can', 'gbr', 'fra', 'bel', 'nld', 'lux', 'nor', 'dnk', 'isl', 'ita', 'prt',
+          'grc', 'tur', 'deu', 'esp', 'hun', 'pol', 'cze', 'bgr', 'est', 'lva', 'ltu', 'rou',
+          'svk', 'svn', 'alb', 'hrv', 'mne', 'mkd', 'fin', 'swe'].map(n => `${NS}/nationality/value/${n}`),
     ],
   },
 }
@@ -606,13 +606,13 @@ export const FEDERAL_FLAT_ATTRS = [
   { fqn: `https://${FED_NS}/attr/relto/value/nato`,             ns: FED_NS, name: 'relto',        value: 'nato',         label: 'relto:nato',              rule: 'ANY_OF' },
   { fqn: `https://${FED_NS}/attr/relto/value/pink`,             ns: FED_NS, name: 'relto',        value: 'pink',         label: 'relto:pink',              rule: 'ANY_OF' },
   // nationality (ANY_OF)
-  { fqn: `https://${FED_NS}/attr/nationality/value/USA`,        ns: FED_NS, name: 'nationality',  value: 'USA',          label: 'nationality:USA',         rule: 'ANY_OF' },
-  { fqn: `https://${FED_NS}/attr/nationality/value/GBR`,        ns: FED_NS, name: 'nationality',  value: 'GBR',          label: 'nationality:GBR',         rule: 'ANY_OF' },
-  { fqn: `https://${FED_NS}/attr/nationality/value/AUS`,        ns: FED_NS, name: 'nationality',  value: 'AUS',          label: 'nationality:AUS',         rule: 'ANY_OF' },
-  { fqn: `https://${FED_NS}/attr/nationality/value/CAN`,        ns: FED_NS, name: 'nationality',  value: 'CAN',          label: 'nationality:CAN',         rule: 'ANY_OF' },
-  { fqn: `https://${FED_NS}/attr/nationality/value/NZL`,        ns: FED_NS, name: 'nationality',  value: 'NZL',          label: 'nationality:NZL',         rule: 'ANY_OF' },
-  { fqn: `https://${FED_NS}/attr/nationality/value/FRA`,        ns: FED_NS, name: 'nationality',  value: 'FRA',          label: 'nationality:FRA',         rule: 'ANY_OF' },
-  { fqn: `https://${FED_NS}/attr/nationality/value/DEU`,        ns: FED_NS, name: 'nationality',  value: 'DEU',          label: 'nationality:DEU',         rule: 'ANY_OF' },
+  { fqn: `https://${FED_NS}/attr/nationality/value/usa`,        ns: FED_NS, name: 'nationality',  value: 'USA',          label: 'nationality:USA',         rule: 'ANY_OF' },
+  { fqn: `https://${FED_NS}/attr/nationality/value/gbr`,        ns: FED_NS, name: 'nationality',  value: 'GBR',          label: 'nationality:GBR',         rule: 'ANY_OF' },
+  { fqn: `https://${FED_NS}/attr/nationality/value/aus`,        ns: FED_NS, name: 'nationality',  value: 'AUS',          label: 'nationality:AUS',         rule: 'ANY_OF' },
+  { fqn: `https://${FED_NS}/attr/nationality/value/can`,        ns: FED_NS, name: 'nationality',  value: 'CAN',          label: 'nationality:CAN',         rule: 'ANY_OF' },
+  { fqn: `https://${FED_NS}/attr/nationality/value/nzl`,        ns: FED_NS, name: 'nationality',  value: 'NZL',          label: 'nationality:NZL',         rule: 'ANY_OF' },
+  { fqn: `https://${FED_NS}/attr/nationality/value/fra`,        ns: FED_NS, name: 'nationality',  value: 'FRA',          label: 'nationality:FRA',         rule: 'ANY_OF' },
+  { fqn: `https://${FED_NS}/attr/nationality/value/deu`,        ns: FED_NS, name: 'nationality',  value: 'DEU',          label: 'nationality:DEU',         rule: 'ANY_OF' },
   // needtoknow (ALL_OF — must have all specified compartments)
   { fqn: `https://${FED_NS}/attr/needtoknow/value/intel`,       ns: FED_NS, name: 'needtoknow',   value: 'intel',        label: 'needtoknow:intel',        rule: 'ALL_OF' },
   { fqn: `https://${FED_NS}/attr/needtoknow/value/ops`,         ns: FED_NS, name: 'needtoknow',   value: 'ops',          label: 'needtoknow:ops',          rule: 'ALL_OF' },
@@ -830,8 +830,8 @@ export const TAGGING_SAMPLES = [
     body: 'JOINT OPERATIONS INTELLIGENCE REPORT\n\nSECRET // REL TO USA, GBR // NTK OPS\n\nAdversary activity in the northern sector indicates increased SIGINT collection operations. All units should maintain communications discipline. Distribution limited to US and UK personnel with OPS compartment.',
     extractedAttrs: [
       { type: 'classification', label: 'clearance:secret',       fqn: `https://${FED_NS}/attr/clearance/value/secret`,     matched: 'SECRET',   rule: 'HIERARCHY', color: '#b91c1c' },
-      { type: 'coi',           label: 'nationality:USA',         fqn: `https://${FED_NS}/attr/nationality/value/USA`,      matched: 'USA',      rule: 'ANY_OF',    color: 'var(--c-text-2)' },
-      { type: 'coi',           label: 'nationality:GBR',         fqn: `https://${FED_NS}/attr/nationality/value/GBR`,      matched: 'GBR',      rule: 'ANY_OF',    color: 'var(--c-text-2)' },
+      { type: 'coi',           label: 'nationality:USA',         fqn: `https://${FED_NS}/attr/nationality/value/usa`,      matched: 'USA',      rule: 'ANY_OF',    color: 'var(--c-text-2)' },
+      { type: 'coi',           label: 'nationality:GBR',         fqn: `https://${FED_NS}/attr/nationality/value/gbr`,      matched: 'GBR',      rule: 'ANY_OF',    color: 'var(--c-text-2)' },
       { type: 'needtoknow',    label: 'needtoknow:ops',          fqn: `https://${FED_NS}/attr/needtoknow/value/ops`,       matched: 'OPS',      rule: 'ALL_OF',    color: 'var(--c-text-2)' },
     ],
     synonym: { input: 'SECRET', output: 'secret', dict: 'classification-dict' },
@@ -858,7 +858,7 @@ export const TAGGING_SAMPLES = [
     body: 'NATO LOGISTICS COORDINATION MEMORANDUM\n\nCONFIDENTIAL // REL TO NATO\n\nLogistics coordination for Exercise Steadfast Defender. Releasable to all NATO member nations. Distribution to non-NATO parties requires prior authorization from NATO HQ.',
     extractedAttrs: [
       { type: 'classification', label: 'clearance:secret',        fqn: `https://${FED_NS}/attr/clearance/value/secret`,     matched: 'CONFIDENTIAL', rule: 'HIERARCHY', color: '#b91c1c' },
-      { type: 'coi',           label: 'nationality: NATO COI',    fqn: `https://${FED_NS}/attr/nationality/value/FRA`,      matched: 'NATO',         rule: 'ANY_OF',    color: 'var(--c-text-2)' },
+      { type: 'coi',           label: 'nationality: NATO COI',    fqn: `https://${FED_NS}/attr/nationality/value/fra`,      matched: 'NATO',         rule: 'ANY_OF',    color: 'var(--c-text-2)' },
     ],
     synonym: { input: 'CONFIDENTIAL', output: 'confidential', dict: 'classification-dict' },
     rollup: 'CONFIDENTIAL maps to clearance:secret (HIERARCHY). NATO is a COI (Community of Interest) — REL TO NATO maps to nationality ANY_OF [FRA, DEU, GBR, ... 32 nations]. User needs clearance + a NATO member nationality.',
@@ -870,7 +870,7 @@ export const TAGGING_SAMPLES = [
     body: 'FIVE EYES SIGINT PRODUCT\n\nTS-SCI // REL TO FVEY // NTK INTEL\n\nJoint SIGINT product derived from allied collection. Releasable only to Five Eyes partners with INTEL compartment clearance. Handle per SCI procedures and FVEY sharing protocols.',
     extractedAttrs: [
       { type: 'classification', label: 'clearance:ts-sci',        fqn: `https://${FED_NS}/attr/clearance/value/ts-sci`,     matched: 'TS-SCI',   rule: 'HIERARCHY', color: '#b91c1c' },
-      { type: 'coi',           label: 'nationality: FVEY COI',    fqn: `https://${FED_NS}/attr/nationality/value/USA`,      matched: 'FVEY',     rule: 'ANY_OF',    color: 'var(--c-text-2)' },
+      { type: 'coi',           label: 'nationality: FVEY COI',    fqn: `https://${FED_NS}/attr/nationality/value/usa`,      matched: 'FVEY',     rule: 'ANY_OF',    color: 'var(--c-text-2)' },
       { type: 'needtoknow',    label: 'needtoknow:intel',         fqn: `https://${FED_NS}/attr/needtoknow/value/intel`,     matched: 'INTEL',    rule: 'ALL_OF',    color: 'var(--c-text-2)' },
     ],
     synonym: { input: 'TS-SCI', output: 'ts-sci', dict: 'classification-dict' },
@@ -1006,13 +1006,13 @@ export const PIPELINE_STAGES = [
 export function makeSeedEvents(sector) {
   const now = Date.now()
   if (sector === 'federal') {
-    const sarah   = { id: 'sarah',    name: 'Maj. Sarah Williams', avatar: '👩‍✈️', color: '#3b82f6', fqns: ['https://demo.com/attr/clearance/value/ts-sci', 'https://demo.com/attr/mission/value/intel', 'https://demo.com/attr/nationality/value/USA'] }
-    const james   = { id: 'james',    name: 'CPT. James Rivera',   avatar: '👨‍💼', color: '#f59e0b', fqns: ['https://demo.com/attr/clearance/value/secret', 'https://demo.com/attr/nationality/value/USA'] }
-    const patricia= { id: 'patricia', name: 'Col. Patricia Lee',   avatar: '👩‍⚖️', color: '#8b5cf6', fqns: ['https://demo.com/attr/clearance/value/secret', 'https://demo.com/attr/mission/value/legal', 'https://demo.com/attr/nationality/value/USA'] }
-    const marcus  = { id: 'marcus',   name: 'CW3 Marcus Johnson',  avatar: '🧑‍💻', color: '#10b981', fqns: ['https://demo.com/attr/clearance/value/secret', 'https://demo.com/attr/mission/value/cyber', 'https://demo.com/attr/nationality/value/USA'] }
-    const clarke  = { id: 'fvey-uk',  name: 'Flt Lt Emma Clarke',  avatar: '🇬🇧', color: '#0ea5e9', fqns: ['https://demo.com/attr/clearance/value/secret', 'https://demo.com/attr/nationality/value/GBR'] }
-    const dubois  = { id: 'nato-fr',  name: 'Maj. Henri Dubois',   avatar: '🇫🇷', color: '#f97316', fqns: ['https://demo.com/attr/clearance/value/secret', 'https://demo.com/attr/nationality/value/FRA'] }
-    const richter = { id: 'nato-de',  name: 'Maj. Klaus Richter',  avatar: '🇩🇪', color: '#a3a3a3', fqns: ['https://demo.com/attr/clearance/value/secret', 'https://demo.com/attr/nationality/value/DEU'] }
+    const sarah   = { id: 'sarah',    name: 'Maj. Sarah Williams', avatar: '👩‍✈️', color: '#3b82f6', fqns: ['https://demo.com/attr/clearance/value/ts-sci', 'https://demo.com/attr/mission/value/intel', 'https://demo.com/attr/nationality/value/usa'] }
+    const james   = { id: 'james',    name: 'CPT. James Rivera',   avatar: '👨‍💼', color: '#f59e0b', fqns: ['https://demo.com/attr/clearance/value/secret', 'https://demo.com/attr/nationality/value/usa'] }
+    const patricia= { id: 'patricia', name: 'Col. Patricia Lee',   avatar: '👩‍⚖️', color: '#8b5cf6', fqns: ['https://demo.com/attr/clearance/value/secret', 'https://demo.com/attr/mission/value/legal', 'https://demo.com/attr/nationality/value/usa'] }
+    const marcus  = { id: 'marcus',   name: 'CW3 Marcus Johnson',  avatar: '🧑‍💻', color: '#10b981', fqns: ['https://demo.com/attr/clearance/value/secret', 'https://demo.com/attr/mission/value/cyber', 'https://demo.com/attr/nationality/value/usa'] }
+    const clarke  = { id: 'fvey-uk',  name: 'Flt Lt Emma Clarke',  avatar: '🇬🇧', color: '#0ea5e9', fqns: ['https://demo.com/attr/clearance/value/secret', 'https://demo.com/attr/nationality/value/gbr'] }
+    const dubois  = { id: 'nato-fr',  name: 'Maj. Henri Dubois',   avatar: '🇫🇷', color: '#f97316', fqns: ['https://demo.com/attr/clearance/value/secret', 'https://demo.com/attr/nationality/value/fra'] }
+    const richter = { id: 'nato-de',  name: 'Maj. Klaus Richter',  avatar: '🇩🇪', color: '#a3a3a3', fqns: ['https://demo.com/attr/clearance/value/secret', 'https://demo.com/attr/nationality/value/deu'] }
     return [
       { id: 1,  ts: new Date(now - 9000000).toISOString(), type: 'access', persona: sarah,    document: 'Intel Briefing Q3 — NOFORN',         result: 'granted', reason: 'All required attributes satisfied' },
       { id: 2,  ts: new Date(now - 8200000).toISOString(), type: 'access', persona: clarke,   document: 'FVEY Intelligence Summary',           result: 'granted', reason: 'clearance:secret + nationality:GBR (FVEY member)' },

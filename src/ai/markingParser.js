@@ -1,9 +1,9 @@
 const NS = 'https://demo.com/attr'
-const COI_FVEY_FQNS = ['USA', 'GBR', 'AUS', 'NZL', 'CAN'].map(n => `${NS}/nationality/value/${n}`)
+const COI_FVEY_FQNS = ['usa', 'gbr', 'aus', 'nzl', 'can'].map(n => `${NS}/nationality/value/${n}`)
 const COI_NATO_FQNS = [
-  'USA', 'CAN', 'GBR', 'FRA', 'BEL', 'NLD', 'LUX', 'NOR', 'DNK', 'ISL', 'ITA', 'PRT',
-  'GRC', 'TUR', 'DEU', 'ESP', 'HUN', 'POL', 'CZE', 'BGR', 'EST', 'LVA', 'LTU', 'ROU',
-  'SVK', 'SVN', 'ALB', 'HRV', 'MNE', 'MKD', 'FIN', 'SWE',
+  'usa', 'can', 'gbr', 'fra', 'bel', 'nld', 'lux', 'nor', 'dnk', 'isl', 'ita', 'prt',
+  'grc', 'tur', 'deu', 'esp', 'hun', 'pol', 'cze', 'bgr', 'est', 'lva', 'ltu', 'rou',
+  'svk', 'svn', 'alb', 'hrv', 'mne', 'mkd', 'fin', 'swe',
 ].map(n => `${NS}/nationality/value/${n}`)
 
 // Parse standard US classification marking from first line of text.
