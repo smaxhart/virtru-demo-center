@@ -340,7 +340,7 @@ export default function Layout() {
             {/* Persona attributes */}
             {activePersona.attributes.length > 0 && (
               <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                {activePersona.attributes.map(a => (
+                {activePersona.attributes.filter(a => !a.startsWith('relto:')).map(a => (
                   <span key={a} style={{
                     fontSize: 11, fontWeight: 500,
                     padding: '2px 8px', borderRadius: 4,

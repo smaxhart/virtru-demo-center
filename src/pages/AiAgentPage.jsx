@@ -6,6 +6,18 @@ import { streamChat } from '../ai/gatewayClient.js'
 
 const CHAT_PERSONAS = FEDERAL_PERSONAS.filter(p => p.id !== 'generic')
 
+// Uniform suggestions shown to all personas — policy engine determines outcome per user
+const CANNED_PROMPTS = [
+  { label: 'SIGINT intercepts',         text: 'What intercepts are flagged in the SIGINT collection summary?' },
+  { label: 'Q3 threat vectors',         text: 'Give me the Q3 threat briefing highlights.' },
+  { label: 'FVEY maritime assessment',  text: 'What did the FVEY partners contribute to the joint maritime assessment?' },
+  { label: 'NATO COASTAL SHIELD',       text: 'What is the NATO joint ops plan for Operation COASTAL SHIELD?' },
+  { label: 'Article 32 investigation',  text: 'What are the details of the UCMJ Article 32 investigation?' },
+  { label: 'Cyber audit findings',      text: 'What does the infrastructure security audit show?' },
+  { label: 'Patient Jane Doe',          text: 'What is the status of patient Jane Doe from MCI case 47?' },
+  { label: 'How does KAS work?',        text: 'How does the KAS enforce policy on every decrypt?' },
+]
+
 const WELCOME = {
   role: 'assistant',
   content: `Hello. I'm your secure AI assistant, operating within the Virtru Data Security Platform.
@@ -46,20 +58,17 @@ function PersonaPanel({ persona, onSelect }) {
       <div style={{ marginTop: 8, padding: '10px 12px', borderRadius: 8, background: 'var(--c-surface)', border: '1px solid var(--c-border)' }}>
         <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-text-5)', marginBottom: 8 }}>ENTITLEMENTS</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-          {persona.attributes.filter(a => !a.startsWith('nationality:')).length === 0 && (
+          {persona.attributes.filter(a => !a.startsWith('relto:')).length === 0 && (
             <span style={{ fontSize: 10, color: 'var(--c-text-5)', fontStyle: 'italic' }}>None</span>
           )}
-          {persona.attributes.filter(a => !a.startsWith('nationality:')).map(a => {
-            const isRelto = a.startsWith('relto:')
-            return (
-              <span key={a} style={{
-                fontSize: 10, padding: '2px 7px', borderRadius: 4, fontWeight: 500,
-                background: isRelto ? '#dbeafe' : persona.color + '18',
-                color: isRelto ? '#1e40af' : persona.color,
-                border: `1px solid ${isRelto ? '#bfdbfe' : persona.color + '30'}`,
-              }}>{a}</span>
-            )
-          })}
+          {persona.attributes.filter(a => !a.startsWith('relto:')).map(a => (
+            <span key={a} style={{
+              fontSize: 10, padding: '2px 7px', borderRadius: 4, fontWeight: 500,
+              background: persona.color + '18',
+              color: persona.color,
+              border: `1px solid ${persona.color}30`,
+            }}>{a}</span>
+          ))}
         </div>
       </div>
     </div>
@@ -74,7 +83,10 @@ function PolicyPanel({ trace }) {
     </div>
   )
 
-  const { topic, allowed, missing, persona } = trace
+  const { topic, allowed, missing, missingCoi, tier, persona } = trace
+
+  const personaAttrs = persona?.attributes ?? []
+  const personaNation = personaAttrs.find(a => a.startsWith('nationality:'))?.replace('nationality:', '') ?? null
 
   return (
     <div style={{ width: 220, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 8, height: 'fit-content' }}>
@@ -90,24 +102,53 @@ function PolicyPanel({ trace }) {
         {topic ? (
           <div style={{ fontSize: 10, color: 'var(--c-text-5)', lineHeight: 1.5 }}>
             <div>{topic.label}</div>
-            <div style={{ marginTop: 2, color: allowed ? '#15803d' : '#dc2626', fontWeight: 500 }}>{topic.classification}</div>
+            {tier && <div style={{ marginTop: 1, color: '#d97706', fontWeight: 600 }}>{tier.label}</div>}
+            <div style={{ marginTop: 2, color: allowed ? '#15803d' : '#dc2626', fontWeight: 500 }}>{tier ? tier.classification : topic.classification}</div>
           </div>
         ) : (
           <div style={{ fontSize: 10, color: 'var(--c-text-5)' }}>General query — no classification</div>
         )}
       </div>
 
-      {/* required attributes */}
-      {topic && (
+      {/* tiered access ladder */}
+      {topic?.tiers && (
+        <div style={{ padding: '10px 12px', borderRadius: 8, background: 'var(--c-surface)', border: '1px solid var(--c-border)' }}>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-text-5)', marginBottom: 6 }}>ACCESS TIERS</div>
+          {topic.tiers.map(t => {
+            const granted = tier?.id === t.id
+            const denied = !granted
+            return (
+              <div key={t.id} style={{
+                padding: '6px 8px', borderRadius: 6, marginBottom: 4,
+                background: granted ? 'rgba(74,222,128,0.08)' : 'rgba(0,0,0,0.0)',
+                border: `1px solid ${granted ? 'rgba(74,222,128,0.3)' : 'var(--c-border)'}`,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ color: granted ? '#15803d' : 'var(--c-text-6)', fontWeight: 700, fontSize: 11, flexShrink: 0 }}>{granted ? '✓' : '·'}</span>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: granted ? '#15803d' : 'var(--c-text-4)' }}>{t.label}</span>
+                </div>
+                <div style={{ fontSize: 9, color: 'var(--c-text-6)', marginTop: 2, paddingLeft: 14 }}>{t.classification}</div>
+              </div>
+            )
+          })}
+          {!tier && (
+            <div style={{ fontSize: 10, color: '#b91c1c', marginTop: 2 }}>No tier matched — access denied</div>
+          )}
+        </div>
+      )}
+
+      {/* required attributes (non-tiered topics) */}
+      {topic && !topic.tiers && (
         <div style={{ padding: '10px 12px', borderRadius: 8, background: 'var(--c-surface)', border: '1px solid var(--c-border)' }}>
           <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-text-5)', marginBottom: 6 }}>REQUIRED ATTRIBUTES</div>
           {topic.requiredFqns.map(fqn => {
             const m = fqn.match(/\/attr\/([^/]+)\/value\/(.+)$/)
             const short = m ? `${m[1]}:${m[2]}` : fqn
             const held = (() => {
-              const expanded = new Set(persona?.attributes ?? [])
-              if (expanded.has('clearance:ts-sci')) { expanded.add('clearance:secret'); expanded.add('clearance:cui') }
-              if (expanded.has('clearance:secret')) { expanded.add('clearance:cui') }
+              const expanded = new Set(personaAttrs)
+              if (expanded.has('clearance:ts-sci')) { expanded.add('clearance:secret'); expanded.add('clearance:cui'); expanded.add('clearance:unclassified') }
+              if (expanded.has('clearance:secret')) { expanded.add('clearance:cui'); expanded.add('clearance:unclassified') }
+              if (expanded.has('clearance:cui')) expanded.add('clearance:unclassified')
               return expanded.has(short)
             })()
             return (
@@ -117,6 +158,18 @@ function PolicyPanel({ trace }) {
               </div>
             )
           })}
+          {topic.coiNationalities && (() => {
+            const coiName = topic.id === 'fvey' ? 'FVEY' : 'NATO'
+            const inCoi = personaNation && topic.coiNationalities.includes(personaNation)
+            return (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <span style={{ color: inCoi ? '#15803d' : '#b91c1c', fontWeight: 700, fontSize: 12, flexShrink: 0 }}>{inCoi ? '✓' : '✗'}</span>
+                <span style={{ fontSize: 11, color: inCoi ? 'var(--c-text-3)' : '#b91c1c' }}>
+                  {coiName} member{personaNation ? ` (${personaNation})` : ''}
+                </span>
+              </div>
+            )
+          })()}
         </div>
       )}
 
@@ -200,34 +253,32 @@ export default function AiAgentPage() {
     setTrace(null)
   }
 
-  const submit = useCallback(async () => {
-    const query = input.trim()
+  const submitQuery = useCallback(async (query) => {
     if (!query || busy) return
-    setInput('')
     setBusy(true)
 
     setMessages(prev => [...prev, { role: 'user', content: query }])
 
     const topic = classifyQuery(query)
-    const { allowed, missing } = checkAccess(topic, persona)
+    const { allowed, missing, missingCoi, tier } = checkAccess(topic, persona)
 
-    setTrace({ topic, allowed, missing, persona })
+    setTrace({ topic, allowed, missing, missingCoi, tier, persona })
 
     logEvent({
       type:     allowed ? 'decrypt' : 'decrypt-denied',
       persona,
-      document: topic?.label ?? 'General query',
+      document: topic ? `${topic.label}${tier ? ` (${tier.label})` : ''}` : 'General query',
       result:   allowed ? 'granted' : 'denied',
-      reason:   allowed ? 'Entitlements satisfied' : `Missing: ${missing.join(', ')}`,
+      reason:   allowed
+        ? tier ? `Tier granted: ${tier.label}` : 'Entitlements satisfied'
+        : `No tier matched — insufficient entitlements`,
     })
 
     if (!allowed) {
-      const missingShort = missing.map(fqn => {
-        const m = fqn.match(/\/attr\/([^/]+)\/value\/(.+)$/)
-        return m ? `${m[1]}:${m[2]}` : fqn
-      })
       await new Promise(r => setTimeout(r, 500))
-      const blockMsg = `I'm unable to retrieve that information.\n\nThe query matches **${topic.label}** (${topic.classification}). Access requires: ${missingShort.join(', ')}. Your current entitlements don't satisfy that policy — the document corpus was not loaded, so I have nothing to share from it.`
+      const blockMsg = topic?.tiers
+        ? `I'm unable to retrieve that information.\n\nThe query matches **${topic.label}**. This record has tiered access:\n- Full record (PII + treatment): requires mission:legal\n- Status only: requires mission:intel, mission:ops, needtoknow:intel, or needtoknow:ops\n\nYour current entitlements don't satisfy any access tier.`
+        : `I'm unable to retrieve that information.\n\nThe query matches **${topic.label}** (${topic.classification}). Access requires: ${[...missing.map(fqn => { const m = fqn.match(/\/attr\/([^/]+)\/value\/(.+)$/); return m ? `${m[1]}:${m[2]}` : fqn }), missingCoi].filter(Boolean).join(', ')}. Your current entitlements don't satisfy that policy.`
       setMessages(prev => [...prev, { role: 'assistant', content: blockMsg }])
       setBusy(false)
       return
@@ -238,7 +289,7 @@ export default function AiAgentPage() {
       .map(m => ({ role: m.role, content: m.content }))
     history.push({ role: 'user', content: query })
 
-    const systemPrompt = buildSystemPrompt(topic, persona)
+    const systemPrompt = buildSystemPrompt(topic, persona, tier)
 
     setMessages(prev => [...prev, { role: 'assistant', content: '', streaming: true }])
 
@@ -267,7 +318,14 @@ export default function AiAgentPage() {
     })
 
     setBusy(false)
-  }, [input, busy, persona, messages, logEvent])
+  }, [busy, persona, messages, logEvent])
+
+  const submit = useCallback(() => {
+    const query = input.trim()
+    if (!query) return
+    setInput('')
+    submitQuery(query)
+  }, [input, submitQuery])
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -302,6 +360,28 @@ export default function AiAgentPage() {
             </div>
           )}
           <div ref={bottomRef} />
+        </div>
+
+        {/* Canned prompt chips */}
+        <div style={{ flexShrink: 0, display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+          {CANNED_PROMPTS.map(p => (
+            <button
+              key={p.label}
+              onClick={() => submitQuery(p.text)}
+              disabled={busy}
+              style={{
+                fontSize: 11, padding: '5px 10px', borderRadius: 20,
+                background: 'var(--c-surface)', border: '1px solid var(--c-border)',
+                color: 'var(--c-text-3)', cursor: busy ? 'not-allowed' : 'pointer',
+                opacity: busy ? 0.5 : 1, transition: 'all 0.15s',
+                whiteSpace: 'nowrap',
+              }}
+              onMouseEnter={e => { if (!busy) e.currentTarget.style.borderColor = persona.color; if (!busy) e.currentTarget.style.color = persona.color }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--c-border)'; e.currentTarget.style.color = 'var(--c-text-3)' }}
+            >
+              {p.label}
+            </button>
+          ))}
         </div>
 
         {/* Input box */}

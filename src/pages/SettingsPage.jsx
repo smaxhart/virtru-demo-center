@@ -9,13 +9,8 @@ const DEFAULT_PAGE_VISIBILITY = {
   'ai-agent': true,
   'tdf-explorer': true,
   architecture: true,
-  encrypt: true,
-  policy: true,
-  keywrap: true,
-  revoke: true,
   platform: true,
   audit: true,
-  tagging: true,
 }
 
 const PAGE_GROUPS = [
@@ -32,24 +27,9 @@ const PAGE_GROUPS = [
   {
     label: 'Core',
     pages: [
-      { id: 'architecture', label: 'Architecture',    icon: 'boxes' },
-      { id: 'keywrap',      label: 'Key Management',  icon: 'key' },
-      { id: 'revoke',       label: 'Live Revocation', icon: 'revoke' },
+      { id: 'architecture', label: 'Architecture',    icon: 'boxes'   },
       { id: 'audit',        label: 'Audit Log',       icon: 'tdf-doc' },
-    ]
-  },
-  {
-    label: 'Advanced',
-    pages: [
-      { id: 'tagging', label: 'Auto-Tagging', icon: 'document' },
-    ]
-  },
-  {
-    label: 'Build',
-    pages: [
-      { id: 'encrypt',  label: 'Encrypt / Decrypt',     icon: 'lock' },
-      { id: 'policy',   label: 'Policy Builder',        icon: 'document' },
-      { id: 'platform', label: 'Platform Connectivity', icon: 'globe' },
+      { id: 'platform',     label: 'Platform Connectivity', icon: 'globe' },
     ]
   },
 ]

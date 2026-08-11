@@ -8,7 +8,7 @@ const path = require('path')
 
 const PLATFORM_BASE = 'http://localhost:7777'
 // Bump this when the seed data changes — triggers re-seed on existing installs
-const SEED_VERSION = '2'
+const SEED_VERSION = '7'
 
 async function rpc(token, service, method, body = {}) {
   const res = await fetch(`${PLATFORM_BASE}/${service}/${method}`, {
@@ -65,7 +65,7 @@ async function seed(adminToken, markerPath) {
     { name: 'mission',     rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ANY_OF',    values: ['intel', 'ops', 'legal', 'cyber', 'external', 'admin'] },
     { name: 'role',        rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ANY_OF',    values: ['analyst', 'contractor', 'counsel', 'operator', 'commander', 'admin'] },
     { name: 'nationality', rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ANY_OF',    values: ['USA', 'GBR', 'CAN', 'AUS', 'NZL', 'FRA', 'DEU', 'BEL', 'NLD', 'NOR', 'DNK', 'ITA', 'ESP', 'POL', 'TUR'] },
-    { name: 'relto',       rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ANY_OF',    values: ['fvey', 'nato', 'usa-only'] },
+    { name: 'relto',       rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ANY_OF',    values: ['usa', 'fvey', 'nato'] },
   ]
 
   // Map from fqn → attribute value UUID
@@ -104,7 +104,26 @@ async function seed(adminToken, markerPath) {
         }
       }
 
-      // Index value IDs by FQN
+      // Index value IDs by FQN, and create any missing values
+      const existingValueNames = new Set(attrValues.map(v => v.value))
+      for (const expectedVal of def.values) {
+        if (attrId && !existingValueNames.has(expectedVal)) {
+          try {
+            const r = await rpc(adminToken, 'policy.attributes.AttributesService', 'CreateAttributeValue', {
+              attribute_id: attrId,
+              value: expectedVal,
+            })
+            const newVal = r.value
+            if (newVal) {
+              attrValues.push(newVal)
+              console.log('[seeder] Created missing attribute value:', def.name, expectedVal, newVal.id)
+            }
+          } catch (e) {
+            console.warn('[seeder] Could not create attribute value:', def.name, expectedVal, e.message)
+          }
+        }
+      }
+
       for (const v of attrValues) {
         if (v.fqn && v.id) valueIdByFqn[v.fqn] = v.id
         // Also index without leading protocol
@@ -123,31 +142,40 @@ async function seed(adminToken, markerPath) {
   // 3. Subject mappings — requires attribute_value_id (UUID)
   // Action name must be "read" — that's what the KAS passes to authz v2 (ActionNameRead = "read")
   const SUBJECT_MAPPINGS = [
-    // Sarah: TS-SCI analyst, FVEY, intel mission
+    // Sarah: TS-SCI analyst, intel mission
     { selector: '.sub', value: 'sarah',    fqn: 'https://demo.com/attr/clearance/value/ts-sci' },
     { selector: '.sub', value: 'sarah',    fqn: 'https://demo.com/attr/mission/value/intel' },
-    { selector: '.sub', value: 'sarah',    fqn: 'https://demo.com/attr/relto/value/fvey' },
-    // James: Secret contractor, FVEY, external mission
+    // James: Secret contractor, external mission
     { selector: '.sub', value: 'james',    fqn: 'https://demo.com/attr/clearance/value/secret' },
     { selector: '.sub', value: 'james',    fqn: 'https://demo.com/attr/mission/value/external' },
-    { selector: '.sub', value: 'james',    fqn: 'https://demo.com/attr/relto/value/fvey' },
-    // Patricia: Secret counsel, FVEY, legal mission
+    // Patricia: Secret counsel, legal mission
     { selector: '.sub', value: 'patricia', fqn: 'https://demo.com/attr/clearance/value/secret' },
     { selector: '.sub', value: 'patricia', fqn: 'https://demo.com/attr/mission/value/legal' },
-    { selector: '.sub', value: 'patricia', fqn: 'https://demo.com/attr/relto/value/fvey' },
-    // Marcus: Secret admin, FVEY, cyber mission
+    // Marcus: Secret admin, cyber mission
     { selector: '.sub', value: 'marcus',   fqn: 'https://demo.com/attr/clearance/value/secret' },
     { selector: '.sub', value: 'marcus',   fqn: 'https://demo.com/attr/mission/value/cyber' },
-    { selector: '.sub', value: 'marcus',   fqn: 'https://demo.com/attr/relto/value/fvey' },
-    // Emma (fvey-uk): Secret, FVEY, GBR
+    // Emma (fvey-uk): Secret, GBR nationality, FVEY + NATO coalition
     { selector: '.sub', value: 'fvey-uk',  fqn: 'https://demo.com/attr/clearance/value/secret' },
     { selector: '.sub', value: 'fvey-uk',  fqn: 'https://demo.com/attr/relto/value/fvey' },
-    // Henri (nato-fr): Secret, NATO, FRA
+    { selector: '.sub', value: 'fvey-uk',  fqn: 'https://demo.com/attr/relto/value/nato' },
+    // Henri (nato-fr): Secret, FRA nationality, NATO coalition
     { selector: '.sub', value: 'nato-fr',  fqn: 'https://demo.com/attr/clearance/value/secret' },
     { selector: '.sub', value: 'nato-fr',  fqn: 'https://demo.com/attr/relto/value/nato' },
-    // Klaus (nato-de): Secret, NATO, DEU
+    // Klaus (nato-de): Secret, DEU nationality, NATO coalition
     { selector: '.sub', value: 'nato-de',  fqn: 'https://demo.com/attr/clearance/value/secret' },
     { selector: '.sub', value: 'nato-de',  fqn: 'https://demo.com/attr/relto/value/nato' },
+    // Sarah: all coalition access (TS-SCI intel)
+    { selector: '.sub', value: 'sarah',    fqn: 'https://demo.com/attr/relto/value/usa'  },
+    { selector: '.sub', value: 'sarah',    fqn: 'https://demo.com/attr/relto/value/fvey' },
+    { selector: '.sub', value: 'sarah',    fqn: 'https://demo.com/attr/relto/value/nato' },
+    // James: USA + FVEY only (cleared contractor, no NATO)
+    { selector: '.sub', value: 'james',    fqn: 'https://demo.com/attr/relto/value/usa'  },
+    { selector: '.sub', value: 'james',    fqn: 'https://demo.com/attr/relto/value/fvey' },
+    // Patricia: USA only (domestic legal, no coalition)
+    { selector: '.sub', value: 'patricia', fqn: 'https://demo.com/attr/relto/value/usa'  },
+    // Marcus: USA + NATO only (cyber ops, no FVEY)
+    { selector: '.sub', value: 'marcus',   fqn: 'https://demo.com/attr/relto/value/usa'  },
+    { selector: '.sub', value: 'marcus',   fqn: 'https://demo.com/attr/relto/value/nato' },
   ]
 
   for (const sm of SUBJECT_MAPPINGS) {

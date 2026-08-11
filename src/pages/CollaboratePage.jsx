@@ -429,7 +429,7 @@ function OfficeIcon({ ext, size = 18 }) {
 // ── SharePoint Shell ──────────────────────────────────────────────────────────
 const SP_QUICK_LINKS = ['Home', 'Documents', 'Classified Docs', 'Site Contents', 'Recycle Bin']
 
-function SharePointShell({ files, activeFile, onSelect, onUpload, onDownload }) {
+function SharePointShell({ files, activeFile, onSelect, onUpload, onDownload, getSetting }) {
   return (
     <div style={{ fontFamily: "'Segoe UI', Arial, sans-serif", borderRadius: '0 0 10px 10px', overflow: 'hidden', border: '1px solid #c8c6c4', borderTop: 'none' }}>
       {/* O365 top bar */}
@@ -560,8 +560,10 @@ function SharePointShell({ files, activeFile, onSelect, onUpload, onDownload }) 
                     <td style={{ padding: '5px 8px', fontSize: 12, color: '#605e5c', whiteSpace: 'nowrap' }}>{f.relTo}</td>
                     <td style={{ padding: '5px 8px', whiteSpace: 'nowrap' }}>
                       <button
-                        onClick={e => { e.stopPropagation(); onDownload(f) }}
-                        style={{ padding: '2px 8px', borderRadius: 3, fontSize: 11, fontWeight: 600, cursor: 'pointer', background: 'rgba(0,120,212,0.08)', color: '#0078d4', border: '1px solid rgba(0,120,212,0.3)' }}
+                        onClick={e => { e.stopPropagation(); if (!getSetting(f.id).preventDownload) onDownload(f) }}
+                        disabled={getSetting(f.id).preventDownload}
+                        title={getSetting(f.id).preventDownload ? 'Download disabled by policy' : undefined}
+                        style={{ padding: '2px 8px', borderRadius: 3, fontSize: 11, fontWeight: 600, background: 'rgba(0,120,212,0.08)', color: '#0078d4', border: '1px solid rgba(0,120,212,0.3)', opacity: getSetting(f.id).preventDownload ? 0.35 : 1, cursor: getSetting(f.id).preventDownload ? 'not-allowed' : 'pointer' }}
                       >↓ .tdf</button>
                     </td>
                   </tr>
@@ -577,7 +579,7 @@ function SharePointShell({ files, activeFile, onSelect, onUpload, onDownload }) 
 }
 
 // ── Amazon S3 Shell ───────────────────────────────────────────────────────────
-function S3Shell({ files, activeFile, onSelect, onUpload, onDownload }) {
+function S3Shell({ files, activeFile, onSelect, onUpload, onDownload, getSetting }) {
   return (
     <div style={{ background: '#0f2035', border: '1px solid #1e3a5f', borderTop: 'none', borderRadius: '0 0 10px 10px', padding: '16px 20px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingBottom: 12, borderBottom: '1px solid #1e3a5f' }}>
@@ -630,8 +632,10 @@ function S3Shell({ files, activeFile, onSelect, onUpload, onDownload }) {
                   </td>
                   <td style={{ padding: '9px 10px', whiteSpace: 'nowrap' }}>
                     <button
-                      onClick={e => { e.stopPropagation(); onDownload(f) }}
-                      style={{ padding: '3px 9px', borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: 'pointer', background: 'rgba(29,78,216,0.13)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.27)' }}
+                      onClick={e => { e.stopPropagation(); if (!getSetting(f.id).preventDownload) onDownload(f) }}
+                      disabled={getSetting(f.id).preventDownload}
+                      title={getSetting(f.id).preventDownload ? 'Download disabled by policy' : undefined}
+                      style={{ padding: '3px 9px', borderRadius: 4, fontSize: 11, fontWeight: 600, background: 'rgba(29,78,216,0.13)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.27)', opacity: getSetting(f.id).preventDownload ? 0.35 : 1, cursor: getSetting(f.id).preventDownload ? 'not-allowed' : 'pointer' }}
                     >↓ .tdf</button>
                   </td>
                 </tr>
@@ -938,8 +942,10 @@ function CollaborateShell({ files, activeFile, onSelect, onUpload, onDownload, u
                     </td>
                     <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
                       <button
-                        onClick={e => { e.stopPropagation(); onDownload(f) }}
-                        style={{ padding: '3px 9px', borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: 'pointer', background: 'rgba(26,86,219,0.08)', color: '#1a56db', border: '1px solid rgba(26,86,219,0.2)', marginRight: 6 }}
+                        onClick={e => { e.stopPropagation(); if (!getSetting(f.id).preventDownload) onDownload(f) }}
+                        disabled={getSetting(f.id).preventDownload}
+                        title={getSetting(f.id).preventDownload ? 'Download disabled by policy' : undefined}
+                        style={{ padding: '3px 9px', borderRadius: 4, fontSize: 11, fontWeight: 600, background: 'rgba(26,86,219,0.08)', color: '#1a56db', border: '1px solid rgba(26,86,219,0.2)', marginRight: 6, opacity: getSetting(f.id).preventDownload ? 0.35 : 1, cursor: getSetting(f.id).preventDownload ? 'not-allowed' : 'pointer' }}
                       >↓ .tdf</button>
                       <span
                         onClick={e => { e.stopPropagation(); handleRowClick(f) }}
@@ -1127,10 +1133,10 @@ export default function CollaboratePage() {
           </div>
 
           {activeBucket === 'sharepoint' && (
-            <SharePointShell files={visibleFiles} activeFile={activeFile} onSelect={setActiveFile} onUpload={() => setShowUpload(true)} onDownload={handleDownload} />
+            <SharePointShell files={visibleFiles} activeFile={activeFile} onSelect={setActiveFile} onUpload={() => setShowUpload(true)} onDownload={handleDownload} getSetting={getSetting} />
           )}
           {activeBucket === 's3' && (
-            <S3Shell files={visibleFiles} activeFile={activeFile} onSelect={setActiveFile} onUpload={() => setShowUpload(true)} onDownload={handleDownload} />
+            <S3Shell files={visibleFiles} activeFile={activeFile} onSelect={setActiveFile} onUpload={() => setShowUpload(true)} onDownload={handleDownload} getSetting={getSetting} />
           )}
           {activeBucket === 'collaborate' && (
             <CollaborateShell files={visibleFiles} activeFile={activeFile} onSelect={setActiveFile} onUpload={() => setShowUpload(true)} onDownload={handleDownload} userEmail={userEmail} fileSettings={fileSettings} getSetting={getSetting} setSetting={setSetting} />
@@ -1170,9 +1176,9 @@ export default function CollaboratePage() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text-1)' }}>{activePersona.name}</div>
                 <div style={{ fontSize: 11, color: 'var(--c-text-5)', marginBottom: 6 }}>{activePersona.title}</div>
-                {rawAttrs.length > 0 ? (
+                {rawAttrs.filter(a => !a.startsWith('relto:')).length > 0 ? (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                    {rawAttrs.map(a => (
+                    {rawAttrs.filter(a => !a.startsWith('relto:')).map(a => (
                       <span key={a} style={{ fontSize: 10, fontWeight: 500, padding: '2px 7px', borderRadius: 4, background: activePersona.color + '12', color: activePersona.color, border: `1px solid ${activePersona.color}25` }}>{a}</span>
                     ))}
                   </div>

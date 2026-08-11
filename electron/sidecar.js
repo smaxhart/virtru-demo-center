@@ -167,27 +167,20 @@ async function startPostgres(app) {
   }
 
   console.log(`[sidecar] Starting Postgres on port ${PG_PORT}...`)
-  pgProc = spawn(pgCtl, [
+  // pg_ctl start -w blocks until Postgres is fully ready to accept connections.
+  // Using execFileSync here is intentional — it's the only safe way to know
+  // the server is ready before we send the CREATE DATABASE wire message.
+  execFileSync(pgCtl, [
     'start',
     '-D', dataDir,
     '-l', pgLog,
     '-o', `-p ${PG_PORT}`,
     '-w',
+    '-t', '30',
   ], {
     stdio: 'pipe',
     env: { ...process.env },
   })
-
-  pgProc.stdout.on('data', d => console.log(`[postgres] ${d.toString().trim()}`))
-  pgProc.stderr.on('data', d => console.error(`[postgres] ${d.toString().trim()}`))
-
-  pgProc.on('exit', (code) => {
-    // pg_ctl start -w exits 0 after the server is ready — that's normal
-    if (!stopped && code !== 0) console.warn(`[sidecar] pg_ctl exited with code ${code}`)
-  })
-
-  // pg_ctl -w waits until the server is ready, but wait for port just in case
-  await waitForPort(PG_PORT, 20000)
   console.log('[sidecar] Postgres is ready')
 
   // Create the opentdf database — required before OpenTDF's runMigrations runs.

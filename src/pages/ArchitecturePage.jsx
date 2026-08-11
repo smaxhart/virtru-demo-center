@@ -12,11 +12,11 @@ const NODES = {
   datastore: { id: 'datastore', x: 60,  y: 340, label: 'Data Store',        subtitle: 'Any storage',        icon: 'server',   color: '#10b981', desc: 'Where your encrypted TDF files live — S3, SharePoint, email, a database, or any storage. The data is worthless without the key, so the storage layer has zero ability to read content.' },
   tdf:       { id: 'tdf',       x: 660, y: 340, label: 'TDF Envelope',      subtitle: 'Encrypted container', icon: 'tdf-doc',  color: '#06b6d4', desc: 'Trusted Data Format — a portable, self-describing encrypted container. Bundles the ciphertext, the policy binding, and the wrapped key object in one portable package. The same TDF enforces the same rules in S3, email, SharePoint, or on a USB drive.' },
   // Coalition KAS nodes (multi-KAS flow only)
-  kas_usa:   { id: 'kas_usa',   x: 80,  y: 50,  label: '🇺🇸 USA KAS',      subtitle: 'FBI',   icon: 'key', color: '#3b82f6', desc: 'FBI Key Access Server — origin KAS that unwraps the DEK, then provides it to client for rewrapping to coalition partners.' },
-  kas_uk:    { id: 'kas_uk',    x: 260, y: 50,  label: '🇬🇧 UK KAS',       subtitle: 'GCHQ',  icon: 'key', color: '#ef4444', desc: 'GCHQ Key Access Server — DEK wrapped with UK public key for FVEY coalition sharing.' },
-  kas_can:   { id: 'kas_can',   x: 440, y: 50,  label: '🇨🇦 CAN KAS',      subtitle: 'CSE',   icon: 'key', color: '#ec4899', desc: 'CSE Key Access Server — DEK wrapped with Canada public key for FVEY coalition sharing.' },
-  kas_aus:   { id: 'kas_aus',   x: 620, y: 50,  label: '🇦🇺 AUS KAS',      subtitle: 'ASD',   icon: 'key', color: '#f59e0b', desc: 'ASD Key Access Server — DEK wrapped with Australia public key for FVEY coalition sharing.' },
-  kas_nzl:   { id: 'kas_nzl',   x: 760, y: 50,  label: '🇳🇿 NZL KAS',      subtitle: 'GCSB',  icon: 'key', color: '#10b981', desc: 'GCSB Key Access Server — DEK wrapped with New Zealand public key for FVEY coalition sharing.' },
+  kas_usa:   { id: 'kas_usa',   x: 10,  y: 50,  label: '🇺🇸 USA KAS',      subtitle: 'FBI',   icon: 'key', color: '#3b82f6', desc: 'FBI Key Access Server — origin KAS that unwraps the DEK, then provides it to client for rewrapping to coalition partners.' },
+  kas_uk:    { id: 'kas_uk',    x: 190, y: 50,  label: '🇬🇧 UK KAS',       subtitle: 'GCHQ',  icon: 'key', color: '#ef4444', desc: 'GCHQ Key Access Server — DEK wrapped with UK public key for FVEY coalition sharing.' },
+  kas_can:   { id: 'kas_can',   x: 370, y: 50,  label: '🇨🇦 CAN KAS',      subtitle: 'CSE',   icon: 'key', color: '#ec4899', desc: 'CSE Key Access Server — DEK wrapped with Canada public key for FVEY coalition sharing.' },
+  kas_aus:   { id: 'kas_aus',   x: 550, y: 50,  label: '🇦🇺 AUS KAS',      subtitle: 'ASD',   icon: 'key', color: '#f59e0b', desc: 'ASD Key Access Server — DEK wrapped with Australia public key for FVEY coalition sharing.' },
+  kas_nzl:   { id: 'kas_nzl',   x: 730, y: 50,  label: '🇳🇿 NZL KAS',      subtitle: 'GCSB',  icon: 'key', color: '#10b981', desc: 'GCSB Key Access Server — DEK wrapped with New Zealand public key for FVEY coalition sharing.' },
 }
 
 // Node card dimensions

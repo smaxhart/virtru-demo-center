@@ -13,6 +13,13 @@
 
 const NS = 'https://demo.com/attr'
 
+export const COI_FVEY = ['USA', 'GBR', 'AUS', 'NZL', 'CAN']
+export const COI_NATO = [
+  'USA', 'CAN', 'GBR', 'FRA', 'BEL', 'NLD', 'LUX', 'NOR', 'DNK', 'ISL', 'ITA', 'PRT',
+  'GRC', 'TUR', 'DEU', 'ESP', 'HUN', 'POL', 'CZE', 'BGR', 'EST', 'LVA', 'LTU', 'ROU',
+  'SVK', 'SVN', 'ALB', 'HRV', 'MNE', 'MKD', 'FIN', 'SWE',
+]
+
 // Clearance hierarchy expansion (mirrors copSourceTypes.js)
 function expandAttrs(attrs) {
   const s = new Set(attrs)
@@ -79,8 +86,8 @@ Key judgment: Overall threat level elevated compared to Q2. No specific attack t
     keywords: ['fvey', 'five eyes', 'fiveeyes', 'five-eyes', 'ukusa', 'allied intel', 'partner intel', 'uk share', 'canada share', 'aus share', 'nz share'],
     requiredFqns: [
       `${NS}/clearance/value/secret`,
-      `${NS}/relto/value/fvey`,
     ],
+    coiNationalities: COI_FVEY,
     corpus: `
 FVEY INTEL EXCHANGE — SECRET // REL TO FVEY
 Joint product: USA-GBR-CAN-AUS-NZL
@@ -101,8 +108,8 @@ Distribution: FVEY principals only. No NATO release without separate authority.
     keywords: ['nato', 'joint ops', 'joint operations', 'article 5', 'alliance ops', 'nato plan', 'nato forces'],
     requiredFqns: [
       `${NS}/clearance/value/secret`,
-      `${NS}/relto/value/nato`,
     ],
+    coiNationalities: COI_NATO,
     corpus: `
 NATO JOINT OPS PLAN — SECRET // REL TO NATO
 Operation COASTAL SHIELD — Phase II Annex
@@ -163,40 +170,72 @@ Classification: SECRET. Distribution: Cyber command, IG office, relevant COs.
   {
     id: 'patient',
     label: 'Patient / PHI Record',
-    classification: 'LIMITED // USA',
+    classification: 'UNCLASSIFIED // FOUO',
     keywords: ['patient', 'phi', 'medical', 'hipaa', 'health record', 'treatment', 'casualty', 'mci', 'triage', 'jane doe'],
-    requiredFqns: [
-      `${NS}/relto/value/usa`,
-    ],
-    corpus: `
-PATIENT RECORD — LIMITED // USA ONLY
+    // Tiered access — evaluated in order, first match wins
+    tiers: [
+      {
+        id: 'full',
+        label: 'Full Record (PII + Treatment)',
+        classification: 'FOUO // LEGAL EYES ONLY',
+        requiredFqns: [`${NS}/mission/value/legal`],
+        corpus: `
+PATIENT RECORD — FOUO // LEGAL EYES ONLY
 MCI Case #047 — Johns Hopkins R1 Trauma Center
 
-Patient: Jane Doe #MCI-047 (identity withheld per HIPAA)
-DOB: 1984-03-15
-Condition on admission: Serious — blunt force trauma, possible spinal involvement
-Treating unit: MED-12 / Johns Hopkins R1 Trauma
-Current status: Stable — ICU observation, CT imaging complete
-Treatment notes: Surgery completed. Patient remains in ICU. Next of kin notified via FEMA emergency contact protocol.
-Data handling: PHI. No foreign national release. USA-cleared personnel only.
-    `.trim(),
+Patient: Jane Doe — REAL NAME: Cpl. Maria Santos, 2nd Battalion 5th Marines
+DOB: 1989-07-22  SSN (last 4): 4471  DoD ID: 1234567890
+Condition on admission: Critical — penetrating abdominal trauma, hemorrhagic shock
+Treating unit: MED-12 / Johns Hopkins R1 Trauma Center (Level I)
+Current status: Stable post-op — ICU, ventilator weaned, prognosis guarded
+Treatment notes: Emergency laparotomy performed. Splenectomy completed. Two units PRBCs administered.
+Legal notes: JAG hold active. Patient is subject of UCMJ Article 32 investigation (Case 2026-0047).
+  Next of kin notified. Power of attorney on file. Medical records subject to litigation hold.
+Data handling: Full PII — HIPAA restricted. Legal personnel and treating physicians only.
+        `.trim(),
+      },
+      {
+        id: 'status',
+        label: 'Status Only (No PII)',
+        classification: 'FOUO // NEED TO KNOW',
+        requiredFqns: [],
+        requiredNtk: ['intel', 'ops'],
+        corpus: `
+CASUALTY STATUS REPORT — FOUO // NTK INTEL/OPS
+MCI Case #047 — Redacted per HIPAA
+
+Identity: WITHHELD — contact JAG or Medical Officer for PII access
+Unit: 2nd Bn, 5th Marines (unit identity confirmed, name withheld)
+Condition on admission: Critical — penetrating trauma
+Current status: Stable post-op — ICU observation
+Operational impact: Subject is non-deployable. Unit has been notified through chain of command.
+Prognosis: Guarded. Follow-on disposition pending physician clearance.
+Note: Full record including PII and treatment details requires mission:legal entitlement.
+        `.trim(),
+      },
+    ],
+    // Fallback if no tier matched — show nothing
+    requiredFqns: [],
   },
 ]
 
 // Topics accessible to all personnel (no special attributes required)
 const OPEN_CORPUS = `
-You are an AI assistant integrated into the Virtru Data Security Platform demo environment.
-You have access to a classified document corpus. What you can share depends entirely on the user's entitlements —
-the policy layer enforces this before you receive any query.
+You are Virtru Secure AI, a helpful AI assistant integrated into the Virtru Data Security Platform.
+You can answer general questions on any topic — you are a capable, knowledgeable assistant.
 
-For general questions about Virtru, TDF, KAS (Key Access Server), attribute-based access control, or how the DSP works:
+You also have specialized knowledge about Virtru and the DSP:
 - Virtru DSP uses TDF (Trusted Data Format) — AES-256-GCM encryption with policy bound inside the file
 - Every decrypt requires a live KAS check — the key is never stored client-side
 - Entitlements = attribute values in the IdP (Keycloak) — KAS checks these on every request
 - Policy is enforced at the data layer, not the application layer — the app cannot override it
 - Subject mappings connect IdP users to policy attribute values
+- Attribute-based access control (ABAC) means access decisions are based on the user's attributes, not their identity
+- TDF wraps any file type; the policy travels with the data regardless of where it is stored or forwarded
 
-If asked about anything outside your corpus, say you don't have that information.
+When asked about Virtru, TDF, KAS, or data security — answer with depth and accuracy.
+For all other questions — answer helpfully like any capable AI assistant would.
+If a question touches a classified topic that requires entitlements the user does not hold, the policy layer will have blocked it before this point.
 `.trim()
 
 /**
@@ -213,26 +252,60 @@ export function classifyQuery(text) {
   return null
 }
 
+function checkTier(tier, attrs) {
+  const expanded = expandAttrs(attrs)
+  const missingFqns = (tier.requiredFqns ?? []).filter(fqn => {
+    const m = fqn.match(/\/attr\/([^/]+)\/value\/(.+)$/)
+    return !expanded.has(m ? `${m[1]}:${m[2]}` : fqn)
+  })
+  if (missingFqns.length > 0) return false
+  if (tier.requiredNtk) {
+    const heldNtk = attrs.filter(a => a.startsWith('needtoknow:')).map(a => a.replace('needtoknow:', ''))
+    const missionMatch = tier.requiredNtk.some(ntk => attrs.includes(`mission:${ntk}`))
+    const ntkMatch = tier.requiredNtk.some(ntk => heldNtk.includes(ntk))
+    if (!missionMatch && !ntkMatch) return false
+  }
+  return true
+}
+
 /**
  * Check whether a persona can access a topic.
- * Returns { allowed: bool, missing: string[] }
+ * For tiered topics, returns the matched tier (or null if denied).
+ * Returns { allowed, missing, missingCoi, tier }
  */
 export function checkAccess(topic, persona) {
-  if (!topic) return { allowed: true, missing: [] }
-  const expanded = expandAttrs(persona.attributes ?? [])
+  if (!topic) return { allowed: true, missing: [], missingCoi: null, tier: null }
+  const attrs = persona.attributes ?? []
+
+  // Tiered topic — find best matching tier
+  if (topic.tiers) {
+    const matchedTier = topic.tiers.find(t => checkTier(t, attrs)) ?? null
+    return { allowed: !!matchedTier, missing: [], missingCoi: null, tier: matchedTier }
+  }
+
+  const expanded = expandAttrs(attrs)
   const missing = topic.requiredFqns.filter(fqn => {
     const m = fqn.match(/\/attr\/([^/]+)\/value\/(.+)$/)
     const short = m ? `${m[1]}:${m[2]}` : fqn
     return !expanded.has(short)
   })
-  return { allowed: missing.length === 0, missing }
+
+  let missingCoi = null
+  if (topic.coiNationalities) {
+    const nat = attrs.find(a => a.startsWith('nationality:'))
+    const nation = nat ? nat.replace('nationality:', '') : null
+    if (!nation || !topic.coiNationalities.includes(nation)) {
+      missingCoi = `nationality not in ${topic.id === 'fvey' ? 'FVEY' : 'NATO'} COI`
+    }
+  }
+
+  return { allowed: missing.length === 0 && !missingCoi, missing, missingCoi, tier: null }
 }
 
 /**
  * Build the system prompt for an allowed query.
- * Includes the corpus for the matched topic (if any) plus general DSP context.
  */
-export function buildSystemPrompt(topic, persona) {
+export function buildSystemPrompt(topic, persona, tier) {
   const personaCtx = `
 The user you are responding to is ${persona.name}, ${persona.title}.
 Their current entitlements: ${persona.attributes.length > 0 ? persona.attributes.join(', ') : 'none — uncleared user'}.
@@ -242,15 +315,18 @@ Their current entitlements: ${persona.attributes.length > 0 ? persona.attributes
     return `${OPEN_CORPUS}\n\n${personaCtx}\n\nAnswer concisely. Do not fabricate classified information. If the question touches a classified topic you have not been given, say access is controlled by policy.`
   }
 
+  const activeCorpus = tier ? tier.corpus : topic.corpus
+  const activeClassification = tier ? tier.classification : topic.classification
+
   return `
 You are an AI assistant in a classified environment. You have been provided the following document to answer questions from.
 Only answer based on the contents of this document — do not fabricate details.
 
-DOCUMENT: ${topic.label}
-CLASSIFICATION: ${topic.classification}
+DOCUMENT: ${topic.label}${tier ? ` — ${tier.label}` : ''}
+CLASSIFICATION: ${activeClassification}
 
 ---
-${topic.corpus}
+${activeCorpus}
 ---
 
 ${personaCtx}

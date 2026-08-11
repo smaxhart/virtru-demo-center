@@ -4,19 +4,31 @@ import ClassificationBanner from '../components/ClassificationBanner.jsx'
 import { useDemo } from '../context/DemoContext.jsx'
 import { FEDERAL_SAMPLE_FILES, FEDERAL_FILE_PREVIEWS, FEDERAL_PERSONAS } from '../data/sectors.js'
 import { encryptText, decryptTdf } from '../api/tdf.js'
+import { parseMarkingToFqns, fqnsToShortLabels } from '../ai/markingParser.js'
 
 // Policies must align with seeded subject mappings so the demo shows real allow/deny decisions.
 // clearance uses HIERARCHY rule: ts-sci > secret > cui > unclassified (higher satisfies lower)
+// COI (Community of Interest) — access granted by nationality, not a personal relto attribute.
+// ANY_OF semantics: user needs ONE matching nationality FQN to satisfy the COI constraint.
+const COI_FVEY = ['USA', 'GBR', 'AUS', 'NZL', 'CAN'].map(n => `https://demo.com/attr/nationality/value/${n}`)
+
 const FILE_POLICIES = {
   opord:  ['https://demo.com/attr/clearance/value/secret'],                                                         // all cleared personnel
-  sitrep: ['https://demo.com/attr/clearance/value/secret', 'https://demo.com/attr/relto/value/fvey'],              // FVEY partners only
+  sitrep: ['https://demo.com/attr/clearance/value/secret', ...COI_FVEY],                                           // SECRET REL TO FVEY
   intel:  ['https://demo.com/attr/clearance/value/ts-sci', 'https://demo.com/attr/mission/value/intel'],           // TS-SCI intel only → sarah
-  roe:    ['https://demo.com/attr/clearance/value/secret', 'https://demo.com/attr/relto/value/fvey'],              // FVEY partners
+  roe:    ['https://demo.com/attr/clearance/value/secret', ...COI_FVEY],                                           // SECRET REL TO FVEY
   cyber:  ['https://demo.com/attr/clearance/value/secret', 'https://demo.com/attr/mission/value/cyber'],           // cyber mission → marcus
   pws:    ['https://demo.com/attr/clearance/value/unclassified'],                                                   // everyone
 }
 
 const DECRYPT_PERSONAS = FEDERAL_PERSONAS.filter(p => p.id !== 'generic')
+
+const MARKING_PRESETS = [
+  { label: 'UNCLASSIFIED',          marking: 'UNCLASSIFIED',          fqns: ['https://demo.com/attr/clearance/value/unclassified'] },
+  { label: 'SECRET',                marking: 'SECRET',                fqns: ['https://demo.com/attr/clearance/value/secret'] },
+  { label: 'SECRET // REL TO FVEY', marking: 'SECRET // REL TO FVEY', fqns: ['https://demo.com/attr/clearance/value/secret', ...COI_FVEY] },
+  { label: 'TOP SECRET // SCI',     marking: 'TOP SECRET // SCI',     fqns: ['https://demo.com/attr/clearance/value/ts-sci'] },
+]
 
 function fqnLabel(fqn) {
   const m = fqn.match(/\/attr\/([^/]+)\/value\/([^/]+)$/)
@@ -66,6 +78,10 @@ export default function TdfExplorerPage() {
 
   // Uploaded native file state
   const [uploadedFile, setUploadedFile] = useState(null) // { name, text, size }
+  const [detectedFqns, setDetectedFqns] = useState(null)
+  const [detectedMarking, setDetectedMarking] = useState(null)
+  const [manualMarking, setManualMarking] = useState(null)
+  const [manualFqns, setManualFqns] = useState(null)
   const nativeFileInputRef = useRef(null)
   const tdfFileInputRef = useRef(null)
 
@@ -88,6 +104,10 @@ export default function TdfExplorerPage() {
     setPolicyDecoded(false)
     setDecryptResults({})
     setOpenSections(new Set(['keyAccess', 'method', 'payloadRef']))
+    setDetectedFqns(null)
+    setDetectedMarking(null)
+    setManualMarking(null)
+    setManualFqns(null)
   }
 
   function toggleSection(s) {
@@ -104,15 +124,29 @@ export default function TdfExplorerPage() {
     if (!file) return
     const reader = new FileReader()
     reader.onload = (ev) => {
-      setUploadedFile({ name: file.name, text: ev.target.result, size: file.size })
-      // Keep selectedId so the selected sample's policy still applies
+      // Try to parse marking from first 2KB for any file type
+      const bytes = new Uint8Array(ev.target.result)
+      const raw = new TextDecoder('utf-8', { fatal: false }).decode(bytes.slice(0, 2048))
+      const parsed = parseMarkingToFqns(raw)
+      if (parsed.fqns.length > 0) {
+        setDetectedFqns(parsed.fqns)
+        setDetectedMarking(parsed.firstLine)
+      } else {
+        setDetectedFqns(null)
+        setDetectedMarking(null)
+      }
+      setManualMarking(null)
+      setManualFqns(null)
+      // Store text for encryption (re-decode full file as text)
+      const text = new TextDecoder('utf-8', { fatal: false }).decode(bytes)
+      setUploadedFile({ name: file.name, text, size: file.size })
       setTdfBytes(null)
       setManifest(null)
       setImportedFilename(null)
       setEncryptError(null)
       setDecryptResults({})
     }
-    reader.readAsText(file)
+    reader.readAsArrayBuffer(file)
     e.target.value = ''
   }
 
@@ -151,7 +185,7 @@ export default function TdfExplorerPage() {
     setPolicyDecoded(false)
     try {
       const plaintext = uploadedFile?.text ?? FEDERAL_FILE_PREVIEWS[selectedId] ?? 'Sample document content.'
-      const fqns = FILE_POLICIES[selectedId] ?? FILE_POLICIES['opord']
+      const fqns = detectedFqns ?? manualFqns ?? FILE_POLICIES[selectedId] ?? FILE_POLICIES['opord']
       const { tdfBytes: bytes, manifest: mf } = await encryptText(plaintext, fqns, 'sarah')
       setTdfBytes(bytes)
       setManifest(mf)
@@ -226,6 +260,22 @@ export default function TdfExplorerPage() {
   async function handleDecrypt(persona) {
     setDecryptingId(persona.id)
     try {
+      // Pre-check: ensure the TDF's KAS URL is our local platform.
+      // Covers both zip TDFs (manifest in state) and legacy XML TDFs (scan raw bytes).
+      const kasUrls = manifest?.encryptionInformation?.keyAccess?.map(k => k.url) ?? []
+      if (kasUrls.length === 0 && tdfBytes) {
+        // Try extracting KAS URL from raw text (XML TDF or zip with readable manifest)
+        const raw = new TextDecoder('utf-8', { fatal: false }).decode(tdfBytes.slice(0, 4096))
+        const m = raw.match(/"url"\s*:\s*"([^"]+)"/) ?? raw.match(/url=["']([^"']+)["']/)
+        if (m) kasUrls.push(m[1])
+      }
+      const foreignKas = kasUrls.find(u => u && !u.includes('localhost') && !u.includes('127.0.0.1'))
+      if (foreignKas) {
+        const err = `KAS unreachable: ${foreignKas} — this TDF was not encrypted by the local platform`
+        setDecryptResults(r => ({ ...r, [persona.id]: { ok: false, error: err } }))
+        setDecryptingId(null)
+        return
+      }
       const plaintext = await decryptTdf(tdfBytes, persona.id)
       setDecryptResults(r => ({ ...r, [persona.id]: { ok: true, text: plaintext } }))
       logEvent({
@@ -298,10 +348,51 @@ export default function TdfExplorerPage() {
           {/* Uploaded file indicator */}
           {uploadedFile && (
             <div className="mb-3 p-2.5 rounded-lg text-xs"
-              style={{ background: 'var(--c-surface)', border: '1px solid #004987', color: 'var(--c-text-2)' }}>
+              style={{ background: 'var(--c-surface)', border: `1px solid ${detectedMarking || manualMarking ? '#166534' : '#b45309'}`, color: 'var(--c-text-2)' }}>
               <div className="font-medium truncate">{uploadedFile.name}</div>
-              <div style={{ color: 'var(--c-text-5)', marginTop: 2 }}>{(uploadedFile.size / 1024).toFixed(1)} KB · ready to encrypt</div>
-              <div style={{ color: '#6aaae4', marginTop: 4 }}>Policy: {selectedId ? `${selectedId} (selected below)` : 'select a sample to set policy'}</div>
+              <div style={{ color: 'var(--c-text-5)', marginTop: 2 }}>{(uploadedFile.size / 1024).toFixed(1)} KB</div>
+              {detectedMarking ? (
+                <>
+                  <div style={{ color: '#4ade80', marginTop: 6, fontWeight: 700, fontSize: 10, letterSpacing: '0.06em' }}>
+                    🔍 MARKING DETECTED
+                  </div>
+                  <div style={{ color: 'var(--c-text-3)', marginTop: 2, fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                    {detectedMarking}
+                  </div>
+                  <div style={{ color: 'var(--c-text-5)', marginTop: 4 }}>
+                    Policy: {fqnsToShortLabels(detectedFqns).join(', ')}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ color: '#fbbf24', marginTop: 6, fontWeight: 700, fontSize: 10, letterSpacing: '0.06em' }}>
+                    ⚠ NO MARKING FOUND — SELECT ONE
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
+                    {MARKING_PRESETS.map(p => (
+                      <button
+                        key={p.label}
+                        onClick={() => { setManualMarking(p.marking); setManualFqns(p.fqns) }}
+                        style={{
+                          textAlign: 'left', padding: '4px 8px', borderRadius: 5, fontSize: 10,
+                          fontFamily: 'monospace', cursor: 'pointer', transition: 'all 0.12s',
+                          background: manualMarking === p.marking ? '#0d2018' : 'var(--c-bg)',
+                          color: manualMarking === p.marking ? '#4ade80' : 'var(--c-text-3)',
+                          border: `1px solid ${manualMarking === p.marking ? '#166534' : 'var(--c-border)'}`,
+                          fontWeight: manualMarking === p.marking ? 700 : 400,
+                        }}
+                      >
+                        {manualMarking === p.marking ? '✓ ' : ''}{p.label}
+                      </button>
+                    ))}
+                  </div>
+                  {manualMarking && (
+                    <div style={{ color: 'var(--c-text-5)', marginTop: 6 }}>
+                      Policy: {fqnsToShortLabels(manualFqns).join(', ')}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )}
 
@@ -328,13 +419,19 @@ export default function TdfExplorerPage() {
           </div>
 
           {/* Encrypt button */}
-          <button
-            onClick={handleEncrypt}
-            disabled={encrypting || platformReady === false}
-            className="w-full py-2.5 rounded-lg text-sm font-semibold cursor-pointer disabled:opacity-40 transition-all"
-            style={{ background: '#004987', color: '#fff', border: '1px solid #0066b3' }}>
-            {encrypting ? '⏳ Encrypting…' : tdfBytes ? '↺ Re-encrypt' : '🔒 Encrypt with KAS'}
-          </button>
+          {(() => {
+            const needsMarking = uploadedFile && !detectedMarking && !manualMarking
+            return (
+              <button
+                onClick={handleEncrypt}
+                disabled={encrypting || platformReady === false || needsMarking}
+                title={needsMarking ? 'Select a classification marking first' : undefined}
+                className="w-full py-2.5 rounded-lg text-sm font-semibold cursor-pointer disabled:opacity-40 transition-all"
+                style={{ background: '#004987', color: '#fff', border: '1px solid #0066b3' }}>
+                {encrypting ? '⏳ Encrypting…' : tdfBytes ? '↺ Re-encrypt' : '🔒 Encrypt with KAS'}
+              </button>
+            )
+          })()}
 
           {encryptError && (
             <div className="mt-3 p-3 rounded-lg text-xs" style={{ background: '#3f1010', border: '1px solid #991b1b', color: '#fca5a5' }}>
