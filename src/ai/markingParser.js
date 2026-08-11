@@ -1,5 +1,10 @@
 const NS = 'https://demo.com/attr'
-const FVEY_NATIONALITIES = ['USA', 'GBR', 'AUS', 'NZL', 'CAN'].map(n => `${NS}/nationality/value/${n}`)
+const COI_FVEY_FQNS = ['USA', 'GBR', 'AUS', 'NZL', 'CAN'].map(n => `${NS}/nationality/value/${n}`)
+const COI_NATO_FQNS = [
+  'USA', 'CAN', 'GBR', 'FRA', 'BEL', 'NLD', 'LUX', 'NOR', 'DNK', 'ISL', 'ITA', 'PRT',
+  'GRC', 'TUR', 'DEU', 'ESP', 'HUN', 'POL', 'CZE', 'BGR', 'EST', 'LVA', 'LTU', 'ROU',
+  'SVK', 'SVN', 'ALB', 'HRV', 'MNE', 'MKD', 'FIN', 'SWE',
+].map(n => `${NS}/nationality/value/${n}`)
 
 // Parse standard US classification marking from first line of text.
 // Returns { fqns, firstLine, tokens } — fqns is empty if no clearance token found.
@@ -20,9 +25,9 @@ export function parseMarkingToFqns(text) {
     } else if (token === 'UNCLASSIFIED' || token === 'U') {
       fqns.add(`${NS}/clearance/value/unclassified`); foundClearance = true
     } else if (token.includes('FVEY')) {
-      FVEY_NATIONALITIES.forEach(f => fqns.add(f))
+      COI_FVEY_FQNS.forEach(f => fqns.add(f))
     } else if (token.includes('NATO')) {
-      fqns.add(`${NS}/relto/value/nato`)
+      COI_NATO_FQNS.forEach(f => fqns.add(f))
     } else if (token === 'INTEL' || token === 'SI') {
       fqns.add(`${NS}/mission/value/intel`)
     } else if (token === 'CYBER') {

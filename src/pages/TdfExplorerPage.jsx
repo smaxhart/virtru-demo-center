@@ -8,9 +8,15 @@ import { parseMarkingToFqns, fqnsToShortLabels } from '../ai/markingParser.js'
 
 // Policies must align with seeded subject mappings so the demo shows real allow/deny decisions.
 // clearance uses HIERARCHY rule: ts-sci > secret > cui > unclassified (higher satisfies lower)
-// COI (Community of Interest) — access granted by nationality, not a personal relto attribute.
-// ANY_OF semantics: user needs ONE matching nationality FQN to satisfy the COI constraint.
+// COI (Community of Interest): FVEY/NATO membership is expressed via nationality FQNs.
+// nationality uses ANY_OF — a policy listing [USA, GBR, AUS, NZL, CAN] grants access if the
+// user holds any ONE of those values. This mirrors how a real REL TO marking works.
 const COI_FVEY = ['USA', 'GBR', 'AUS', 'NZL', 'CAN'].map(n => `https://demo.com/attr/nationality/value/${n}`)
+const COI_NATO = [
+  'USA', 'CAN', 'GBR', 'FRA', 'BEL', 'NLD', 'LUX', 'NOR', 'DNK', 'ISL', 'ITA', 'PRT',
+  'GRC', 'TUR', 'DEU', 'ESP', 'HUN', 'POL', 'CZE', 'BGR', 'EST', 'LVA', 'LTU', 'ROU',
+  'SVK', 'SVN', 'ALB', 'HRV', 'MNE', 'MKD', 'FIN', 'SWE',
+].map(n => `https://demo.com/attr/nationality/value/${n}`)
 
 const FILE_POLICIES = {
   opord:  ['https://demo.com/attr/clearance/value/secret'],                                                         // all cleared personnel
@@ -27,6 +33,7 @@ const MARKING_PRESETS = [
   { label: 'UNCLASSIFIED',          marking: 'UNCLASSIFIED',          fqns: ['https://demo.com/attr/clearance/value/unclassified'] },
   { label: 'SECRET',                marking: 'SECRET',                fqns: ['https://demo.com/attr/clearance/value/secret'] },
   { label: 'SECRET // REL TO FVEY', marking: 'SECRET // REL TO FVEY', fqns: ['https://demo.com/attr/clearance/value/secret', ...COI_FVEY] },
+  { label: 'SECRET // REL TO NATO', marking: 'SECRET // REL TO NATO', fqns: ['https://demo.com/attr/clearance/value/secret', ...COI_NATO] },
   { label: 'TOP SECRET // SCI',     marking: 'TOP SECRET // SCI',     fqns: ['https://demo.com/attr/clearance/value/ts-sci'] },
 ]
 

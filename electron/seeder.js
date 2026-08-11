@@ -8,7 +8,7 @@ const path = require('path')
 
 const PLATFORM_BASE = 'http://localhost:7777'
 // Bump this when the seed data changes — triggers re-seed on existing installs
-const SEED_VERSION = '7'
+const SEED_VERSION = '8'
 
 async function rpc(token, service, method, body = {}) {
   const res = await fetch(`${PLATFORM_BASE}/${service}/${method}`, {
@@ -164,16 +164,23 @@ async function seed(adminToken, markerPath) {
     // Klaus (nato-de): Secret, DEU nationality, NATO coalition
     { selector: '.sub', value: 'nato-de',  fqn: 'https://demo.com/attr/clearance/value/secret' },
     { selector: '.sub', value: 'nato-de',  fqn: 'https://demo.com/attr/relto/value/nato' },
-    // Sarah: all coalition access (TS-SCI intel)
+    // Nationality — COI membership is derived from nationality, not relto.
+    // ANY_OF rule: a policy listing FVEY/NATO nationality FQNs grants access if the
+    // user holds any ONE matching nationality value.
+    { selector: '.sub', value: 'sarah',    fqn: 'https://demo.com/attr/nationality/value/USA' },
+    { selector: '.sub', value: 'james',    fqn: 'https://demo.com/attr/nationality/value/USA' },
+    { selector: '.sub', value: 'patricia', fqn: 'https://demo.com/attr/nationality/value/USA' },
+    { selector: '.sub', value: 'marcus',   fqn: 'https://demo.com/attr/nationality/value/USA' },
+    { selector: '.sub', value: 'fvey-uk',  fqn: 'https://demo.com/attr/nationality/value/GBR' },
+    { selector: '.sub', value: 'nato-fr',  fqn: 'https://demo.com/attr/nationality/value/FRA' },
+    { selector: '.sub', value: 'nato-de',  fqn: 'https://demo.com/attr/nationality/value/DEU' },
+    // relto — kept for CollaboratePage simulation and Architecture page demos
     { selector: '.sub', value: 'sarah',    fqn: 'https://demo.com/attr/relto/value/usa'  },
     { selector: '.sub', value: 'sarah',    fqn: 'https://demo.com/attr/relto/value/fvey' },
     { selector: '.sub', value: 'sarah',    fqn: 'https://demo.com/attr/relto/value/nato' },
-    // James: USA + FVEY only (cleared contractor, no NATO)
     { selector: '.sub', value: 'james',    fqn: 'https://demo.com/attr/relto/value/usa'  },
     { selector: '.sub', value: 'james',    fqn: 'https://demo.com/attr/relto/value/fvey' },
-    // Patricia: USA only (domestic legal, no coalition)
     { selector: '.sub', value: 'patricia', fqn: 'https://demo.com/attr/relto/value/usa'  },
-    // Marcus: USA + NATO only (cyber ops, no FVEY)
     { selector: '.sub', value: 'marcus',   fqn: 'https://demo.com/attr/relto/value/usa'  },
     { selector: '.sub', value: 'marcus',   fqn: 'https://demo.com/attr/relto/value/nato' },
   ]
