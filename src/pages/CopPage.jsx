@@ -21,8 +21,8 @@ function buildBannerRaw(classId, needToKnowIds, relToRaw) {
   return parts.join(' // ')
 }
 
-const STORAGE_KEY = 'cop_objects_v10'
-const SEEDED_KEY  = 'cop_seeded_v10'
+const STORAGE_KEY = 'cop_objects_v12'
+const SEEDED_KEY  = 'cop_seeded_v12'
 
 const MAP_CENTER = [38, -72]
 const MAP_ZOOM   = 5
@@ -44,45 +44,65 @@ function objFqns(obj) {
 function makeMarkerIcon(classId, srcTypeId, hasAccess) {
   if (!hasAccess) return { html: '', className: '', iconSize: [0, 0], iconAnchor: [0, 0] }
   const cls = getClassification(classId)
+  const col = cls.color
+  const strk = cls.stroke
   let svg
+
   if (srcTypeId === 'facility') {
-    // Diamond shape for fixed installations
-    svg = `<svg width="22" height="22" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
-      <polygon points="11,2 20,11 11,20 2,11" fill="${cls.color}" stroke="${cls.stroke}" stroke-width="2"/>
-      <polygon points="11,7 15,11 11,15 7,11" fill="rgba(0,0,0,0.25)"/>
+    // Building — triangular roof + body + windows + door
+    svg = `<svg width="26" height="26" viewBox="0 0 26 26" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="13,1 25,12 1,12" fill="${col}" stroke="${strk}" stroke-width="1.5" stroke-linejoin="round"/>
+      <rect x="3" y="12" width="20" height="13" fill="${col}30" stroke="${strk}" stroke-width="1.5"/>
+      <rect x="5" y="14" width="5" height="4" rx="0.5" fill="${col}" opacity="0.85"/>
+      <rect x="16" y="14" width="5" height="4" rx="0.5" fill="${col}" opacity="0.85"/>
+      <rect x="11" y="18" width="4" height="7" rx="1" fill="${col}"/>
     </svg>`
-    return { html: svg, className: '', iconSize: [22, 22], iconAnchor: [11, 11] }
+    return { html: svg, className: '', iconSize: [26, 26], iconAnchor: [13, 13] }
   }
+
   if (srcTypeId === 'ground_unit') {
-    // Square for ground units
-    svg = `<svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
-      <rect x="1" y="1" width="16" height="16" rx="2" fill="${cls.color}" stroke="${cls.stroke}" stroke-width="2"/>
-      <rect x="5" y="5" width="8" height="8" rx="1" fill="rgba(0,0,0,0.25)"/>
+    // Top-down vehicle — body + 4 wheel stubs + windshield line
+    svg = `<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <rect x="5" y="4" width="14" height="16" rx="3" fill="${col}" stroke="${strk}" stroke-width="1.5"/>
+      <rect x="2" y="7"  width="3" height="4" rx="1" fill="${strk}"/>
+      <rect x="19" y="7" width="3" height="4" rx="1" fill="${strk}"/>
+      <rect x="2" y="13" width="3" height="4" rx="1" fill="${strk}"/>
+      <rect x="19" y="13" width="3" height="4" rx="1" fill="${strk}"/>
+      <rect x="8" y="5" width="8" height="3" rx="1" fill="${strk}" opacity="0.45"/>
     </svg>`
-    return { html: svg, className: '', iconSize: [18, 18], iconAnchor: [9, 9] }
+    return { html: svg, className: '', iconSize: [24, 24], iconAnchor: [12, 12] }
   }
+
   if (srcTypeId === 'incident') {
-    // Triangle for incidents
-    svg = `<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-      <polygon points="10,2 19,18 1,18" fill="${cls.color}" stroke="${cls.stroke}" stroke-width="2"/>
-      <polygon points="10,8 14,16 6,16" fill="rgba(0,0,0,0.25)"/>
+    // Warning triangle — bold outline + exclamation mark
+    svg = `<svg width="26" height="24" viewBox="0 0 26 24" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="13,1 25,23 1,23" fill="${col}30" stroke="${strk}" stroke-width="2.5" stroke-linejoin="round"/>
+      <line x1="13" y1="9" x2="13" y2="16" stroke="${col}" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="13" cy="20" r="2" fill="${col}"/>
     </svg>`
-    return { html: svg, className: '', iconSize: [20, 20], iconAnchor: [10, 10] }
+    return { html: svg, className: '', iconSize: [26, 24], iconAnchor: [13, 12] }
   }
+
   if (srcTypeId === 'patient') {
-    // Small circle for patient records
-    svg = `<svg width="14" height="14" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="7" cy="7" r="6" fill="${cls.color}" stroke="${cls.stroke}" stroke-width="1.5"/>
-      <circle cx="7" cy="7" r="2.5" fill="rgba(0,0,0,0.25)"/>
+    // Medical cross on circular background
+    svg = `<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="11" fill="${col}22" stroke="${strk}" stroke-width="1.5"/>
+      <rect x="9" y="3"  width="6" height="18" rx="2" fill="${col}"/>
+      <rect x="3" y="9"  width="18" height="6" rx="2" fill="${col}"/>
     </svg>`
-    return { html: svg, className: '', iconSize: [14, 14], iconAnchor: [7, 7] }
+    return { html: svg, className: '', iconSize: [24, 24], iconAnchor: [12, 12] }
   }
-  // Default circle for aircraft
-  svg = `<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="10" cy="10" r="8" fill="${cls.color}" stroke="${cls.stroke}" stroke-width="2"/>
-    <circle cx="10" cy="10" r="3" fill="rgba(0,0,0,0.3)"/>
+
+  // Default: response_unit — helicopter top-down (rotor disc + fuselage + tail boom + tail rotor)
+  svg = `<svg width="30" height="30" viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="15" cy="15" r="14" fill="${col}18" stroke="${strk}" stroke-width="1.5"/>
+    <line x1="2" y1="15" x2="28" y2="15" stroke="${col}" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="15" cy="15" r="2.5" fill="${strk}"/>
+    <ellipse cx="15" cy="19" rx="4.5" ry="6" fill="${col}"/>
+    <line x1="15" y1="25" x2="15" y2="29" stroke="${col}" stroke-width="2" stroke-linecap="round"/>
+    <line x1="12" y1="28" x2="18" y2="28" stroke="${col}" stroke-width="2" stroke-linecap="round"/>
   </svg>`
-  return { html: svg, className: '', iconSize: [20, 20], iconAnchor: [10, 10] }
+  return { html: svg, className: '', iconSize: [30, 30], iconAnchor: [15, 15] }
 }
 
 // ── Create Form Modal ─────────────────────────────────────────────────────────
