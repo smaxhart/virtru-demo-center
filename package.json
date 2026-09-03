@@ -1,6 +1,6 @@
 {
   "name": "virtru-demo-center",
-  "version": "1.7.4",
+  "version": "1.7.3",
   "description": "Virtru Demo Center — self-contained Electron app with embedded OpenTDF platform",
   "author": "Virtru",
   "license": "UNLICENSED",
@@ -13,8 +13,7 @@
     "build:platform": "bash scripts/build-platform.sh",
     "electron": "electron .",
     "dist": "vite build && electron-builder --mac --arm64",
-    "postinstall": "electron-builder install-app-deps",
-    "release": "node scripts/check-release-ready.mjs && vite build && GH_TOKEN=$(gh auth token) electron-builder --mac --arm64 --publish always"
+    "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
     "@opentdf/sdk": "^0.19.0",

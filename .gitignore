@@ -5,8 +5,3 @@ resources/bin/
 *.app
 out/
 /tmp/opentdf-platform-build
-
-# The update feed token. Ships inside the built .app — electron-builder packs from the
-# filesystem, not from git — but is kept out of history so it never lands in a clone or
-# trips secret scanning. See electron/update-token.example.js.
-electron/update-token.js
