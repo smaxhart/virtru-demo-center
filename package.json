@@ -1,6 +1,6 @@
 {
   "name": "virtru-demo-center",
-  "version": "1.7.3",
+  "version": "1.8.0",
   "description": "Virtru Demo Center — self-contained Electron app with embedded OpenTDF platform",
   "author": "Virtru",
   "license": "UNLICENSED",
@@ -13,7 +13,11 @@
     "build:platform": "bash scripts/build-platform.sh",
     "electron": "electron .",
     "dist": "vite build && electron-builder --mac --arm64",
-    "postinstall": "electron-builder install-app-deps"
+    "postinstall": "electron-builder install-app-deps",
+    "verify": "npm run verify:matrix && npm run verify:uploads && npm run verify:scenario",
+    "verify:matrix": "node scripts/verify-matrix.mjs",
+    "verify:uploads": "node scripts/verify-uploads.mjs",
+    "verify:scenario": "node scripts/verify-scenario.mjs"
   },
   "dependencies": {
     "@opentdf/sdk": "^0.19.0",

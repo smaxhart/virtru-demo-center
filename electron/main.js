@@ -13,6 +13,13 @@ const jwtIssuer = require('./jwt-issuer')
 const sidecar   = require('./sidecar')
 const seeder    = require('./seeder')
 
+// The AI Protection page brings its own vocabulary, its own uploads, and the scenarios a user
+// builds. All four are additive — nothing above changes because they exist.
+const aiSeeder     = require('./ai-seeder')
+const aiIdentities = require('./ai-identities')
+const aiScenarios  = require('./ai-scenarios')
+const aiUploads    = require('./ai-uploads')
+
 const isDev = !app.isPackaged
 
 // ── Auto-updater ──────────────────────────────────────────────────────────────
@@ -243,13 +250,255 @@ ipcMain.handle('open-tdf', async () => {
 })
 
 ipcMain.handle('save-file', async (_event, { bytes, filename, ext }) => {
+  // Buffer.from() happily accepts a string, so swapped arguments would silently write the filename
+  // as the file body. Fail loudly instead — a corrupt .tdf looks like a platform bug, and someone
+  // would spend an afternoon on it. Array-likes and typed arrays are both allowed, because the two
+  // callers of this channel cross the bridge differently.
+  const usable = Array.isArray(bytes) || typeof bytes?.byteLength === 'number'
+  if (!usable || typeof bytes === 'string') {
+    throw new Error(`save-file expects bytes, received ${typeof bytes}`)
+  }
+
+  const isTdf = (filename || '').toLowerCase().endsWith('.tdf')
   const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
     defaultPath: filename || `file.${ext || 'bin'}`,
+    ...(isTdf ? { filters: [
+      { name: 'TDF Archive', extensions: ['tdf'] },
+      { name: 'All Files',   extensions: ['*'] },
+    ] } : {}),
   })
   if (canceled || !filePath) return null
   fs.writeFileSync(filePath, Buffer.from(bytes))
   return filePath
 })
+
+// ── AI Protection ─────────────────────────────────────────────────────────────
+//
+// Everything below is reached only from the AI Protection page. It is deliberately additive: not
+// one handler above was changed, and the channels the rest of the app already uses
+// (`get-user-token`, `get-platform-token`, `get-platform-status`, `save-file`, …) are reused as
+// they are rather than reshaped to suit this page.
+//
+// The one place that took care is `save-file`. This page and the pages before it both want to write
+// bytes to a path the user picks, but their renderer-side helpers take the arguments in opposite
+// orders. The handler above is the only one, and it stays as it is; the preload exposes a second
+// name for this page, so no existing call site moved.
+
+/**
+ * Whether the AI page can be used yet.
+ *
+ * Its own signal, separate from `platform-status`, because the two become true at different times.
+ * The platform is reported ready as soon as the sidecar answers — which is what every page that
+ * shipped before this one waits on, and that timing is left exactly alone. This page needs more
+ * than a live platform: it needs its attributes defined and its subject mappings written, or the
+ * first question asked would come back denied for everyone and look like a bug in the KAS.
+ */
+let aiStatus = 'starting'
+let aiError = null
+
+ipcMain.handle('get-ai-status', () =>
+  aiStatus === 'error' ? { state: 'error', message: aiError } : aiStatus
+)
+
+ipcMain.handle('get-entity-attributes', (_e, personaId) => jwtIssuer.getEntityAttributes(personaId))
+
+/**
+ * The seeded vocabulary, for the attribute picker.
+ *
+ * Read from the same ATTRIBUTE_DEFS the AI seeder used, so the picker can only ever offer values
+ * the platform actually created. Offering one it did not would produce a policy that denies
+ * everybody, with nothing in the UI to explain why.
+ *
+ * `modeId` is optional and only matters inside a user-built scenario: that scenario's own
+ * vocabulary is appended, so uploading into it can tag with the attributes it invented. Other
+ * scenarios' vocabulary is deliberately left out — it exists on the platform, but offering it
+ * here would let a DoW upload be tagged with a caveat nobody in DoW has ever heard of.
+ */
+ipcMain.handle('get-attribute-defs', (_e, modeId = undefined) => {
+  const own = modeId
+    ? (aiScenarios.list(app).find(s => s.id === modeId)?.vocabulary ?? [])
+        .filter(d => !aiIdentities.BUILTIN_DEFS_BY_NAME.has(d.name))
+    : []
+  return {
+    namespace: aiIdentities.NS,
+    hierarchy: aiIdentities.CLEARANCE_HIERARCHY,
+    defs: [...aiIdentities.ATTRIBUTE_DEFS, ...own].map(d => ({
+      name: d.name,
+      values: d.values,
+      hierarchy: d.rule.endsWith('HIERARCHY'),
+    })),
+  }
+})
+
+ipcMain.handle('open-file', async () => {
+  const { filePaths, canceled } = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile'],
+    filters: [
+      { name: 'TDF or text', extensions: ['tdf', 'txt', 'md', 'json', 'csv'] },
+      { name: 'TDF Archive', extensions: ['tdf'] },
+      { name: 'All Files',   extensions: ['*'] },
+    ],
+  })
+  if (canceled || !filePaths?.length) return null
+  const filePath = filePaths[0]
+  // Bytes, not text: the renderer has to sniff the format before it knows how to decode.
+  return { filename: path.basename(filePath), bytes: new Uint8Array(fs.readFileSync(filePath)) }
+})
+
+ipcMain.handle('list-uploads',  (_e, modeId)               => aiUploads.list(app, modeId))
+ipcMain.handle('read-upload',   (_e, id)                   => aiUploads.read(app, id))
+ipcMain.handle('delete-upload', (_e, id)                   => aiUploads.remove(app, id))
+ipcMain.handle('add-upload',    (_e, { record, payload })  => aiUploads.add(app, record, payload))
+
+// ── Scenarios the user built ──────────────────────────────────────────────────
+//
+// Two things have to happen for a scenario to be usable, and both are idempotent so they can be
+// run on save, on import, and on every launch:
+//
+//   the platform learns its vocabulary   — attribute definitions and subject mappings, written by
+//                                          the same seeder functions the shipped modes go through
+//   the issuer learns its identities     — so its personas and agents can be handed real tokens
+//
+// `activateScenario` does both. It is deliberately not gated on a version marker the way the
+// built-in seeds are: a scenario is created at a moment the user chose and has to work at that
+// moment, and re-running it costs a few hundred milliseconds of already-exists responses.
+
+/**
+ * Teach the platform and the issuer about one scenario.
+ *
+ * Identity registration is attempted per subject rather than all-or-nothing, so one bad id cannot
+ * cost a scenario its other nine personas — the failure is logged and that subject simply has no
+ * token, which surfaces in the UI as a persona who cannot decrypt anything.
+ */
+async function activateScenario(scenario) {
+  const defs = aiScenarios.scenarioDefs(scenario)
+  const identityTable = aiScenarios.scenarioIdentities(scenario)
+
+  for (const [id, identity] of Object.entries(identityTable)) {
+    try {
+      jwtIssuer.registerIdentity(id, identity, defs)
+    } catch (err) {
+      log.warn(`[main] Scenario ${scenario.id}: could not register "${id}": ${err.message}`)
+    }
+  }
+
+  const adminToken = jwtIssuer.issueToken('admin').access_token
+  return aiSeeder.seedScenario(adminToken, { ...scenario, identities: identityTable })
+}
+
+ipcMain.handle('list-scenarios',    ()            => aiScenarios.list(app))
+ipcMain.handle('new-scenario-id',   ()            => aiScenarios.newId())
+ipcMain.handle('validate-scenario', (_e, scenario) => aiScenarios.validate(scenario))
+
+ipcMain.handle('save-scenario', async (_e, scenario) => {
+  const stored = aiScenarios.save(app, scenario)
+  await activateScenario(stored)
+  return stored
+})
+
+ipcMain.handle('delete-scenario', (_e, id) => {
+  const identityIds = aiScenarios.remove(app, id)
+  if (!identityIds) return false
+  // The platform keeps the definitions and mappings on purpose — see electron/ai-scenarios.js.
+  // What does go away is the ability to be issued a token as one of these subjects.
+  for (const identityId of identityIds) jwtIssuer.unregisterIdentity(identityId)
+  return true
+})
+
+/**
+ * Write a scenario out as a shareable file.
+ *
+ * The bundle is the scenario itself: vocabulary, personas, agents, and documents as **plaintext
+ * plus policy**. No ciphertext, because a TDF's key is wrapped to the KAS that made it and would
+ * be undecryptable on the recipient's machine. Import re-encrypts against their KAS, which is
+ * what lets a scenario be shared at all.
+ */
+ipcMain.handle('export-scenario', async (_e, scenario) => {
+  const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
+    defaultPath: `${scenario.name?.replace(/[^a-z0-9]+/gi, '-').toLowerCase() || 'scenario'}.vsai-scenario.json`,
+    filters: [{ name: 'Scenario bundle', extensions: ['json'] }],
+  })
+  if (canceled || !filePath) return null
+  fs.writeFileSync(filePath, JSON.stringify(scenario, null, 2))
+  return filePath
+})
+
+/**
+ * Read a scenario bundle, re-id it, and activate it.
+ *
+ * The re-id itself lives in electron/ai-scenarios.js, next to the validation it has to satisfy.
+ */
+ipcMain.handle('import-scenario', async () => {
+  const { filePaths, canceled } = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile'],
+    filters: [
+      { name: 'Scenario bundle', extensions: ['json'] },
+      { name: 'All Files', extensions: ['*'] },
+    ],
+  })
+  if (canceled || !filePaths?.length) return null
+
+  let bundle
+  try {
+    bundle = JSON.parse(fs.readFileSync(filePaths[0], 'utf8'))
+  } catch (err) {
+    throw new Error(`That file is not readable JSON: ${err.message}`)
+  }
+  if (bundle?.format !== aiScenarios.FORMAT) {
+    throw new Error('That file is not a Virtru Secure AI scenario bundle.')
+  }
+  if (bundle.formatVersion > aiScenarios.FORMAT_VERSION) {
+    throw new Error(
+      `That bundle was written by a newer version of this app (format ${bundle.formatVersion}, ` +
+      `this build understands ${aiScenarios.FORMAT_VERSION}). Update and try again.`
+    )
+  }
+
+  const reIded = aiScenarios.reId(bundle, aiScenarios.newId())
+  const problems = aiScenarios.validate(reIded)
+  if (problems.length) {
+    throw new Error(`That bundle is not valid:\n• ${problems.join('\n• ')}`)
+  }
+
+  const stored = aiScenarios.save(app, reIded)
+  await activateScenario(stored)
+  return stored
+})
+
+/**
+ * Seed the AI vocabulary and re-teach the platform every scenario the user has built.
+ *
+ * Runs after the seed every other page depends on, and reports through its own status channel, so
+ * a failure in here leaves the rest of the app exactly as it would have been.
+ */
+async function bootAi(userDataPath) {
+  try {
+    const adminToken = jwtIssuer.issueToken('admin').access_token
+    await aiSeeder.seedAi(adminToken, path.join(userDataPath, 'seeded-ai.txt'))
+  } catch (err) {
+    aiStatus = 'error'
+    aiError = err.message
+    log.error('[main] AI seed failed:', err.message)
+    mainWindow?.webContents.send('ai-status', { state: 'error', message: err.message })
+    return
+  }
+
+  // Scenarios the user built have to be re-taught to the platform and the issuer on every launch:
+  // the issuer's identity tables are in memory, and the policy store may have been reset out from
+  // under us. Each is activated independently so one broken scenario cannot cost the others — and
+  // a failure here never blocks anything, because the four shipped modes do not depend on any of it.
+  for (const scenario of aiScenarios.list(app)) {
+    try {
+      await activateScenario(scenario)
+    } catch (err) {
+      log.warn(`[main] Could not activate scenario "${scenario.name}" (${scenario.id}): ${err.message}`)
+    }
+  }
+
+  aiStatus = 'ready'
+  mainWindow?.webContents.send('ai-status', 'ready')
+  log.info('[main] AI Protection ready')
+}
 
 // ── Boot sequence ─────────────────────────────────────────────────────────────
 
@@ -266,6 +515,7 @@ async function boot() {
   createWindow()
   mainWindow.webContents.once('did-finish-load', () => {
     mainWindow.webContents.send('platform-status', 'starting')
+    mainWindow.webContents.send('ai-status', aiStatus)
   })
 
   // 4. Start OpenTDF platform sidecar
@@ -278,6 +528,11 @@ async function boot() {
     platformStatus = 'error'
     log.error('[main] Platform failed to start:', err.message)
     if (mainWindow) mainWindow.webContents.send('platform-status', { state: 'error', message: err.message })
+    // Nothing downstream can succeed without a platform, so the AI page is told too rather than
+    // being left waiting on a 'starting' that will never resolve.
+    aiStatus = 'error'
+    aiError = err.message
+    if (mainWindow) mainWindow.webContents.send('ai-status', { state: 'error', message: err.message })
     // App still opens — shows error state rather than crashing
     return
   }
@@ -291,7 +546,11 @@ async function boot() {
     console.warn('[main] Seed warning (non-fatal):', err.message)
   }
 
-  // 6. Check for updates (packaged builds only) — on launch + every 30 minutes
+  // 6. Seed what the AI Protection page needs, then activate any scenarios the user built.
+  //    Deliberately after step 5 and behind its own status channel — see bootAi.
+  await bootAi(userDataPath)
+
+  // 7. Check for updates (packaged builds only) — on launch + every 30 minutes
   setupUpdater()
   if (!isDev) {
     autoUpdater.checkForUpdates()

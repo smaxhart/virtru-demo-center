@@ -36,6 +36,19 @@
   --c-diagram-bg:   #e2e8f0;  /* slate-200 */
   --c-diagram-node: #ffffff;
   --c-diagram-edge: #94a3b8;  /* slate-400 */
+
+  /* Verdict colors — granted / denied / caveated. Added for AI Protection, which shows an
+     access decision on nearly every surface. All nine names are new, so nothing that shipped
+     before resolves differently. */
+  --c-grant:      #15803d;
+  --c-grant-bg:   rgba(74, 222, 128, 0.08);
+  --c-grant-br:   rgba(74, 222, 128, 0.3);
+  --c-deny:       #b91c1c;
+  --c-deny-bg:    rgba(239, 68, 68, 0.08);
+  --c-deny-br:    rgba(239, 68, 68, 0.3);
+  --c-warn:       #d97706;
+  --c-warn-bg:    rgba(217, 119, 6, 0.08);
+  --c-warn-br:    rgba(217, 119, 6, 0.3);
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -172,3 +185,42 @@ body {
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--c-bg); }
 ::-webkit-scrollbar-thumb { background: var(--c-border-2); border-radius: 3px; }
+
+/* ── AI Protection ─────────────────────────────────────────── */
+/* Scoped to `.secure-ai` (see secure-ai/App.jsx) so the pages that shipped before it are
+   untouched. Everything else that subtree needs — the token names, .card, spin — already
+   resolves to the same values here as it did standalone. */
+
+/* Its cards set their own elevation inline, hover included, and a baseline shadow underneath
+   fights it. Demo Center's shadowed .card stays the default everywhere else. */
+.secure-ai .card { box-shadow: none; }
+
+/* Demo Center reaches for Tailwind's `font-mono`, so `.mono` is undefined here — and this
+   subtree leans on it heavily for FQNs, key ids and policy fragments. */
+.secure-ai .mono,
+.secure-ai code,
+.secure-ai pre {
+  font-family: ui-monospace, "SF Mono", Menlo, Monaco, monospace;
+}
+
+/* A <button> does not inherit the page font on its own, and Demo Center's is Barlow. */
+.secure-ai button { font-family: inherit; }
+
+.secure-ai .section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--c-text-5);
+}
+
+/* The typing indicator in Secure Chat */
+@keyframes bounce {
+  0%, 60%, 100% { transform: translateY(0);    opacity: 0.4; }
+  30%           { transform: translateY(-4px); opacity: 1; }
+}
+
+/* Distinct from `step-in` above: no travel, used for the boot panel */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

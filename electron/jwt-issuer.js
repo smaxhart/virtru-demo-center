@@ -38,6 +38,81 @@ const PERSONA_CLAIMS = {
   'ai-logistics': { sub: 'ai-logistics', name: 'Logistics AI', ...STD },
 }
 
+// ── AI Protection identities ──────────────────────────────────────────────────
+//
+// The AI Protection page carries its own people and its own agents — four scenarios' worth, plus
+// whatever a user-built scenario invents at runtime. They are folded into the same table so there
+// is still exactly one issuer, one keypair and one JWKS the platform validates against.
+//
+// Two things keep this from touching what the rest of the app does:
+//
+//   Ids cannot collide. Every identity below is prefixed with its mode (`dow-`, `fc-`, `ic-`,
+//   `le-`) and every scenario identity with its scenario id, so none of them can be the `sarah`
+//   or `fvey-uk` the other pages issue. The loop skips an id that is already taken anyway, so the
+//   table above wins on principle rather than by luck — `admin` is the one overlap, and its claims
+//   stay exactly as they were.
+//
+//   Entity attributes are computed differently, and stay that way. The identities above resolve
+//   through `buildEntityAttributes`, which reads a fixed set of claim fields. These resolve through
+//   `grantsToFqns`, which walks the AI vocabulary's own definitions and knows which of them rank.
+//   `PERSONA_FQNS` is what distinguishes the two: an id with an entry takes the new path, an id
+//   without one takes the old, so every token the app issued before this page existed comes out
+//   byte-for-byte the same.
+const aiIdentities = require('./ai-identities.js')
+
+/** Precomputed entity attribute FQNs, for AI and scenario identities only. */
+const PERSONA_FQNS = {}
+
+for (const [id, { name, grants }] of Object.entries(aiIdentities.IDENTITIES)) {
+  if (PERSONA_CLAIMS[id]) {
+    console.warn(`[jwt-issuer] AI identity "${id}" is already defined — keeping the existing claims`)
+    continue
+  }
+  PERSONA_CLAIMS[id] = { sub: id, name, ...grants, ...STD }
+  PERSONA_FQNS[id] = aiIdentities.grantsToFqns(grants)
+}
+
+// Neither table may be redefined by a scenario. Ids are prefixed, so a collision is already
+// structurally impossible; this is the check that says so out loud, and it covers the pages that
+// existed before the AI one as well as the AI one itself.
+const RESERVED_IDENTITY_IDS = new Set([
+  ...Object.keys(PERSONA_CLAIMS),
+  ...aiIdentities.RESERVED_IDENTITY_IDS,
+])
+
+/**
+ * Add an identity a user-built scenario brought with it.
+ *
+ * Called for every persona and agent in every saved scenario at launch, and again when one is
+ * created or imported, so a scenario's people can be issued tokens without the app restarting.
+ * The claims and the entity FQNs are built by the same two lines the built-in AI identities go
+ * through, which is what keeps a scenario persona from being a second-class subject — the KAS has
+ * no way to tell that this one was typed in this morning.
+ *
+ * Refuses to overwrite anything shipped. A scenario that could redefine `dow-sarah`, or `sarah`,
+ * would silently change what an existing page does, and the failure would surface as a demo that
+ * used to work and now does not.
+ *
+ * @param {string} id
+ * @param {{name: string, grants: object}} identity
+ * @param {Array} defs  the scenario's definitions, so HIERARCHY grants expand correctly
+ */
+function registerIdentity(id, { name, grants }, defs = undefined) {
+  if (RESERVED_IDENTITY_IDS.has(id)) {
+    throw new Error(`"${id}" is a built-in identity and cannot be redefined by a scenario`)
+  }
+  PERSONA_CLAIMS[id] = { sub: id, name, ...grants, ...STD }
+  PERSONA_FQNS[id] = aiIdentities.grantsToFqns(grants, defs)
+}
+
+/** Drop a scenario's identities when it is deleted, so its tokens stop being issuable. */
+function unregisterIdentity(id) {
+  if (RESERVED_IDENTITY_IDS.has(id)) return false
+  delete PERSONA_CLAIMS[id]
+  delete PERSONA_FQNS[id]
+  return true
+}
+
 let privateKey = null
 let publicKey = null
 let server = null
@@ -102,11 +177,15 @@ function issueToken(personaId, expiresInSeconds = 3600) {
     iat: now,
     exp: now + expiresInSeconds,
     jti: crypto.randomUUID(),
-    // OpenTDF SDK / KAS uses these for entitlement resolution
+    // OpenTDF SDK / KAS uses these for entitlement resolution.
+    // An AI or scenario identity has its FQNs precomputed from its grants; everyone else is
+    // derived from their claim fields the way they always were. See PERSONA_FQNS above.
     'tdf_claims': {
       entitlements: [{
         entity_identifier: claims.sub,
-        entity_attributes: buildEntityAttributes(claims),
+        entity_attributes: PERSONA_FQNS[personaId]
+          ? PERSONA_FQNS[personaId].map(attribute => ({ attribute }))
+          : buildEntityAttributes(claims),
       }]
     },
   }
@@ -144,6 +223,19 @@ function buildEntityAttributes(claims) {
   if (claims.relto)       claims.relto.forEach(r => attrs.push({ attribute: `${NS}/relto/value/${r}` }))
 
   return attrs
+}
+
+/**
+ * The entity attribute FQNs the KAS will resolve a persona to, as plain strings.
+ *
+ * For the UI to render entitlements next to a persona. Both paths are covered so this answers for
+ * any id in the table, not just the AI ones.
+ */
+function getEntityAttributes(personaId) {
+  if (PERSONA_FQNS[personaId]) return PERSONA_FQNS[personaId]
+  const claims = PERSONA_CLAIMS[personaId]
+  if (!claims) return []
+  return buildEntityAttributes(claims).map(a => a.attribute)
 }
 
 function startServer() {
@@ -198,4 +290,8 @@ function stop() {
   })
 }
 
-module.exports = { loadOrGenerateKeys, startServer, issueToken, stop, ISSUER, PERSONA_CLAIMS }
+module.exports = {
+  loadOrGenerateKeys, startServer, issueToken, stop,
+  getEntityAttributes, registerIdentity, unregisterIdentity,
+  ISSUER, PORT, PERSONA_CLAIMS,
+}

@@ -4,7 +4,7 @@ import Layout from './components/Layout.jsx'
 import ArchitecturePage from './pages/ArchitecturePage.jsx'
 import CollaboratePage from './pages/CollaboratePage.jsx'
 import CopPage from './pages/CopPage.jsx'
-import AiAgentPage from './pages/AiAgentPage.jsx'
+import SecureAiApp from './secure-ai/App.jsx'
 import PlatformPage from './pages/PlatformPage.jsx'
 import AuditPage from './pages/AuditPage.jsx'
 import SettingsPage from './pages/SettingsPage.jsx'
@@ -22,7 +22,11 @@ export default function App() {
             <Route path="/architecture" element={<ArchitecturePage />} />
             <Route path="/cop"          element={<CopPage />} />
             <Route path="/collaborate"  element={<CollaboratePage />} />
-            <Route path="/ai-agent"     element={<AiAgentPage />} />
+            {/* AI Protection is a whole app rather than a page — four scenarios, a corpus, a
+                scenario builder — so it gets a splat and routes the rest itself. The path stays
+                `/ai-agent` because that string is the key saved page-visibility preferences are
+                stored under, and the target of any link already shared. */}
+            <Route path="/ai-agent/*"   element={<SecureAiApp />} />
             <Route path="/platform"     element={<PlatformPage />} />
             <Route path="/audit"        element={<AuditPage />} />
             <Route path="/tdf-explorer" element={<TdfExplorerPage />} />
