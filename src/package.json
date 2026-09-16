@@ -1,0 +1,4 @@
+{
+  "//": "Not a package. The root package.json is CommonJS so the Electron main process can require() its files, which would otherwise make Node treat every src/*.js as CJS and refuse to import it. This marker scopes ESM to the renderer tree, so scripts/verify-matrix.mjs can import the mode definitions directly instead of re-parsing them. Vite reads these files itself and is unaffected.",
+  "type": "module"
+}

@@ -89,7 +89,11 @@ export default function Layout() {
   }, [devOpen])
 
   const isGeneric = activePersona.id === 'generic'
-  const pageLabel = PAGE_LABELS[location.pathname] ?? ''
+
+  // AI Protection routes below its own mount point (/ai-agent/dow/chat and so on), so its label
+  // and its own chrome rules have to survive a path that is longer than the nav entry.
+  const isAiRoute = location.pathname === '/ai-agent' || location.pathname.startsWith('/ai-agent/')
+  const pageLabel = PAGE_LABELS[location.pathname] ?? (isAiRoute ? PAGE_LABELS['/ai-agent'] : '')
 
   const visibleNavItems = NAV_ITEMS.map(item => {
     if (item === null) return null
@@ -301,7 +305,11 @@ export default function Layout() {
           {/* Controls */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
 
-            {/* Persona switcher */}
+            {/* Persona switcher — hidden on AI Protection, which selects its own identities.
+                That page holds a persona *and* an agent, drawn from whichever scenario is open,
+                and neither of them is one of these. Two persona controls in view, only one of
+                which changed what you were about to demo, is worse than one. */}
+            {!isAiRoute && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ fontSize: 11, color: 'var(--c-text-6)' }}>As:</span>
               <div style={{ display: 'flex', gap: 3 }}>
@@ -336,9 +344,10 @@ export default function Layout() {
                 {activePersona.name}
               </span>
             </div>
+            )}
 
             {/* Persona attributes */}
-            {activePersona.attributes.length > 0 && (
+            {!isAiRoute && activePersona.attributes.length > 0 && (
               <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                 {activePersona.attributes.filter(a => !a.startsWith('relto:')).map(a => (
                   <span key={a} style={{
