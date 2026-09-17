@@ -5,12 +5,48 @@ import { getUserToken } from './auth.js'
 export const PLATFORM_URL = 'http://localhost:7777'
 const KAS_URL = `${PLATFORM_URL}/kas`
 
-function makeClient(accessToken) {
-  return new OpenTDF({
-    interceptors: [authTokenInterceptor(() => accessToken)],
-    platformUrl: PLATFORM_URL,
-    disableDPoP: true,
-  })
+/**
+ * One reused client per identity. **The keypairs are cached; the token is not.**
+ *
+ * `new OpenTDF()` is expensive in a way that is not obvious: it generates two RSA-2048 keypairs.
+ * One in the SDK's own constructor for DPoP keys that `disableDPoP: true` then declines to forward,
+ * and a second inside the TDF3Client underneath precisely because it was not forwarded. Chromium's
+ * WebCrypto takes ~150ms per pair and concurrent generations contend for the same thread, so a
+ * client per operation dominated everything else here: switching persona fires 14 rewraps, and the
+ * 28 avoidable keygens behind them burned ~4s of local crypto before the first request left the
+ * renderer. Reuse also lets the client's KAS public-key cache do its job, removing two HTTP round
+ * trips per encrypt.
+ *
+ * A fresh token is minted on **every** operation, exactly as before this was cached. That matters
+ * for correctness, not just freshness: the Scenario Builder can re-register an identity under the
+ * same id with different grants, and a token cached across that edit would quietly hand the KAS
+ * stale entitlements — a wrong access decision in the one demo whose entire point is the right one.
+ * Minting costs ~2ms over IPC, so there is nothing to win by holding on to it.
+ *
+ * Sharing a client across concurrent operations is safe: `createTDF` and `read` keep their state
+ * local, and the only thing they mutate on the client is that KAS key cache, which is an
+ * append-and-lookup keyed by url, algorithm and kid.
+ */
+const clients = new Map()
+
+async function clientFor(identityId) {
+  const { access_token } = await getUserToken(identityId)
+
+  let cell = clients.get(identityId)
+  if (!cell) {
+    // The interceptor reads the cell at request time rather than closing over one token, so the
+    // client outlives any single token without being rebuilt.
+    cell = { token: access_token }
+    cell.client = new OpenTDF({
+      interceptors: [authTokenInterceptor(() => cell.token)],
+      platformUrl: PLATFORM_URL,
+      disableDPoP: true,
+    })
+    clients.set(identityId, cell)
+  } else {
+    cell.token = access_token
+  }
+  return cell.client
 }
 
 async function streamToBytes(stream) {
@@ -39,8 +75,7 @@ async function streamToBytes(stream) {
  * readable and exactly what was asked for.
  */
 export async function encryptText(plaintext, attributeFqns, asPersona = 'admin') {
-  const { access_token } = await getUserToken(asPersona)
-  const client = makeClient(access_token)
+  const client = await clientFor(asPersona)
   const blob = new Blob([new TextEncoder().encode(plaintext)], { type: 'text/plain' })
   const cipherStream = await client.createTDF({
     source: { type: 'stream', location: blob.stream() },
@@ -60,8 +95,7 @@ export async function encryptText(plaintext, attributeFqns, asPersona = 'admin')
  * access-denied decision, not a simulation of one.
  */
 export async function decryptToText(tdfBytes, personaId) {
-  const { access_token } = await getUserToken(personaId)
-  const client = makeClient(access_token)
+  const client = await clientFor(personaId)
   const blob = new Blob([tdfBytes])
   const decryptedStream = await client.read({
     source: { type: 'stream', location: blob.stream() },

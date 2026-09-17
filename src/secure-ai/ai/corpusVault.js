@@ -16,8 +16,10 @@ import { corpusUnits } from './corpus.js'
 import { encryptText, decryptToText, manifestAttributes, describeDenial } from '../api/tdf.js'
 
 /**
- * Encrypt one mode's corpus. Sequential on purpose: each createTDF fetches the KAS
- * public key and the boot progress reads better as a list than as a race.
+ * Encrypt one mode's corpus. Sequential on purpose, though no longer for the original reason:
+ * `encryptText` now reuses one client, so the KAS public key is fetched once rather than per
+ * document and a parallel boot would save only ~50ms across the whole corpus. The progress list is
+ * worth more than that — it is the part of the boot an audience is actually reading.
  *
  * Called once per mode, the first time that mode is launched; AppContext caches the
  * resulting vault so re-entering a mode is instant.

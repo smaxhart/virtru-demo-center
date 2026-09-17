@@ -3,7 +3,10 @@
  * process over IPC — there is no Keycloak in this app.
  */
 
-const ISSUER_URL = 'http://localhost:7879'
+// Demo Center's in-process issuer. Only reached by `npm run dev:web`; under Electron every call
+// below goes over IPC instead. The standalone Secure AI app this page came from used 7879, which
+// is why this constant was wrong until it was noticed — nothing exercised it.
+const ISSUER_URL = 'http://localhost:7779'
 
 async function issueViaHttp(personaId) {
   const res = await fetch(`${ISSUER_URL}/token`, {

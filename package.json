@@ -1,6 +1,6 @@
 {
   "name": "virtru-demo-center",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "description": "Virtru Demo Center — self-contained Electron app with embedded OpenTDF platform",
   "author": "Virtru",
   "license": "UNLICENSED",
