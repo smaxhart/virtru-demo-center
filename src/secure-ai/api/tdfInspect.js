@@ -40,13 +40,19 @@ export function sniffFormat(bytes) {
   return 'text'
 }
 
-/** Inspection needs no entitlement, so it does not borrow a persona's identity. */
+/**
+ * Inspection needs no entitlement, so it does not borrow a persona's identity — and because its
+ * token is a constant, one client serves every inspection. Worth caching rather than rebuilding:
+ * `new OpenTDF()` generates two RSA-2048 keypairs, ~300ms of WebCrypto, for a client that here only
+ * ever parses a local zip.
+ */
+let inspector = null
 function inspectionClient() {
-  return new OpenTDF({
+  return (inspector ??= new OpenTDF({
     interceptors: [authTokenInterceptor(() => 'inspection-needs-no-token')],
     platformUrl: PLATFORM_URL,
     disableDPoP: true,
-  })
+  }))
 }
 
 /**
@@ -82,8 +88,9 @@ export async function inspectZtdf(bytes) {
       kasUrls: [], ours: false, attributes: [], mimeType: null, specVersion: null, assertions: 0,
     }
   } finally {
+    // The reader is per-call and is ours to close. The client is not any more — it is shared, and
+    // closing it here would be a bug the moment `OpenTDF.close()` stops being a no-op.
     await reader.close().catch(() => {})
-    client.close()
   }
 }
 
