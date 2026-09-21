@@ -72,7 +72,10 @@
       "dist/**",
       "electron/**",
       "platform-config/**",
-      "!resources/bin"
+      "!resources/bin",
+      "!dist/*.{dmg,zip,blockmap,yml,yaml}",
+      "!dist/*.zip.blockmap",
+      "!dist/*.dmg.blockmap"
     ],
     "extraResources": [
       {
