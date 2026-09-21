@@ -345,16 +345,87 @@ ok(`pushed ${branch} and ${tag}`)
 console.log(`\nBuilding renderer`)
 execFileSync('npx', ['vite', 'build'], { cwd: ROOT, stdio: 'inherit' })
 
-console.log(`\nBuilding and publishing`)
+// Always build as a *draft*, whatever the channel — then verify, prune, and flip it visible.
+//
+// electron-builder would happily publish straight to non-draft: gitHubPublisher.js sets
+// `draft: this.releaseType === "draft"` at creation, so `releaseType: release` creates the release
+// *before* uploading, and these artifacts are ~818 MB together. That leaves a live release holding
+// a partial asset set for the whole upload window — and an install that checks in during it gets a
+// latest-mac.yml pointing at a .zip that is not there yet. Draft-then-flip is the same shape the
+// manual `gh` flow arrived at the hard way: while it is a draft, no installed copy can see it.
+console.log(`\nBuilding and uploading (as a draft)`)
 execFileSync(
   'npx',
   [
     'electron-builder', '--mac', '--arm64',
     '--publish', 'always',
-    '-c.publish.releaseType=' + spec.releaseType,
+    '-c.publish.releaseType=draft',
   ],
   { cwd: ROOT, stdio: 'inherit', env: { ...process.env, GH_TOKEN: ghToken } },
 )
+
+// Expected asset set, read from the feed the build just wrote rather than assumed: latest-mac.yml
+// plus every file it names, at the size it claims. A truncated upload still lists as an asset, so
+// size is the check that catches it.
+console.log(`\nVerifying assets`)
+const feedPath = join(ROOT, 'dist', 'latest-mac.yml')
+const feed = readFileSync(feedPath, 'utf8')
+const expected = new Map([['latest-mac.yml', null]])
+for (const m of feed.matchAll(/^\s*-\s*url:\s*(\S+)[\s\S]*?^\s*size:\s*(\d+)/gm)) {
+  expected.set(decodeURIComponent(m[1]), +m[2])
+}
+// electron-builder does list the .dmg under files[] as well as the .zip, so the loop above normally
+// catches it with a size. Belt-and-braces for the case where it does not: auto-update only ever
+// reads the .zip that `path:` names, but the .dmg is what the README links for fresh installs, so a
+// release without one is broken for new sellers. Never downgrade an entry that already has a size.
+for (const m of feed.matchAll(/(\S+\.dmg)/g)) {
+  const name = decodeURIComponent(m[1])
+  if (!expected.has(name)) expected.set(name, null)
+}
+
+const assetsOf = () => JSON.parse(sh('gh', ['release', 'view', tag, '--json', 'assets'])).assets
+
+// Blockmaps are uploaded by electron-builder and deliberately not kept: a differential download
+// needs the *previous* release's blockmap too, so the first one buys nothing, and electron-updater's
+// differential path is the part that has broken before. Dropped while still invisible, which leaves
+// the same three-asset release every version through 1.8.1 shipped.
+{
+  const blockmaps = assetsOf().filter(a => a.name.endsWith('.blockmap'))
+  for (const b of blockmaps) {
+    shSoft('gh', ['release', 'delete-asset', tag, b.name, '--yes'])
+    ok(`dropped ${b.name}`)
+  }
+  if (!blockmaps.length) ok('no blockmaps to drop')
+}
+
+{
+  const assets = assetsOf()
+  const missing = []
+  for (const [name, size] of expected) {
+    const a = assets.find(x => x.name === name)
+    if (!a) missing.push(`${name} — not uploaded`)
+    else if (a.state !== 'uploaded') missing.push(`${name} — state=${a.state}`)
+    else if (size != null && a.size !== size) missing.push(`${name} — ${a.size} bytes, feed says ${size}`)
+    else ok(`${name}${size != null ? ` (${size} bytes)` : ''}`)
+  }
+  if (missing.length) {
+    console.log(`\n${RED('Assets are incomplete — the release is still a draft, so no install can see it.')}\n`)
+    missing.forEach(m => console.log(`  ${RED('✗')} ${m}`))
+    console.log(`\n  Re-upload, then publish by hand. HTTP 500 on the big files is transient — retry it:\n`)
+    console.log(`    gh release upload ${tag} dist/*.zip dist/*.dmg --clobber`)
+    console.log(`    gh release edit ${tag} --draft=false${channel === 'beta' ? ' --prerelease' : ' --latest'}\n`)
+    process.exit(1)
+  }
+}
+
+// Only now does it become visible to anyone.
+console.log(`\nPublishing`)
+sh('gh', ['release', 'edit', tag,
+  '--draft=false',
+  ...(channel === 'beta' ? ['--prerelease'] : ['--latest']),
+  '--title', `${tag}`,
+])
+ok(`${tag} is live as a ${spec.releaseType}`)
 
 console.log(`\n${GRN('Published')} ${tag} as a ${spec.releaseType}.\n`)
 

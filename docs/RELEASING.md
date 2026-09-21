@@ -90,6 +90,28 @@ no tag, no build, no publish).
 | Staging gate | stable requires a matching beta (see above) |
 | Notes non-empty | no commits since the last tag means nothing to release, or you are on the wrong branch |
 
+## How it publishes
+
+Both channels build as a **draft** and only flip visible once the assets check out, because these
+artifacts are ~818 MB together and a release is visible the moment it is not a draft.
+`electron-builder` on its own would create the release *before* uploading —
+`gitHubPublisher.js` sets `draft: this.releaseType === "draft"` at creation — which leaves a live
+release holding a partial asset set for the whole upload window. An install that checks in during it
+gets a `latest-mac.yml` pointing at a `.zip` that is not there yet.
+
+So the order is: tag → build → upload into a draft → drop blockmaps → verify → `--draft=false`.
+
+- **Blockmaps are dropped on purpose.** electron-builder uploads them; every release through 1.8.1
+  shipped without them. A differential download needs the *previous* release's blockmap too, so the
+  first one buys nothing, and electron-updater's differential path is the part that has broken
+  before. They are removed while the release is still invisible.
+- **Assets are verified against the feed the build just wrote**, not against a hardcoded list: every
+  file `latest-mac.yml` names must be `state=uploaded` at exactly the size it claims. A truncated
+  upload still lists as an asset, so size is the check that catches it.
+- **If verification fails the release stays a draft** — nobody can see it — and the script prints the
+  two commands to finish by hand. `HTTP 500: Error saving asset` on the big files is transient and
+  sometimes repeats on the same file; retry rather than assume the artifact is bad.
+
 One check is advisory and never blocks: the embedded update-feed token is a classic PAT, which is a
 **known and accepted** risk pending the product team taking this codebase for a PEP. It is surfaced
 at every release so it stays known. Don't "fix" it without reading why v1.7.4 was reverted — the
