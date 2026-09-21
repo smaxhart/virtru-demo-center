@@ -269,8 +269,17 @@ export default function Layout() {
           alignItems: 'center',
           justifyContent: 'space-between',
         }}>
-          <span style={{ fontSize: 10, color: 'rgba(147,197,253,0.35)', fontFamily: 'monospace', letterSpacing: '0.05em' }}>
+          <span style={{ fontSize: 10, color: 'rgba(147,197,253,0.35)', fontFamily: 'monospace', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 6 }}>
             {appVersion ? `v${appVersion}` : 'dev'}
+            {/* A prerelease version string is the whole staging channel — electron-updater derives
+                allowPrerelease from it — so it is worth saying out loud. Someone demoing from a
+                beta by accident should be able to see it without opening the logs. */}
+            {appVersion?.includes('-') && (
+              <span style={{
+                fontSize: 8, letterSpacing: '0.1em', padding: '1px 4px', borderRadius: 3,
+                color: '#fbbf24', background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.3)',
+              }}>STAGING</span>
+            )}
           </span>
           {updateInfo?.state === 'ready' && (
             <span style={{ fontSize: 10, color: '#4ade80' }}>v{updateInfo.version} ready ↑</span>
