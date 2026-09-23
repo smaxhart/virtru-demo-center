@@ -13,14 +13,16 @@
  *      the platform has never heard of does not fail loudly — the decision lookup comes back
  *      empty and the KAS denies *everyone*, with nothing in the UI to explain it. So proposals
  *      are filtered against ATTRIBUTE_DEFS, fetched from the main process.
- *   2. What it cannot map, it says out loud rather than approximating. NOFORN and CONFIDENTIAL
- *      have no equivalent in this vocabulary, and quietly dropping them (too loose) or rounding
- *      them up (too tight) both misrepresent the document.
+ *   2. What it cannot map, it says out loud rather than approximating. CONFIDENTIAL and IMCON have
+ *      no equivalent in this vocabulary, and quietly dropping them (too loose) or rounding them up
+ *      (too tight) both misrepresent the document.
  *
  * False positives are the real risk: `SI` and `TK` are two letters, and prose is full of them.
  * So compartments are only read out of things that look like markings in the first place — a
  * banner line or a parenthesised portion marking — never from running text.
  */
+
+import { coalitionNations } from '../modes/vocab.js'
 
 /** Marking-ish fragments: banner lines and parenthesised portion markings. */
 function extractMarkings(text) {
@@ -62,6 +64,10 @@ const CLASSIFICATION = [
 ]
 
 // Everything else is a flat token → attribute mapping. `name` must exist in ATTRIBUTE_DEFS.
+//
+// The CUI category and LDC tokens below are deliberately the same codes `ai/banner.js` *renders*,
+// so a banner this app produced is a banner this app can read back. `CUI//SP-CTI//FEDCON` round
+// trips to the two values it was derived from.
 const MARKINGS = [
   { tokens: ['SI', 'SPECIAL INTELLIGENCE'], name: 'sci', value: 'si' },
   { tokens: ['TK', 'TALENT KEYHOLE'],       name: 'sci', value: 'tk' },
@@ -70,25 +76,75 @@ const MARKINGS = [
 
   { tokens: ['ORCON', 'OC', 'ORIGINATOR CONTROLLED'], name: 'dissem', value: 'orcon' },
   { tokens: ['RELIDO'],                                name: 'dissem', value: 'relido' },
-  { tokens: ['PROPIN', 'PR'],                          name: 'dissem', value: 'propin' },
 
-  { tokens: ['FVEY', 'REL TO FVEY', 'FIVE EYES'], name: 'coi', value: 'fvey' },
-  { tokens: ['NATO', 'REL TO NATO'],              name: 'coi', value: 'nato' },
+  // REL TO expands to the member nations. Nobody holds an entitlement called FVEY — they hold a
+  // nationality — so these are the only multi-value entries here, and `expand` is what carries them.
+  // Each nation still goes through the `allowed` filter below, so a roster can never propose a value
+  // the platform lacks.
+  { tokens: ['FVEY', 'REL TO FVEY', 'FIVE EYES'], expand: coalitionNations('fvey').map(n => ({ name: 'nationality', value: n })) },
+  { tokens: ['NATO', 'REL TO NATO'],              expand: coalitionNations('nato').map(n => ({ name: 'nationality', value: n })) },
+  { tokens: ['REL TO USA'],                       name: 'nationality', value: 'usa' },
 
-  { tokens: ['PRIV', 'PRVCY', 'PRIVACY'],           name: 'cui', value: 'privacy' },
-  { tokens: ['TAX', 'TAXINFO', 'FTI'],              name: 'cui', value: 'taxinfo' },
-  { tokens: ['PROCURE', 'PROC', 'PROCUREMENT'],     name: 'cui', value: 'procurement' },
-  { tokens: ['LEI', 'LE', 'LAW ENFORCEMENT'],       name: 'cui', value: 'lawenforcement' },
-  { tokens: ['BASIC'],                              name: 'cui', value: 'basic' },
+  // CUI categories, NARA CUI Registry codes. `SP-` marks a CUI Specified category — a banner
+  // carries the prefix, so both spellings are accepted.
+  { tokens: ['PRIV', 'PRVCY', 'PRIVACY'],                        name: 'cui', value: 'privacy' },
+  { tokens: ['TAX', 'SP-TAX', 'TAXINFO', 'FTI'],                 name: 'cui', value: 'taxinfo' },
+  { tokens: ['SSEL', 'PROCURE', 'PROC', 'PROCUREMENT', 'SOURCE SELECTION'],
+                                                                 name: 'cui', value: 'procurement' },
+  { tokens: ['LEI', 'LE', 'LAW ENFORCEMENT'],                    name: 'cui', value: 'lawenforcement' },
+  { tokens: ['CTI', 'SP-CTI', 'CONTROLLED TECHNICAL INFORMATION'], name: 'cui', value: 'sp-cti' },
+  // EAR is left out on purpose. Every other token here is either an invented acronym or a phrase;
+  // `EAR` is an English word, and the whole reason markings are only read out of banner lines and
+  // parenthesised portion markings is that three-letter codes are what produce false positives.
+  { tokens: ['EXPT', 'SP-EXPT', 'EXPORT CONTROLLED', 'ITAR'],    name: 'cui', value: 'expt' },
+  { tokens: ['BASIC'],                                           name: 'cui', value: 'basic' },
+
+  // Limited Dissemination Controls. Read these the way `dissem:orcon` reads: holding the value is
+  // *eligibility to receive*, so a document marked FEDCON is tagged `ldc:fedcon` and opens only
+  // for the personas granted it. NOFORN is not here — it is in AMBIGUOUS, for the reason given there.
+  { tokens: ['FED ONLY', 'FEDONLY'],         name: 'ldc', value: 'fedonly' },
+  { tokens: ['FEDCON'],                      name: 'ldc', value: 'fedcon' },
+  { tokens: ['NOCON'],                       name: 'ldc', value: 'nocon' },
+  { tokens: ['DL ONLY', 'DLONLY'],           name: 'ldc', value: 'dlonly' },
 
   { tokens: ['CJIS', 'CJI'], name: 'cjis', value: 'certified' },
 ]
 
-// Markings this vocabulary has no answer for. Named explicitly so the UI can explain the gap
-// instead of the detector appearing to have missed them.
+/**
+ * Tokens that name one thing in a CUI banner and a different thing in a classified one.
+ *
+ * `PROPIN` is genuinely two attributes: a CUI category in `CUI//PROPIN`, an IC dissemination
+ * control in `SECRET//PROPIN`. The banner's own control level is what disambiguates, which is why
+ * the classification pass runs first. With no classification token anywhere it resolves to
+ * `dissem:propin` — the behaviour before `cui:propin` existed, so an unbannered document's
+ * proposal does not change under this addition.
+ *
+ * `classified` may instead be a `{why}`, meaning the token only maps on the CUI side and the
+ * classified reading belongs in `unmapped`.
+ */
+const AMBIGUOUS = [
+  {
+    tokens: ['PROPIN', 'PR'],
+    cui:        { name: 'cui', value: 'propin' },
+    classified: { name: 'dissem', value: 'propin' },
+  },
+  {
+    // NOFORN is a CUI Limited Dissemination Control in `CUI//SP-CTI//NOFORN` and a classified
+    // dissemination control in `SECRET//NOFORN`, and only the first has a seeded equivalent. `ldc`
+    // is a CUI-side definition: no persona in the classified scenarios holds a value from it, so
+    // proposing `ldc:noforn` for a SECRET document would tag it with an attribute nobody can
+    // satisfy — rule 1 at the top of this file, the failure that denies everyone and explains
+    // nothing. Saying so is better than a mapping that looks right and refuses the whole cast.
+    tokens: ['NOFORN', 'NF', 'NO FOREIGN'],
+    cui:        { name: 'ldc', value: 'noforn' },
+    classified: { why: 'NOFORN on a classified document has no equivalent here — releasability in the classified scenarios is carried by coi, and ldc:noforn is the CUI-side control that no cleared persona holds. Pick a coi value, or leave it off and say so.' },
+  },
+]
+
+// Markings this vocabulary has no answer for *whatever the document is*. Named explicitly so the
+// UI can explain the gap instead of the detector appearing to have missed them. A token that maps
+// in one control level and not the other goes in AMBIGUOUS instead — NOFORN, which used to be here.
 const UNMAPPABLE = {
-  NOFORN: 'No seeded equivalent — nationality is carried on personas for display and deliberately not decided on by any policy.',
-  NF:     'No seeded equivalent — see NOFORN.',
   CONFIDENTIAL: 'The clearance hierarchy has no CONFIDENTIAL step. Pick clearance:secret to be tighter or clearance:cui to be looser.',
   IMCON:  'Not in this vocabulary. The nearest available control is dissem:orcon.',
   EYES_ONLY: 'Not in this vocabulary.',
@@ -113,24 +169,37 @@ export function detectMarkings(text, vocab) {
   const unmapped = new Map()
   let best = null          // most restrictive classification seen anywhere
 
-  for (const marking of markings) {
-    for (const token of tokenize(marking)) {
-      const key = token.replace(/\s+/g, ' ')
+  const tokensOf = new Map(markings.map(m => [m, tokenize(m).map(t => t.replace(/\s+/g, ' '))]))
 
+  // Classification first, as its own pass. Two reasons it cannot be folded back into the pass
+  // below: it is a whole-document answer (the most restrictive level found anywhere wins, whatever
+  // order the markings appear in), and it is what tells an ambiguous token which attribute it means.
+  for (const tokens of tokensOf.values()) {
+    for (const key of tokens) {
+      const cls = CLASSIFICATION.findIndex(c => c.tokens.includes(key))
+      if (cls !== -1 && (best === null || cls < best)) best = cls
+    }
+  }
+  const isCui = best !== null && CLASSIFICATION[best].value === 'cui'
+
+  for (const marking of markings) {
+    for (const key of tokensOf.get(marking)) {
       const gap = UNMAPPABLE[key] ?? UNMAPPABLE[key.replace(/[\s-]/g, '_')]
       if (gap) { unmapped.set(key, gap); continue }
 
-      const cls = CLASSIFICATION.findIndex(c => c.tokens.includes(key))
-      if (cls !== -1) {
-        if (best === null || cls < best) best = cls
-        continue
-      }
+      if (CLASSIFICATION.some(c => c.tokens.includes(key))) continue
 
-      const hit = MARKINGS.find(m => m.tokens.includes(key))
+      const both = AMBIGUOUS.find(a => a.tokens.includes(key))
+      const hit = both ? (isCui ? both.cui : both.classified) : MARKINGS.find(m => m.tokens.includes(key))
+      if (hit?.why) { unmapped.set(key, hit.why); continue }
+
       // Silently skipping a value the platform lacks is right here: a marking outside this
-      // vocabulary is a gap in the demo's setup, not a defect in the document.
-      if (hit && allowed.get(hit.name)?.has(hit.value)) {
-        const f = fqn(hit.name, hit.value)
+      // vocabulary is a gap in the demo's setup, not a defect in the document. A REL TO token
+      // carries a whole roster, so this filters nation by nation — an unseeded member is dropped
+      // and the rest of the coalition still proposes.
+      for (const part of hit?.expand ?? (hit ? [hit] : [])) {
+        if (!allowed.get(part.name)?.has(part.value)) continue
+        const f = fqn(part.name, part.value)
         if (!hits.has(f)) hits.set(f, marking)
       }
     }

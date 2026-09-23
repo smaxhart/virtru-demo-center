@@ -2,11 +2,12 @@ import { useState, useCallback } from 'react'
 import { useApp } from '../context/AppContext.jsx'
 import PersonaIcon from '../components/PersonaIcon.jsx'
 import { shortFqn, fmtBytes } from '../ai/corpus.js'
-import { explainPolicy } from '../ai/policyEngine.js'
+import { explainPolicy, missingAttributes } from '../ai/policyEngine.js'
 import { unitsForDocument } from '../ai/corpusVault.js'
 import { decryptToText, describeDenial } from '../api/tdf.js'
 import { saveTdf } from '../api/download.js'
 import AddDocument from '../components/AddDocument.jsx'
+import DerivedBanner from '../components/DerivedBanner.jsx'
 
 /** Policy requirements measured against one subject's attributes. */
 function PolicyChips({ policy, fqns }) {
@@ -56,23 +57,29 @@ function UnitCard({ entry }) {
       setOpen(true)
       logEvent({
         persona: persona.name, personaId,
+        // Explicitly null rather than omitted. The audit log's other writer records two subjects,
+        // and an absent field there would read as "not captured" instead of "no agent was in
+        // this decision" — which is the whole distinction this page exists to draw.
+        agent: null, agentId: null, blockedBy: null,
         document: unit.label, tier: unit.tierId,
         classification: unit.classification,
-        granted: true, attempts: 1,
+        granted: true, attempts: 1, missing: [],
         reason: 'Manual decrypt from the Corpus page (direct, not via an agent) — key released',
       })
     } catch (err) {
       setResult({ granted: false, reason: describeDenial(err) })
       logEvent({
         persona: persona.name, personaId,
+        agent: null, agentId: null, blockedBy: null,
         document: unit.label, tier: unit.tierId,
         classification: unit.classification,
         granted: false, attempts: 1,
+        missing: missingAttributes(unit.policy, entityFqns),
         reason: `Manual decrypt from the Corpus page (direct, not via an agent) — ${describeDenial(err)}`,
       })
     }
     setBusy(false)
-  }, [tdfBytes, personaId, persona, unit, logEvent])
+  }, [tdfBytes, personaId, persona, unit, entityFqns, logEvent])
 
   // Unlike a decrypt, exporting the ciphertext needs no entitlement and no KAS round trip —
   // the bytes are already here. The only thing that can go wrong is the write itself, so the
@@ -106,7 +113,13 @@ function UnitCard({ entry }) {
             )}
           </div>
           <div className="mono" style={{ fontSize: 10, color: 'var(--c-text-5)', marginTop: 3 }}>
-            {unit.classification} · {fmtBytes(bytes)} TDF
+            {unit.classification}
+            {/* Flagged inline as well as itemised below, because the interesting claim is about
+                this specific string: it is a reading of the policy, not a label on the file. */}
+            {unit.derivedMarking && (
+              <span style={{ color: 'var(--c-text-6)' }}> · derived from policy</span>
+            )}
+            {' · '}{fmtBytes(bytes)} TDF
             {unit.upload && ` · ${unit.upload.filename}`}
           </div>
         </div>
@@ -172,6 +185,10 @@ function UnitCard({ entry }) {
           </div>
         </div>
       </div>
+
+      {/* Reads `boundAttributes` rather than `unit.policy` on purpose: the banner is then derived
+          from what the manifest actually carries, which is the same list the KAS is handed. */}
+      <DerivedBanner policy={boundAttributes} style={{ marginTop: 11 }} />
 
       {result && (
         <div style={{

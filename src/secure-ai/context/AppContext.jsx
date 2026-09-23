@@ -11,12 +11,12 @@ const AppContext = createContext(null)
  * Application state, in two independent tracks.
  *
  * The platform track runs once: the OpenTDF sidecar starts, seeds its attributes and subject
- * mappings, and reports ready. Nothing about it is per-mode — one namespace covers all four
+ * mappings, and reports ready. Nothing about it is per-mode — one namespace covers all five
  * scenarios, so switching modes never touches the platform.
  *
  * The corpus track runs per mode, lazily, on first launch. Encrypting a mode's documents is a
- * few dozen real KAS round-trips, so doing all four at boot would triple the startup wait for
- * three scenarios the user may never open. Vaults are cached, so re-entering a mode is instant.
+ * few dozen real KAS round-trips, so doing all five at boot would quadruple the startup wait for
+ * four scenarios the user may never open. Vaults are cached, so re-entering a mode is instant.
  *
  * Documents the user added themselves ride the corpus track: they are attached to the vault as
  * part of the same promise, so nothing downstream has to care whether a document shipped with

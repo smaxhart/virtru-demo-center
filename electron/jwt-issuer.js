@@ -40,7 +40,7 @@ const PERSONA_CLAIMS = {
 
 // ── AI Protection identities ──────────────────────────────────────────────────
 //
-// The AI Protection page carries its own people and its own agents — four scenarios' worth, plus
+// The AI Protection page carries its own people and its own agents — five scenarios' worth, plus
 // whatever a user-built scenario invents at runtime. They are folded into the same table so there
 // is still exactly one issuer, one keypair and one JWKS the platform validates against.
 //

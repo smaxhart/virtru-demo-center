@@ -5,7 +5,7 @@
  * for every persona *and every agent* in that mode and compares the results against EXPECTED and
  * EXPECTED_AGENTS below. Nothing is simulated — each cell is a live KAS decision.
  *
- *   node scripts/verify-matrix.mjs            # all four modes
+ *   node scripts/verify-matrix.mjs            # all five modes
  *   node scripts/verify-matrix.mjs ic leer    # only the named modes
  *
  * Run it with the app open: the platform and the JWT issuer both live inside the Electron main
@@ -33,6 +33,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { MODES } from '../src/secure-ai/modes/index.js'
 import { corpusUnits } from '../src/secure-ai/ai/corpus.js'
+import * as aiVocab from '../src/secure-ai/modes/vocab.js'
+import * as appCoalitions from '../src/data/coalitions.js'
 import identities from '../electron/ai-identities.js'
 import { OpenTDF } from '@opentdf/sdk/singlecontainer'
 import { authTokenInterceptor } from '@opentdf/sdk'
@@ -72,6 +74,27 @@ const EXPECTED = {
     'case-file:identified':    ['fed-luis'],
     // Any of five federal roles. Only the outside requester holds none.
     'case-file:deidentified':  ['fed-dana', 'fed-luis', 'fed-grace', 'fed-omar', 'fed-tess'],
+  },
+  dib: {
+    // Empty policy — the competitor with no role on the program opens it too.
+    'solicitation':      ['dib-renee', 'dib-tom', 'dib-dale', 'dib-anika', 'dib-joy', 'dib-rhea'],
+    // sp-cti AND fedcon. Dale is an authorized contractor whose subcontract never received the
+    // CTI flowdown, so he is refused a deliverable about a part he machines.
+    'cdrl':              ['dib-renee', 'dib-tom', 'dib-anika'],
+    // sp-cti AND noforn. Anika holds sp-cti and is refused on the control alone.
+    'tdp:full':          ['dib-renee', 'dib-tom'],
+    // The releasable tier. Everyone entitled to the full set is entitled to this and is served
+    // the full set first — the tier summary below the grid shows that resolution.
+    'tdp:icd':           ['dib-renee', 'dib-tom', 'dib-anika'],
+    // expt AND fedcon. The inverse of cdrl: Dale in, Anika out.
+    'export-drawings':   ['dib-renee', 'dib-tom', 'dib-dale'],
+    // propin AND nocon. No contractor holds nocon, including the ones whose rates are in it.
+    'cost-analysis':     ['dib-renee'],
+    // The same propin category as cost-analysis, with fedcon instead of nocon. One reader
+    // becomes five, and the category did not change.
+    'subk-agreement':    ['dib-renee', 'dib-tom', 'dib-dale', 'dib-anika', 'dib-joy'],
+    // procurement AND fedonly. FED ONLY excludes every contractor by construction, awardee included.
+    'award-memo':        ['dib-renee'],
   },
   ic: {
     'nie':                ['ic-diane', 'ic-victor', 'ic-mei', 'ic-nadia', 'ic-frank', 'ic-warren'],
@@ -129,6 +152,18 @@ const EXPECTED_AGENTS = {
     'case-file:identified':    ['fed-agent-caseworker'],
     'case-file:deidentified':  ['fed-agent-program', 'fed-agent-caseworker'],
   },
+  dib: {
+    'solicitation':      ['dib-agent-supplier', 'dib-agent-engineering', 'dib-agent-quality'],
+    'cdrl':              ['dib-agent-engineering'],
+    // No agent holds noforn, fedonly, or nocon — so these three are unreachable through every
+    // assistant in the mode, whoever is asking. That is the claim the mode makes to a CISO.
+    'tdp:full':          [],
+    'cost-analysis':     [],
+    'award-memo':        [],
+    'tdp:icd':           ['dib-agent-engineering'],
+    'export-drawings':   ['dib-agent-quality'],
+    'subk-agreement':    ['dib-agent-engineering', 'dib-agent-quality'],
+  },
   ic: {
     'nie':                ['ic-agent-allsource', 'ic-agent-sigint', 'ic-agent-compartmented'],
     'sigint-product':     ['ic-agent-sigint', 'ic-agent-compartmented'],
@@ -156,6 +191,58 @@ const EXPECTED_AGENTS = {
 const SEEDED = new Set(
   ATTRIBUTE_DEFS.flatMap(d => d.values.map(v => `${NS}/${d.name}/value/${v}`)),
 )
+
+/**
+ * The coalition rosters, across the three files that each keep their own copy.
+ *
+ * REL TO FVEY and REL TO NATO are rosters of nationalities, so both halves of the app need the
+ * membership lists and the set of nations the seeder created. Those live in three places that
+ * cannot import each other: `electron/ai-identities.js` is CommonJS in the main process,
+ * `src/secure-ai/modes/vocab.js` is inside a self-contained port that reaches outside itself
+ * nowhere, and `src/data/coalitions.js` serves the rest of the renderer. Drift between them is
+ * invisible at runtime and fatal — a roster naming a nation the seeder lacks denies *everyone*, not
+ * just the nations outside the coalition — so it is asserted here instead.
+ */
+function coalitionCheck() {
+  const problems = []
+  const seededNations = ATTRIBUTE_DEFS.find(d => d.name === 'nationality')?.values ?? []
+  const sources = [
+    ['electron/ai-identities.js', seededNations],
+    ['src/secure-ai/modes/vocab.js', aiVocab.SEEDED_NATIONALITIES],
+    ['src/data/coalitions.js', appCoalitions.SEEDED_NATIONALITIES],
+  ]
+  const [, reference] = sources[0]
+  for (const [file, list] of sources.slice(1)) {
+    const missing = reference.filter(n => !list.includes(n))
+    const extra = list.filter(n => !reference.includes(n))
+    if (missing.length || extra.length) {
+      problems.push(
+        `${file}: seeded nationality list disagrees with electron/ai-identities.js`
+        + `${missing.length ? ` — missing ${missing.join(', ')}` : ''}`
+        + `${extra.length ? ` — has ${extra.join(', ')}, which is never seeded` : ''}`,
+      )
+    }
+  }
+
+  // Same coalition, same answer, whichever half of the app is asking. A document tagged REL TO NATO
+  // by the AI page and one tagged by the federal pages have to release to the same people.
+  for (const coalition of ['fvey', 'nato']) {
+    const a = aiVocab.coalitionFqns(coalition)
+    const b = appCoalitions.coalitionFqns(coalition)
+    if (a.join('|') !== b.join('|')) {
+      problems.push(
+        `coalition "${coalition}" resolves differently in the two halves of the app: `
+        + `secure-ai → [${a.length}] ${a.map(f => f.split('/value/')[1]).join(', ')}; `
+        + `src/data → [${b.length}] ${b.map(f => f.split('/value/')[1]).join(', ')}`,
+      )
+    }
+    for (const fqn of a) {
+      if (!SEEDED.has(fqn)) problems.push(`coalition "${coalition}" names "${fqn}", which ATTRIBUTE_DEFS does not create`)
+    }
+    if (a.length === 0) problems.push(`coalition "${coalition}" resolves to no nations at all — every policy naming it denies everyone`)
+  }
+  return problems
+}
 
 function staticCheck(modes) {
   const problems = []
@@ -329,13 +416,17 @@ if (!modes.length) {
   process.exit(1)
 }
 
-const problems = staticCheck(modes)
+const problems = [...coalitionCheck(), ...staticCheck(modes)]
 if (problems.length) {
   console.error('Static checks failed — fix these before the live run means anything:\n')
   for (const p of problems) console.error(`  ✗ ${p}`)
   process.exit(1)
 }
-console.log(`Static checks passed: every persona and agent is known to the issuer, every policy FQN is seeded.\n`)
+console.log(
+  'Static checks passed: every persona and agent is known to the issuer, every policy FQN is seeded, '
+  + `and both halves of the app agree on FVEY (${aiVocab.coalitionFqns('fvey').length} nations) `
+  + `and NATO (${aiVocab.coalitionFqns('nato').length}).\n`,
+)
 
 const health = await fetch(`${PLATFORM_URL}/healthz`).catch(() => null)
 if (!health?.ok) {

@@ -47,12 +47,7 @@ All pages can be shown or hidden from **Dev → Settings** (available when the G
 | Collaborate | Multi-persona document access control demo |
 | AI Protection | Attribute-based filtering for AI agent personas |
 | TDF Explorer | Encrypt/decrypt files, inspect TDF manifests |
-| Key Management | DEK, KEK, and key wrapping explainer |
-| Live Revocation | Real-time access revocation demo |
-| Auto-Tagging | Document classification banner parsing + attribute extraction |
 | Audit Log | Tamper-evident access event log |
-| Encrypt / Decrypt | Step-by-step encryption workflow |
-| Policy Builder | Visual attribute-based policy constructor |
 | Platform | JWT tokens + OpenTDF Policy Engine connection status |
 
 ## Logs

@@ -22,7 +22,7 @@ export default function App() {
             <Route path="/architecture" element={<ArchitecturePage />} />
             <Route path="/cop"          element={<CopPage />} />
             <Route path="/collaborate"  element={<CollaboratePage />} />
-            {/* AI Protection is a whole app rather than a page — four scenarios, a corpus, a
+            {/* AI Protection is a whole app rather than a page — five scenarios, a corpus, a
                 scenario builder — so it gets a splat and routes the rest itself. The path stays
                 `/ai-agent` because that string is the key saved page-visibility preferences are
                 stored under, and the target of any link already shared. */}

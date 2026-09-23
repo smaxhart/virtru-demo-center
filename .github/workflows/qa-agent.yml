@@ -1,0 +1,85 @@
+name: QA Agent
+
+# There is deliberately no `workflow_run` trigger. It used to be `workflows: ["*"]`, which GitHub
+# matches against exact workflow names — so it either never fired at all or, paired with
+# `push: branches: [main]`, re-triggered this workflow from its own completion in a loop. This repo
+# currently has no other workflow to watch. When a real CI workflow exists, re-enable the CI-failure
+# path by listing it by name (never "QA Agent" itself) and restoring the WF_* env vars below:
+#   workflow_run:
+#     workflows: [Build, Test]
+#     types: [completed]
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+  issues:
+    types: [opened]
+
+jobs:
+  qa-review:
+    name: Claude QA Review
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Anthropic SDK
+        run: npm install --no-save @anthropic-ai/sdk
+
+      # Attacker-controlled strings — branch names, PR and issue titles, commit messages — are only
+      # ever passed as env vars, never interpolated into a `run:` body, so a backtick or $(...) in a
+      # PR title cannot execute on the runner. That is why there is no `context` step any more: it
+      # echoed those values through the shell to build step outputs the agent can read directly.
+      - name: Gather PR diff
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: git diff "origin/$BASE_REF"...HEAD -- '*.js' '*.jsx' '*.ts' '*.tsx' '*.mjs' > /tmp/pr_diff.txt 2>/dev/null || true
+
+      - name: Run Claude QA Agent
+        id: qa
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPO: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_AUTHOR: ${{ github.event.issue.user.login }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          PUSH_BRANCH: ${{ github.ref_name }}
+          PUSH_COMMIT: ${{ github.sha }}
+          PUSH_MESSAGE: ${{ github.event.head_commit.message }}
+          PUSH_AUTHOR: ${{ github.event.head_commit.author.name }}
+          # Empty until the workflow_run trigger above is re-enabled.
+          WF_NAME: ${{ github.event.workflow_run.name }}
+          WF_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          WF_URL: ${{ github.event.workflow_run.html_url }}
+        run: node .github/scripts/qa-agent.mjs
+
+      # The payload is a file, not an argument — model output containing quotes, newlines or shell
+      # metacharacters would otherwise break the command or run in the shell.
+      - name: Notify Slack
+        if: steps.qa.outputs.slack == 'true'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -sS -X POST "$SLACK_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            --data-binary @/tmp/slack_payload.json

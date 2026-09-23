@@ -85,7 +85,7 @@ no tag, no build, no publish).
 | Right branch | beta from `develop`, stable from `main`, so "what is in prod" is answerable by reading one branch |
 | Version shape | a beta without a prerelease tag would be offered to every stable install; a stable with one would be offered to nobody |
 | `gh` authenticated | the **publish** token is write-scoped and comes from the gh keyring at build time — it is never written to disk |
-| Tag unused | reusing a tag leaves the release and the tag pointing at different commits |
+| Tag unused | reusing a tag leaves the release and the tag pointing at different commits — the one exception is `--resume`, below |
 | Version moves forward | `allowDowngrade` is false, so a version that is not strictly greater is silently ignored by every install |
 | Staging gate | stable requires a matching beta (see above) |
 | Notes non-empty | no commits since the last tag means nothing to release, or you are on the wrong branch |
@@ -112,6 +112,56 @@ So the order is: tag → build → upload into a draft → drop blockmaps → ve
   two commands to finish by hand. `HTTP 500: Error saving asset` on the big files is transient and
   sometimes repeats on the same file; retry rather than assume the artifact is bad.
 
+## Resuming a failed release
+
+The one failure the checks cannot prevent happens *after* the tag is pushed. v1.8.2-beta.1 died in
+electron-builder's DMG step on the known `hdiutil detach` exit-16 bug, with the `.zip` already
+uploading, and left behind a pushed tag, a bump commit, and a draft holding only the `.zip` and its
+blockmap. Starting over is impossible by design at that point: *Tag unused* trips on the tag the failed
+run itself created, and any recovery edit in the tree trips *Clean tree*. That used to mean finishing by
+hand — force-detach, rebuild, `gh release upload --clobber`, verify, `gh release edit --draft=false`.
+
+```bash
+npm run release:beta -- --resume
+```
+
+Skips tag creation, the tag push, and the *Tag unused* check, then picks up at build-and-upload and runs
+the same `verify → drop blockmaps → --draft=false` tail. Every other gate still holds: right branch,
+version shape for the channel, `gh` authenticated, clean tree.
+
+It resumes only into a **draft**, and only when the tag still describes `HEAD`:
+
+| State | What it does |
+|---|---|
+| tag exists, draft open, tag on `HEAD` | resumes |
+| no release for the tag | refuses — run without `--resume` and cut it from scratch |
+| release already published | refuses — installs may have taken it; bump to the next version |
+| commits landed after the tag | refuses — the rebuild would not match the tag |
+
+Refusing the published case is a safety rule and a mechanical one. `getOrCreateRelease()` matches on tag
+name and returns early on `release.draft`, reusing that draft and deleting any same-named asset before
+re-uploading. Match a release that is *published* while the release type is draft and it returns `null`
+instead — `doUpload` then logs `skipped publishing` once per file and the build exits 0 having uploaded
+nothing at all.
+
+`--resume` and `--bump` are refused together: `--resume` finishes the version that is already tagged,
+and `--bump` would move `package.json` off it.
+
+Two things `--resume` does not do:
+
+- **It does not clean up after the DMG bug.** A failed DMG step leaves its disk image attached, and the
+  rebuild fails the same way until it is gone. Check `ls /Volumes` and force-detach:
+
+  ```bash
+  hdiutil detach -force "/Volumes/Virtru Demo Center 1.8.2-beta.1-arm64"
+  ```
+
+- **It does not skip `vite build`.** The order matters most precisely here: vite's `emptyOutDir` is what
+  clears `dist/`, and on a resume `dist/` still holds the failed attempt's `.app`, `.zip` and `.dmg`.
+  Running `electron-builder` on its own packs them back into `app.asar` — that happened during the
+  v1.8.2-beta.1 recovery, taking `app.asar` from 357 MB to 760 MB and the `.zip` from 421 MB to 840 MB.
+  `build.files` excludes them by pattern now; that is the second line of defence, not the first.
+
 One check is advisory and never blocks: the embedded update-feed token is a classic PAT, which is a
 **known and accepted** risk pending the product team taking this codebase for a PEP. It is surfaced
 at every release so it stays known. Don't "fix" it without reading why v1.7.4 was reverted — the
@@ -122,8 +172,12 @@ shell environment and `process.env.GH_TOKEN` is empty in the only case that matt
 
 - **Branch protection.** Unavailable — private repo on the free plan. The gates above live in
   `release.mjs`, not in GitHub, so they hold only for releases cut through `npm run release*`.
-- **CI.** `.github/workflows/qa-agent.yml` exists but is untracked and has never run. Its
-  `workflow_run: workflows: ["*"]` trigger combined with `push: main` is a self-trigger loop that
-  needs fixing before it is committed.
+- **CI.** `.github/workflows/qa-agent.yml` is committed as of `22050fa` — the self-trigger loop, the
+  dead model ID and the shell injection in `qa-agent.mjs` are fixed. It is still not running, for two
+  reasons. It needs `ANTHROPIC_API_KEY` and `SLACK_WEBHOOK_URL` in the repo secrets (neither is set;
+  see `.github/QA_AGENT_SETUP.md`), and it is only on `develop`: GitHub takes `issues` and `push`
+  workflows from the **default branch**, so issue triage and the direct-push alert stay dormant until
+  this reaches `main`, while a `pull_request` run uses the workflow from the PR's own merge commit and
+  can fire sooner. It reviews and comments — it gates nothing, and `release.mjs` never consults it.
 - **Headless `verify`.** Would turn staging into a real automated gate. Needs the platform sidecar
   and Postgres to come up in CI.

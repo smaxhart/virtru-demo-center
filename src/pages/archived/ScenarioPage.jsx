@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { useDemo } from '../context/DemoContext.jsx'
-import { COMMERCIAL_SCENARIOS, FEDERAL_SCENARIOS } from '../data/sectors.js'
-import Icon from '../components/Icon.jsx'
+import { useDemo } from '../../context/DemoContext.jsx'
+import { COMMERCIAL_SCENARIOS, FEDERAL_SCENARIOS } from '../../data/sectors.js'
+import Icon from '../../components/Icon.jsx'
 
 function StepRow({ step, status }) {
   // status: 'pending' | 'active' | 'done'

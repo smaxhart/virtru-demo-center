@@ -37,6 +37,7 @@
  *
  * Flags:
  *   --bump              bump package.json for the chosen channel before releasing (see BUMPS)
+ *   --resume            finish a release whose tag is pushed and whose draft is still open (see §5)
  *   --no-beta-gate      allow a stable release with no corresponding beta (escape hatch)
  *   --dry-run           run every check and print the plan; build and publish nothing
  */
@@ -143,15 +144,24 @@ const argv    = process.argv.slice(2)
 const channel = argv.find(a => !a.startsWith('-'))
 const flags   = new Set(argv.filter(a => a.startsWith('-')))
 const dryRun  = flags.has('--dry-run')
+const resume  = flags.has('--resume')
 
 if (!CHANNELS[channel]) {
-  console.error(`usage: node scripts/release.mjs <beta|stable> [--bump] [--no-beta-gate] [--dry-run]`)
+  console.error(`usage: node scripts/release.mjs <beta|stable> [--bump] [--resume] [--no-beta-gate] [--dry-run]`)
+  process.exit(2)
+}
+
+// Contradictory intent, so refuse rather than pick one: --resume finishes the version that is
+// already committed and tagged, and --bump moves package.json off it — which would tag a second
+// version while the first one's draft is still sitting there open.
+if (resume && flags.has('--bump')) {
+  console.error(`--resume and --bump are incompatible: --resume finishes the release already tagged from this commit`)
   process.exit(2)
 }
 
 const spec = CHANNELS[channel]
 
-console.log(`\n${channel === 'beta' ? 'Staging' : 'Production'} release — ${channel} channel${dryRun ? DIM(' (dry run)') : ''}\n`)
+console.log(`\n${channel === 'beta' ? 'Staging' : 'Production'} release — ${channel} channel${resume ? DIM(' (resuming)') : ''}${dryRun ? DIM(' (dry run)') : ''}\n`)
 
 // 1 ── Clean tree. Modified tracked files are fatal: electron-builder packs from the filesystem,
 //      not from the commit, so a dirty tree ships code that the tag does not describe. Untracked
@@ -230,19 +240,62 @@ let ghToken = null
 
 // 5 ── Not already published. Reusing a tag leaves the release pointing at one commit and the tag
 //      at another, and electron-updater caches by version.
-console.log('\nCollision')
+//
+//      Unless we are resuming. The one failure this script cannot gate against happens *after* the
+//      tag is pushed: electron-builder's DMG step hits the `hdiutil detach` exit-16 bug once the .zip
+//      is already uploading, and what is left behind is a pushed tag, a bump commit, and a draft
+//      holding half the asset set. Starting over is then impossible by design — this very check trips
+//      on the tag the failed run created. --resume says the tag and the draft are ours, so reuse
+//      them; that is safe for exactly one reason, which is that a draft is invisible to every
+//      install, so rebuilding into it can hold a partial asset set without anyone seeing one.
+//
+//      A draft is also the only thing electron-builder will resume into. getOrCreateRelease() lists
+//      releases, matches on tag_name, and returns early on `release.draft` — reusing it and deleting
+//      any same-named asset before re-uploading (overwriteArtifact). Match a *published* release
+//      while releaseType is draft and it returns null instead, at which point doUpload logs
+//      "skipped publishing" per file and the build exits 0 having uploaded nothing. So the published
+//      case is refused here, loudly, rather than left to look like a success: installs may already
+//      have taken that release, and the answer is the next version, not a second attempt at this one.
+console.log(resume ? '\nResume state' : '\nCollision')
 let releases = []
 {
   const r = shSoft('gh', ['release', 'list', '--limit', '100', '--json', 'tagName,isPrerelease,isDraft,publishedAt'])
   if (!r.ok) {
-    warn('could not list releases — skipping collision and ordering checks')
+    // Advisory normally, fatal when resuming: "is it still a draft?" is the entire precondition, and
+    // assuming it wrong means uploading into something installs can already see.
+    if (resume) fail('could not list releases — cannot confirm the draft this would resume into')
+    else warn('could not list releases — skipping collision and ordering checks')
     note(r.out.split('\n')[0] || '')
   } else {
     releases = JSON.parse(r.out)
     if (tag) {
-      if (releases.some(rel => rel.tagName === tag)) fail(`${tag} is already published on GitHub`)
-      else if (shSoft('git', ['rev-parse', '--verify', `refs/tags/${tag}`]).ok) fail(`${tag} already exists as a local git tag`)
-      else ok(`${tag} is unused`)
+      const existing = releases.find(rel => rel.tagName === tag)
+      // Resolve to the commit, not the tag object: `git rev-parse refs/tags/x` on an annotated tag
+      // answers with the tag's own sha and would never equal HEAD.
+      const tagged = shSoft('git', ['rev-list', '-n', '1', tag])
+      if (!resume) {
+        if (existing) fail(`${tag} is already published on GitHub`)
+        else if (tagged.ok) fail(`${tag} already exists as a local git tag`)
+        else ok(`${tag} is unused`)
+      } else if (!existing) {
+        fail(`GitHub has no release for ${tag} — there is nothing to resume`)
+        note(tagged.ok
+          ? `the tag exists but no release was ever opened: drop it (git tag -d ${tag}, and git push origin :${tag} if it was pushed), then run without --resume`
+          : `run without --resume to cut ${tag} from scratch`)
+      } else if (!existing.isDraft) {
+        fail(`${tag} is published, not a draft — that is not a resumable state`)
+        note('installs may already have it; bump to the next version rather than rebuilding this one')
+      } else if (!tagged.ok) {
+        fail(`${tag} has an open draft but no local git tag — nothing here pins the build to a commit`)
+      } else if (tagged.out !== sh('git', ['rev-parse', 'HEAD'])) {
+        // Same reason the clean-tree gate is fatal: the build comes from the working tree, so if the
+        // tag is no longer on HEAD the artifacts would describe a commit nobody can look up.
+        fail(`${tag} points at ${tagged.out.slice(0, 8)} but HEAD is ${sh('git', ['rev-parse', 'HEAD']).slice(0, 8)} — the rebuild would not match the tag`)
+        note(`commits landed after the tag: release those as the next version instead of resuming`)
+      } else {
+        ok(`${tag} has an open draft release, and the tag is on HEAD`)
+        note('tag and push will be skipped; the build uploads into that draft')
+      }
     }
   }
 }
@@ -281,7 +334,9 @@ if (channel === 'stable' && version && releases.length) {
 }
 
 // 8 ── Release notes, from the commits since the last release of any kind. Empty notes mean
-//      either nothing changed or the branch is not where you think it is.
+//      either nothing changed or the branch is not where you think it is. Advisory when resuming:
+//      the tag that would carry these notes already exists and already carries them, so an empty
+//      range says nothing about whether the draft can be finished.
 console.log('\nRelease notes')
 let notes = ''
 {
@@ -289,7 +344,7 @@ let notes = ''
   const range = last.ok ? `${last.out}..HEAD` : 'HEAD'
   const log = shSoft('git', ['log', '--no-merges', '--pretty=format:- %s', range])
   notes = log.ok ? log.out : ''
-  if (!notes) fail(`no commits since ${last.ok ? last.out : 'the beginning'} — nothing to release`)
+  if (!notes) (resume ? warn : fail)(`no commits since ${last.ok ? last.out : 'the beginning'} — nothing to release`)
   else {
     const n = notes.split('\n').length
     ok(`${n} commit${n === 1 ? '' : 's'} since ${last.ok ? last.out : 'the beginning'}`)
@@ -320,28 +375,41 @@ if (problems.length) {
 }
 
 const plan = [
-  `tag        ${tag}`,
+  `tag        ${tag}${resume ? '  (exists — reusing its open draft)' : ''}`,
   `channel    ${channel} (GitHub ${spec.releaseType})`,
   `branch     ${branch}`,
   `artifacts  dmg + zip, mac arm64, channel file latest-mac.yml`,
+  `start at   ${resume ? 'build and upload — no tag, no push' : 'tag and push'}`,
 ]
 console.log(`Ready.\n${plan.map(l => `  ${DIM(l)}`).join('\n')}\n`)
 
 if (dryRun) {
-  console.log(DIM('Dry run — stopping before tag, build, and publish.\n'))
+  console.log(DIM(`Dry run — stopping before ${resume ? 'build and publish' : 'tag, build, and publish'}.\n`))
   process.exit(0)
 }
 
 // Tag before building so the artifact and the tag describe the same commit. Pushed with the
 // branch in one go; if the publish then fails, the tag is the thing to delete before retrying.
-console.log(`Tagging ${tag}`)
-sh('git', ['tag', '-a', tag, '-m', `${tag}\n\n${notes}`])
-sh('git', ['push', 'origin', branch])
-sh('git', ['push', 'origin', tag])
-ok(`pushed ${branch} and ${tag}`)
+// On --resume both already happened, and §5 has confirmed the tag is on HEAD.
+if (resume) {
+  console.log(`Resuming ${tag}`)
+  ok(`tag and branch are already pushed — picking up at the build`)
+} else {
+  console.log(`Tagging ${tag}`)
+  sh('git', ['tag', '-a', tag, '-m', `${tag}\n\n${notes}`])
+  sh('git', ['push', 'origin', branch])
+  sh('git', ['push', 'origin', tag])
+  ok(`pushed ${branch} and ${tag}`)
+}
 
 // The renderer bundle is built here rather than in the npm script so that a failed check costs
 // nothing — every gate above runs before we spend a build on it.
+//
+// This ordering is load-bearing, and most of all on --resume. vite build carries emptyOutDir, so it
+// is what clears dist/ — and on a resume dist/ still holds the failed attempt's .app, .zip and .dmg.
+// Going straight to electron-builder packs those back into app.asar: measured at 357M → 760M, taking
+// the .zip from 421M to 840M, during the v1.8.2-beta.1 recovery. build.files excludes them by pattern
+// now (7371047), but that is the second line of defence. Never reorder these two.
 console.log(`\nBuilding renderer`)
 execFileSync('npx', ['vite', 'build'], { cwd: ROOT, stdio: 'inherit' })
 

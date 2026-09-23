@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { useDemo } from '../context/DemoContext.jsx'
-import Icon from '../components/Icon.jsx'
-import ClassificationBanner from '../components/ClassificationBanner.jsx'
-import { FEDERAL_SAMPLE_FILES, FEDERAL_FILE_PREVIEWS } from '../data/sectors.js'
+import { useDemo } from '../../context/DemoContext.jsx'
+import Icon from '../../components/Icon.jsx'
+import ClassificationBanner from '../../components/ClassificationBanner.jsx'
+import { FEDERAL_SAMPLE_FILES, FEDERAL_FILE_PREVIEWS } from '../../data/sectors.js'
 
 const CLASSIFICATION_CLEARANCES = {
   'TOP SECRET':    ['top-secret', 'ts-sci'],

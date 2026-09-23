@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
-import { useDemo } from '../context/DemoContext.jsx'
-import { FEDERAL_PERSONAS, COALITION_GROUPS } from '../data/sectors.js'
-import Icon from '../components/Icon.jsx'
+import { useDemo } from '../../context/DemoContext.jsx'
+import { FEDERAL_PERSONAS, COALITION_GROUPS } from '../../data/sectors.js'
+import Icon from '../../components/Icon.jsx'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 

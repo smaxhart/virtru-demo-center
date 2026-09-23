@@ -12,8 +12,8 @@
  *   jwt-issuer.js — turns `grants` into JWT claims and into the entity attributes the KAS sees
  *   seeder.js     — turns `grants` into subject mappings, and ATTRIBUTE_DEFS into definitions
  *
- * Persona ids are mode-prefixed (`dow-`, `fed-`, `ic-`, `le-`) so four scenarios can share one
- * namespace without colliding.
+ * Persona ids are mode-prefixed (`dow-`, `fed-`, `dib-`, `ic-`, `le-`) so five scenarios can share
+ * one namespace without colliding.
  *
  * Both the people and the agents live here, in two tables merged into one. Adding to either is
  * enough to get claims, entity attributes and subject mappings — but the seeder only writes
@@ -28,7 +28,7 @@ const NS = `https://${NAMESPACE}/attr`
 const CLEARANCE_HIERARCHY = ['ts-sci', 'secret', 'cui', 'unclassified']
 
 /**
- * Every attribute definition, union across all four modes.
+ * Every attribute definition, union across all five modes.
  *
  * Rules matter as much as values: separate definitions AND together, and values inside one
  * definition follow that definition's rule. Only `clearance` is a HIERARCHY; everything else
@@ -40,7 +40,15 @@ const CLEARANCE_HIERARCHY = ['ts-sci', 'secret', 'cui', 'unclassified']
  * platform's decision lookup fails outright ("no rows in result set" → invalid_argument) and
  * the KAS then denies every caller regardless of entitlement — an unsatisfiable policy rather
  * than a strict one. Measured on this build; `scripts/verify-matrix.mjs` is what caught it.
- * Model communities as markings, not rosters.
+ *
+ * The conclusion drawn at the time — model a community as a single value instead of a roster — was
+ * wrong, and it is worth being precise about why, because the measurement itself was real. Two
+ * separate faults were folded into one: the roster was over the ceiling *and* it named 17 nations
+ * this file never seeded, which fails identically. A roster is the correct model, because nobody
+ * holds an entitlement called NATO; what a person holds is a nationality. The fix is to bound the
+ * roster rather than to replace it, which `coalitionFqns` in `src/secure-ai/modes/vocab.js` does by
+ * intersecting the alliance with the `nationality` values seeded below: NATO resolves to 13 and
+ * FVEY to 5, both verified granting live.
  */
 const ATTRIBUTE_DEFS = [
   // ── Department of War ──────────────────────────────────────────────────────
@@ -53,8 +61,25 @@ const ATTRIBUTE_DEFS = [
   { name: 'role',        rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ANY_OF',    values: ['analyst', 'contractor', 'counsel', 'operator', 'commander', 'admin', 'auditor', 'caseworker', 'contracting', 'investigator'] },
   { name: 'agency',      rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ANY_OF',    values: ['irs', 'ssa', 'gsa', 'hhs', 'oig', 'nsa', 'cia', 'nga', 'dia', 'odni'] },
 
-  // ── Federal Civilian ──────────────────────────────────────────────────────
-  { name: 'cui',         rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ANY_OF',    values: ['basic', 'privacy', 'taxinfo', 'procurement', 'lawenforcement'] },
+  // ── Federal Civilian · Defense Industrial Base ────────────────────────────
+  // Lowercase slugs, deliberately. The NARA Registry codes (PRVCY, SP-CTI, SSEL) are rendered by
+  // `src/secure-ai/ai/banner.js`; putting them here instead would be the first uppercase values in
+  // the vocabulary, and if the platform normalised their case the seeder would index one spelling
+  // while `grantsToFqns` built another — a skipped mapping and a silently unentitled persona, with
+  // the static checks in verify-matrix passing because they read this same array.
+  //
+  // `privacy` is PRVCY and `lawenforcement` is LEI; they are not missing, they are these. Adding
+  // the codes as extra values would put synonym pairs inside one ANY_OF definition.
+  { name: 'cui',         rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ANY_OF',    values: ['basic', 'privacy', 'taxinfo', 'procurement', 'lawenforcement', 'sp-cti', 'propin', 'expt'] },
+  // Limited Dissemination Controls per 32 CFR 2002.20. ANY_OF, like `dissem` — these are held or
+  // not held. `dlonly` is seeded and named by no policy, the same way `cui:basic` is: an assessor
+  // expects the approved list to be present, and a value nothing decides on is inert.
+  //
+  // Note `cui:propin` and `dissem:propin` now coexist. Different vocabularies with a shared name —
+  // PROPIN is a NARA CUI category and also an IC dissemination control — and the FQN keeps them
+  // apart. `markings.js` maps the bare token PROPIN to the IC one, which is wrong for a CUI
+  // document; noted there rather than guessed at.
+  { name: 'ldc',         rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ANY_OF',    values: ['noforn', 'fedonly', 'fedcon', 'nocon', 'dlonly'] },
 
   // ── Intelligence Community ────────────────────────────────────────────────
   { name: 'sci',         rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ANY_OF',    values: ['si', 'tk', 'hcs', 'gamma'] },
@@ -66,9 +91,17 @@ const ATTRIBUTE_DEFS = [
   { name: 'jurisdiction', rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ANY_OF',   values: ['city-baltimore', 'state-md', 'federal', 'mutual-aid'] },
   { name: 'discipline',   rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ANY_OF',   values: ['sworn', 'ems', 'fire', 'dispatch', 'analyst', 'publicdefender'] },
 
-  // Carried because it is true of the DoW liaison personas and reads well in the UI.
-  // Deliberately not what any release caveat is decided on — see `coi`.
-  { name: 'nationality', rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ANY_OF',    values: ['usa', 'gbr', 'can', 'aus', 'nzl', 'fra', 'deu'] },
+  // Releasability. This is what REL TO FVEY and REL TO NATO are decided on: a document names the
+  // member nations and ANY_OF grants anyone holding one of them.
+  //
+  // Only seven of these are held by a persona (usa, gbr, fra, deu among the DoW cast). The other
+  // eight exist so the NATO roster can name them — `src/secure-ai/modes/vocab.js` intersects the
+  // alliance with exactly this list, so a nation missing here is dropped from the roster rather
+  // than shipped into a policy, and a policy naming an unseeded value denies everyone. Keep this
+  // list identical to `SEEDED_NATIONALITIES` in that file and in `src/data/coalitions.js`;
+  // `scripts/verify-matrix.mjs` asserts all three agree.
+  { name: 'nationality', rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ANY_OF',
+    values: ['usa', 'gbr', 'can', 'aus', 'nzl', 'fra', 'deu', 'bel', 'nld', 'nor', 'dnk', 'ita', 'esp', 'pol', 'tur'] },
 ]
 
 /**
@@ -99,6 +132,26 @@ const HUMANS = {
   'fed-tess':  { name: 'Tess Reilly',    grants: { agency: 'hhs', role: 'analyst' } },
   // Outside the agency entirely; reaches only what was cleared for release.
   'fed-priya': { name: 'Priya Sharma',   grants: {} },
+
+  // ── Defense Industrial Base ───────────────────────────────────────────────
+  // Not a clearance in sight, deliberately. Every attribute here is either a CUI category or a
+  // limited dissemination control, and `ldc:fedonly` vs `ldc:fedcon` is what separates the
+  // government from its contractors — so the org chart is expressed in policy rather than in titles.
+  //
+  // The government PM, and the only holder of `fedonly` or `nocon`.
+  'dib-renee': { name: 'Renée Alvarez',    grants: { cui: ['sp-cti', 'propin', 'expt', 'procurement'], ldc: ['fedonly', 'fedcon', 'nocon', 'dlonly', 'noforn'], role: 'contracting', nationality: 'usa' } },
+  // Tom and Dale are the sideways pair: both FEDCON-authorized contractors, both NOFORN-releasable,
+  // and they differ by exactly `cui:sp-cti` — whether the 7012 flowdown carried CTI into their
+  // subcontract. One attribute, and it is the whole compliance finding.
+  'dib-tom':   { name: 'Tom Braddock',     grants: { cui: ['sp-cti', 'propin', 'expt'], ldc: ['fedcon', 'noforn'], role: 'contractor', nationality: 'usa' } },
+  'dib-dale':  { name: 'Dale Whitcomb',    grants: { cui: ['propin', 'expt'],           ldc: ['fedcon', 'noforn'], role: 'contractor', nationality: 'usa' } },
+  // Same employer as Tom, same program, same FEDCON authorization. Missing `expt` and `noforn`,
+  // which is what actually stops her — not the `nationality` field, which no policy here reads.
+  'dib-anika': { name: 'Anika Rautenberg', grants: { cui: ['sp-cti', 'propin'], ldc: ['fedcon'], role: 'analyst', nationality: 'deu' } },
+  'dib-joy':   { name: 'Joy Nakashima',    grants: { cui: ['propin'],           ldc: ['fedcon'], role: 'admin',   nationality: 'usa' } },
+  // A competitor with no role on the program. Authenticates, holds nothing, reaches the public
+  // solicitation and not one page further.
+  'dib-rhea':  { name: 'Rhea Solberg',     grants: {} },
 
   // ── Intelligence Community ────────────────────────────────────────────────
   // Note how little work `clearance` does here: five of six hold TS-SCI, and the
@@ -142,6 +195,12 @@ const HUMANS = {
  *
  *   No agent is a superset of every persona. Even the broadest one in each scenario is refused
  *   something, so "just use the privileged agent" is never the whole answer.
+ *
+ * The two DoW agents that reach coalition material carry `nationality: 'usa'`, because releasability
+ * applies to a machine identity exactly as it does to a person: once REL TO FVEY is a roster of
+ * nations, an agent with no nationality is on no roster and is refused — which is correct, and would
+ * have read as an unexplained denial of the two documents the J2 agent exists to retrieve. USA is on
+ * both rosters, so it grants the agent no more than its coi grant did before.
  */
 const AGENTS = {
   // ── Department of War ──────────────────────────────────────────────────────
@@ -150,7 +209,7 @@ const AGENTS = {
   'dow-agent-general': { name: 'General Assistant', grants: { clearance: 'cui', needtoknow: 'ops' } },
   // SECRET and scoped to intel. Against Maj. Williams (TS-SCI) this is the agent that makes
   // the point: she is cleared for the Q3 threat briefing and the assistant is not.
-  'dow-agent-intel':   { name: 'J2 Intel Agent',    grants: { clearance: 'secret', mission: 'intel', needtoknow: 'intel', coi: ['fvey', 'nato'] } },
+  'dow-agent-intel':   { name: 'J2 Intel Agent',    grants: { clearance: 'secret', mission: 'intel', needtoknow: 'intel', nationality: 'usa', coi: ['fvey', 'nato'] } },
   // Broad enough to never be the blocker, so switching to it hands the decision back to the
   // human and shows that the agent ceiling was the only thing in the way.
   // Deliberately not given mission:legal. With it, this agent would satisfy every policy in the
@@ -158,7 +217,7 @@ const AGENTS = {
   // you would never delegate to a command assistant — the JAG's legal file and the full medical
   // record — are out of reach of every agent in the mode, which is the same shape as IC's GAMMA
   // finding and LE's clinical record.
-  'dow-agent-command': { name: 'Command Agent',     grants: { clearance: 'ts-sci', mission: ['intel', 'ops', 'cyber'], needtoknow: ['intel', 'ops'], coi: ['fvey', 'nato'] } },
+  'dow-agent-command': { name: 'Command Agent',     grants: { clearance: 'ts-sci', mission: ['intel', 'ops', 'cyber'], needtoknow: ['intel', 'ops'], nationality: 'usa', coi: ['fvey', 'nato'] } },
 
   // ── Federal Civilian ──────────────────────────────────────────────────────
   // Holds nothing at all: the FOIA package has an empty policy, so an unentitled agent still
@@ -170,6 +229,25 @@ const AGENTS = {
   // The widest civilian agent still holds one CUI category. Categories do not nest, so there
   // is deliberately no agent here that opens tax, privacy, procurement and OIG material.
   'fed-agent-caseworker': { name: 'SSA Caseworker Agent',     grants: { cui: 'privacy', agency: 'ssa', role: 'caseworker' } },
+
+  // ── Defense Industrial Base ───────────────────────────────────────────────
+  // **No agent in this mode holds `noforn`, `fedonly`, or `nocon`.** Every limited dissemination
+  // control in the scenario stops at a human, which is a sharper version of the GAMMA finding in
+  // the IC mode: three of the eight units are unreachable through any assistant at all, so
+  // "switch to the better agent" is not an available answer for the documents that matter most.
+  //
+  // None holds `fedonly` *and* `fedcon` either — that pair is the government/contractor boundary,
+  // and an identity on both sides of it is the same category error as a civilian agent holding all
+  // four CUI categories.
+  'dib-agent-supplier':    { name: 'Supplier Portal Assistant', grants: { ldc: ['fedcon'] } },
+  // The widest agent here, and it still holds two categories out of four and one control out of
+  // five. Paired with Tom it produces the beat the tiering exists for: he personally opens the
+  // NOFORN drawing set, the assistant does not, and he is served the releasable interface
+  // document instead of being refused outright.
+  'dib-agent-engineering': { name: 'Engineering Data Agent',    grants: { cui: ['sp-cti', 'propin'], ldc: ['fedcon'] } },
+  // Export-controlled drawings and supplier agreements. Deliberately no `sp-cti`, so it is not a
+  // superset of the engineering agent in either direction — neither one is simply the better choice.
+  'dib-agent-quality':     { name: 'Supplier Quality Agent',    grants: { cui: ['propin', 'expt'],   ldc: ['fedcon'] } },
 
   // ── Intelligence Community ────────────────────────────────────────────────
   // SECRET with RELIDO: the estimate and the tearline, never the sourcing. An all-source

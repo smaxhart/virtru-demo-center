@@ -9,9 +9,9 @@ import { aiPath } from '../routes.js'
 /**
  * The mode launcher.
  *
- * Four scenarios over one platform. Every mode carries its own personas and its own corpus;
+ * Five scenarios over one platform. Every mode carries its own personas and its own corpus;
  * none of them carry their own enforcement — the same KAS, the same namespace, the same
- * subject mappings decide all four. That is the point worth making on the way in, so the
+ * subject mappings decide all five. That is the point worth making on the way in, so the
  * footer says it explicitly.
  */
 

@@ -14,10 +14,12 @@
  *                different ordering would have quietly changed what existing documents release to
  *   mission      identical
  *   role         a superset here; the four extra values are backfilled onto the existing definition
- *   nationality  a subset here; nothing is created
+ *   nationality  identical lists as of seed 3 — both files carry the same 15 values, because both
+ *                halves of the app now express REL TO FVEY and REL TO NATO as rosters of them.
+ *                Whichever seeder runs first creates the definition; the other backfills nothing.
  *   relto        not used here at all
  *
- * Everything else below (`needtoknow`, `coi`, `agency`, `cui`, `sci`, `dissem`, `cjis`,
+ * Everything else below (`needtoknow`, `coi`, `agency`, `cui`, `ldc`, `sci`, `dissem`, `cjis`,
  * `caseaccess`, `jurisdiction`, `discipline`) is a name the platform has never seen. No definition
  * is redefined under a different rule and no hierarchy is reordered, which is what makes adding
  * this safe to an install that already has documents encrypted under the older vocabulary.
@@ -26,7 +28,7 @@
  * Subject mappings are what turn that object into attribute values the KAS can
  * compare against a document's policy — the `.sub` selector matches persona ids.
  *
- * The vocabulary and the grants both come from `electron/ai-identities.js`, which all four AI modes
+ * The vocabulary and the grants both come from `electron/ai-identities.js`, which all five AI modes
  * share. One namespace, one set of definitions, one set of mappings: the modes differ only in which
  * attributes their documents name.
  */
@@ -44,9 +46,19 @@ const PLATFORM_BASE = 'http://localhost:7777'
  * Bump when the AI page's seed data changes — triggers a re-seed on existing installs.
  *
  * Its own counter, tracked in its own marker file (`seeded-ai.txt`), independent of the `'9'` in
- * `electron/seeder.js`. Starting at 1 because no released build has ever run this seeder: every
- * install picking up this version is seeing the AI vocabulary for the first time, whatever else
- * it already has.
+ * `electron/seeder.js`. Started at 1 because no released build had ever run this seeder: every
+ * install picking up that version was seeing the AI vocabulary for the first time, whatever else
+ * it already had.
+ *
+ *   2  the Defense Industrial Base mode — the `ldc` definition, three more `cui` values, and nine
+ *      identities. Without the bump all nine authenticate and hold nothing.
+ *   3  eight more `nationality` values (bel, nld, nor, dnk, ita, esp, pol, tur), so REL TO NATO can
+ *      be expressed as the roster of member nations it actually is. No persona holds any of the
+ *      eight; they exist to be *named by a policy*, which is the failure this bump prevents — a
+ *      policy naming a value the platform never created is denied to everyone, not just to the
+ *      people outside the roster. Also `nationality: usa` for the two DoW agents that retrieve
+ *      coalition material: without the mapping they are on no roster and refused both documents,
+ *      which is the silent-denial failure this counter exists for.
  *
  * Re-seeding is additive — nothing is ever deleted. A grant that stops being correct is removed
  * from `ai-identities.js`, which stops the *token* from carrying it, and the leftover mapping goes
@@ -58,7 +70,7 @@ const PLATFORM_BASE = 'http://localhost:7777'
  * authenticate and entitled to nothing — every document withheld, with a trace that blames the
  * persona for holding no attributes rather than the seeder for never having written them.
  */
-const SEED_VERSION = '1'
+const SEED_VERSION = '3'
 
 async function rpc(token, service, method, body = {}) {
   const res = await fetch(`${PLATFORM_BASE}/${service}/${method}`, {

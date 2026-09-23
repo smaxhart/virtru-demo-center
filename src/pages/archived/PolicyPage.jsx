@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useDemo } from '../context/DemoContext.jsx'
-import { getEntitlements } from '../api/platform.js'
-import { COMMERCIAL_FLAT_ATTRS, FEDERAL_FLAT_ATTRS } from '../data/sectors.js'
-import Icon from '../components/Icon.jsx'
-import ClassificationBanner from '../components/ClassificationBanner.jsx'
+import { useDemo } from '../../context/DemoContext.jsx'
+import { getEntitlements } from '../../api/platform.js'
+import { COMMERCIAL_FLAT_ATTRS, FEDERAL_FLAT_ATTRS } from '../../data/sectors.js'
+import Icon from '../../components/Icon.jsx'
+import ClassificationBanner from '../../components/ClassificationBanner.jsx'
 
 // Match clearance value → classification label
 const CLEARANCE_TO_CLASSIFICATION = {
@@ -17,11 +17,16 @@ const CLEARANCE_TO_CLASSIFICATION = {
 }
 
 // Groups: clearance has hierarchy note, relto has ANY_OF note, needtoknow has ALL_OF note
+//
+// `relto` names nations. A coalition is a roster of them, never a value a person holds — see the
+// header of data/coalitions.js. Anything here that reads like `relto:fvey` is describing the wrong
+// model, whatever FEDERAL_PERSONAS still grants: that data predates the roster rule and is the
+// reason this note exists rather than a silent assumption.
 const ATTR_GROUP_META = {
   clearance:    { color: '#b91c1c', note: 'HIERARCHY — higher clearance satisfies lower requirements', priority: 1 },
   classification: { color: '#b91c1c', note: 'HIERARCHY — classification level of the data', priority: 2 },
   mission:      { color: 'var(--c-text-3)', note: 'ANY_OF — user needs at least one matching mission attribute', priority: 3 },
-  relto:        { color: 'var(--c-text-2)', note: 'ANY_OF — any coalition membership satisfies', priority: 4 },
+  relto:        { color: 'var(--c-text-2)', note: 'ANY_OF — holding any one nation the marking names satisfies it', priority: 4 },
   needtoknow:   { color: 'var(--c-text-2)', note: 'ALL_OF — user must hold every listed compartment', priority: 5 },
   caveats:      { color: 'var(--c-text-2)', note: null, priority: 6 },
   nationality:  { color: '#047857', note: null, priority: 7 },
@@ -143,7 +148,7 @@ export default function PolicyPage() {
         {[
           { rule: 'HIERARCHY', color: '#f59e0b', title: 'Clearance Hierarchy', desc: 'Higher clearance satisfies lower requirements. TS/SCI user can decrypt SECRET documents.', example: 'clearance:ts-sci satisfies clearance:secret' },
           { rule: 'ALL_OF',    color: '#8b5cf6', title: 'Need-to-Know (ALL)', desc: 'User must hold every listed compartment. Missing any single one blocks access.', example: 'needtoknow:intel AND needtoknow:ops → both required' },
-          { rule: 'ANY_OF',    color: '#3b82f6', title: 'Coalition / REL TO', desc: 'Any coalition membership grants access. Used for FVEY and NATO sharing policies.', example: 'relto:fvey OR relto:nato → either qualifies' },
+          { rule: 'ANY_OF',    color: '#3b82f6', title: 'Coalition / REL TO', desc: 'A coalition is a roster of nations, not an attribute. REL TO FVEY expands to its five members, and holding any one of them qualifies.', example: 'nationality:USA OR GBR OR CAN OR AUS OR NZL → any FVEY nation qualifies' },
         ].map(rt => (
           <div key={rt.rule} style={{
             borderRadius: 12, padding: '14px 16px',

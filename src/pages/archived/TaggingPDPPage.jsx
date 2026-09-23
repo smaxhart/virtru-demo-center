@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { useDemo } from '../context/DemoContext.jsx'
-import Icon from '../components/Icon.jsx'
-import { TAGGING_SAMPLES } from '../data/sectors.js'
+import { useDemo } from '../../context/DemoContext.jsx'
+import Icon from '../../components/Icon.jsx'
+import { TAGGING_SAMPLES } from '../../data/sectors.js'
 
 const STEP_BUSINESS_MEANING = [
   "Apache Tika reads the raw file — PDF, Word, or scanned image — and extracts the text so the pipeline can analyze it.",

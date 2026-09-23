@@ -132,8 +132,9 @@ function agentContext(agent, agentFqns) {
  * null the model is given no document — not a redacted one, and not an instruction to
  * withhold. The model cannot leak what was never put in its context.
  *
- * `mode` only colours the framing sentence. Two of the four scenarios contain nothing
- * classified at all, and telling the model otherwise makes it answer in the wrong register.
+ * `mode` only colours the framing sentence. Three of the five scenarios contain nothing
+ * classified at all — Federal Civilian, the Defense Industrial Base and Law Enforcement name no
+ * `clearance` anywhere — and telling the model otherwise makes it answer in the wrong register.
  */
 export function buildSystemPrompt({ persona, entityFqns, unit, documentText, mode, agent, agentFqns }) {
   const ctx = personaContext(persona, entityFqns) + agentContext(agent, agentFqns)
