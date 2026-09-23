@@ -172,8 +172,12 @@ shell environment and `process.env.GH_TOKEN` is empty in the only case that matt
 
 - **Branch protection.** Unavailable — private repo on the free plan. The gates above live in
   `release.mjs`, not in GitHub, so they hold only for releases cut through `npm run release*`.
-- **CI.** `.github/workflows/qa-agent.yml` exists but is untracked and has never run. Its
-  `workflow_run: workflows: ["*"]` trigger combined with `push: main` is a self-trigger loop that
-  needs fixing before it is committed.
+- **CI.** `.github/workflows/qa-agent.yml` is committed as of `22050fa` — the self-trigger loop, the
+  dead model ID and the shell injection in `qa-agent.mjs` are fixed. It is still not running, for two
+  reasons. It needs `ANTHROPIC_API_KEY` and `SLACK_WEBHOOK_URL` in the repo secrets (neither is set;
+  see `.github/QA_AGENT_SETUP.md`), and it is only on `develop`: GitHub takes `issues` and `push`
+  workflows from the **default branch**, so issue triage and the direct-push alert stay dormant until
+  this reaches `main`, while a `pull_request` run uses the workflow from the PR's own merge commit and
+  can fire sooner. It reviews and comments — it gates nothing, and `release.mjs` never consults it.
 - **Headless `verify`.** Would turn staging into a real automated gate. Needs the platform sidecar
   and Postgres to come up in CI.
