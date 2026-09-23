@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useDemo } from '../context/DemoContext.jsx'
-import { getEntitlements } from '../api/platform.js'
-import { COMMERCIAL_FLAT_ATTRS, FEDERAL_FLAT_ATTRS } from '../data/sectors.js'
-import Icon from '../components/Icon.jsx'
-import ClassificationBanner from '../components/ClassificationBanner.jsx'
+import { useDemo } from '../../context/DemoContext.jsx'
+import { getEntitlements } from '../../api/platform.js'
+import { COMMERCIAL_FLAT_ATTRS, FEDERAL_FLAT_ATTRS } from '../../data/sectors.js'
+import Icon from '../../components/Icon.jsx'
+import ClassificationBanner from '../../components/ClassificationBanner.jsx'
 
 // Match clearance value → classification label
 const CLEARANCE_TO_CLASSIFICATION = {

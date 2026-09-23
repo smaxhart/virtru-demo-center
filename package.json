@@ -18,7 +18,8 @@
     "release:check": "node scripts/release.mjs stable --dry-run",
     "release:check:beta": "node scripts/release.mjs beta --dry-run",
     "postinstall": "electron-builder install-app-deps",
-    "verify": "npm run verify:matrix && npm run verify:uploads && npm run verify:scenario",
+    "verify": "npm run verify:pages && npm run verify:matrix && npm run verify:uploads && npm run verify:scenario",
+    "verify:pages": "node scripts/verify-pages.mjs",
     "verify:matrix": "node scripts/verify-matrix.mjs",
     "verify:uploads": "node scripts/verify-uploads.mjs",
     "verify:scenario": "node scripts/verify-scenario.mjs"

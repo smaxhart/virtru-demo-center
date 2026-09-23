@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { useDemo } from '../context/DemoContext.jsx'
-import { FEDERAL_PERSONAS } from '../data/sectors.js'
-import { classifyQuery, checkAccess, buildSystemPrompt, TOPICS } from '../ai/policyEngine.js'
-import { streamChat } from '../ai/gatewayClient.js'
+import { useDemo } from '../../context/DemoContext.jsx'
+import { FEDERAL_PERSONAS } from '../../data/sectors.js'
+import { classifyQuery, checkAccess, buildSystemPrompt, TOPICS } from '../../ai/policyEngine.js'
+import { streamChat } from '../../ai/gatewayClient.js'
 
 const CHAT_PERSONAS = FEDERAL_PERSONAS.filter(p => p.id !== 'generic')
 

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
-import { useDemo } from '../context/DemoContext.jsx'
-import { getEntitlements, getKasPublicKey } from '../api/platform.js'
-import { FEDERAL_PERSONA_DOCS } from '../data/sectors.js'
-import Icon from '../components/Icon.jsx'
-import ClassificationBanner from '../components/ClassificationBanner.jsx'
+import { useDemo } from '../../context/DemoContext.jsx'
+import { getEntitlements, getKasPublicKey } from '../../api/platform.js'
+import { FEDERAL_PERSONA_DOCS } from '../../data/sectors.js'
+import Icon from '../../components/Icon.jsx'
+import ClassificationBanner from '../../components/ClassificationBanner.jsx'
 
 const sleep = ms => new Promise(r => setTimeout(r, ms))
 

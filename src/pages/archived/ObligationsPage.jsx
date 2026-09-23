@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { useDemo } from '../context/DemoContext.jsx'
-import { OBLIGATIONS_DATA } from '../data/sectors.js'
-import Icon from '../components/Icon.jsx'
+import { useDemo } from '../../context/DemoContext.jsx'
+import { OBLIGATIONS_DATA } from '../../data/sectors.js'
+import Icon from '../../components/Icon.jsx'
 
 const { definitions, clearanceLevels, sampleDocument } = OBLIGATIONS_DATA
 

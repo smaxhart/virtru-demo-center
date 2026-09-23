@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { useDemo } from '../context/DemoContext.jsx'
-import { getKasPublicKey } from '../api/platform.js'
-import { COMMERCIAL_PERSONA_DOCS, FEDERAL_PERSONA_DOCS } from '../data/sectors.js'
-import Icon from '../components/Icon.jsx'
+import { useDemo } from '../../context/DemoContext.jsx'
+import { getKasPublicKey } from '../../api/platform.js'
+import { COMMERCIAL_PERSONA_DOCS, FEDERAL_PERSONA_DOCS } from '../../data/sectors.js'
+import Icon from '../../components/Icon.jsx'
 
 const STEPS = [
   {
