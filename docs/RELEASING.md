@@ -162,6 +162,25 @@ Two things `--resume` does not do:
   v1.8.2-beta.1 recovery, taking `app.asar` from 357 MB to 760 MB and the `.zip` from 421 MB to 840 MB.
   `build.files` excludes them by pattern now; that is the second line of defence, not the first.
 
+### Check `app.asar`, not the artifacts
+
+Ordering does not protect `dist/mac-arm64/`. electron-builder creates that staging `.app` itself,
+part-way through its own run, **before** it globs `build.files` — so every build through
+v1.8.2-beta.2, clean or resumed, packed a second copy of `Electron.app` inside its own `app.asar`:
+241.7 MB of 364.8 MB. `!dist/mac*` is what excludes it.
+
+It survived three releases because the artifacts barely moved — v1.8.1, beta.1 and beta.2 sit within
+40 KB of each other, so 421 MB / 436 MB read as known-good and 357 MB read as a clean `app.asar`.
+Neither was clean. **Artifact size cannot detect this class of bug; `app.asar` size can.** After a
+build, sum the asar by subtree rather than trusting the `.dmg`:
+
+```bash
+node -e 'const fs=require("fs"),p=process.argv[1],fd=fs.openSync(p,"r"),b=Buffer.alloc(16);fs.readSync(fd,b,0,16,0);const n=b.readUInt32LE(12),j=Buffer.alloc(n);fs.readSync(fd,j,0,n,16);const h=JSON.parse(j.toString()),a=[];(function w(x,d){for(const[k,v]of Object.entries(x.files||{}))v.files?w(v,d+"/"+k):a.push([d+"/"+k,v.size||0])})(h,"");const g={};for(const[f,s]of a){const t=f.split("/").slice(1,3).join("/");g[t]=(g[t]||0)+s}console.log((a.reduce((s,[,n])=>s+n,0)/1048576).toFixed(1)+" MB total");Object.entries(g).sort((x,y)=>y[1]-x[1]).slice(0,6).forEach(([k,v])=>console.log((v/1048576).toFixed(1).padStart(8)+" MB  "+k))' "dist/mac-arm64/Virtru Demo Center.app/Contents/Resources/app.asar"
+```
+
+Nothing under `dist/mac*` should appear in that listing. The largest legitimate entry is
+`dist/cctv` at ~83 MB.
+
 One check is advisory and never blocks: the embedded update-feed token is a classic PAT, which is a
 **known and accepted** risk pending the product team taking this codebase for a PEP. It is surfaced
 at every release so it stays known. Don't "fix" it without reading why v1.7.4 was reverted — the

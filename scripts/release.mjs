@@ -410,6 +410,13 @@ if (resume) {
 // Going straight to electron-builder packs those back into app.asar: measured at 357M → 760M, taking
 // the .zip from 421M to 840M, during the v1.8.2-beta.1 recovery. build.files excludes them by pattern
 // now (7371047), but that is the second line of defence. Never reorder these two.
+//
+// Ordering does NOT save us from dist/mac-arm64/, though, and that one was invisible for far longer:
+// electron-builder creates the staging .app itself, mid-run, *before* it globs the file list, so a
+// clean build packed a second copy of Electron.app into its own asar — 241.7 of app.asar's 364.8 MB,
+// in every build through v1.8.2-beta.2. It hid because the .zip only moved ~40 KB between releases,
+// so 421 MB read as the known-good size and 357 MB as a clean asar. Neither was clean. `!dist/mac*`
+// is the only defence here; asar size, not artifact size, is what catches a regression.
 console.log(`\nBuilding renderer`)
 execFileSync('npx', ['vite', 'build'], { cwd: ROOT, stdio: 'inherit' })
 
