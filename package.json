@@ -76,7 +76,8 @@
       "!resources/bin",
       "!dist/*.{dmg,zip,blockmap,yml,yaml}",
       "!dist/*.zip.blockmap",
-      "!dist/*.dmg.blockmap"
+      "!dist/*.dmg.blockmap",
+      "!dist/mac*"
     ],
     "extraResources": [
       {
