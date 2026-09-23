@@ -3,10 +3,10 @@
  *
  * The original demo scenario. Its job is to show the three composition rules in the
  * cleanest possible form: a hierarchy (clearance), a compartment (mission), and a
- * release caveat that has nothing to do with either (coi).
+ * releasability roster that has nothing to do with either (nationality).
  */
 
-import { clearance, mission, needtoknow, coi } from './vocab.js'
+import { clearance, mission, needtoknow, coalitionFqns, coalitionLabel } from './vocab.js'
 
 const personas = [
   {
@@ -48,7 +48,7 @@ const personas = [
     icon: 'liaison',
     badge: 'GB',
     color: '#0ea5e9',
-    note: 'Holds coi:fvey, so the Five Eyes product is releasable to a non-US national.',
+    note: 'Holds nationality:gbr, which is one of the five nations on the FVEY roster — so the Five Eyes product is releasable to a non-US national.',
   },
   {
     id: 'dow-henri',
@@ -57,7 +57,7 @@ const personas = [
     icon: 'liaison',
     badge: 'FR',
     color: '#6366f1',
-    note: 'Holds coi:nato but not coi:fvey. Same clearance as Emma, different release community — this is the pair to demo.',
+    note: 'Holds nationality:fra — on the NATO roster, not on the FVEY one. Same clearance as Emma, different release community, and the only thing separating them is which nation they are: this is the pair to demo.',
   },
   {
     id: 'dow-klaus',
@@ -154,8 +154,11 @@ Key judgment: Overall threat level elevated compared to Q2. No specific attack t
     label: 'FVEY Intel Exchange',
     classification: 'SECRET // REL TO FVEY',
     keywords: ['fvey', 'five eyes', 'fiveeyes', 'five-eyes', 'ukusa', 'allied intel', 'partner intel'],
-    policy: [clearance('secret'), coi('fvey')],
-    policyNote: 'SECRET AND the FVEY release caveat. The French and German liaisons hold SECRET and are still refused — the caveat is the whole decision.',
+    policy: [clearance('secret'), ...coalitionFqns('fvey')],
+    policyNote: `SECRET AND a nationality in the Five Eyes — ${coalitionLabel('fvey')}. `
+      + 'Emma holds nationality:gbr and nothing else about her matters; the French and German liaisons '
+      + 'hold the same SECRET clearance and are refused, because FRA and DEU are not on the roster. '
+      + 'Five values, ANY_OF, one of them is enough.',
     text: `
 FVEY INTEL EXCHANGE — SECRET // REL TO FVEY
 Joint product: USA-GBR-CAN-AUS-NZL
@@ -174,8 +177,12 @@ Distribution: FVEY principals only. No NATO release without separate authority.
     label: 'NATO Joint Ops Plan',
     classification: 'SECRET // REL TO NATO',
     keywords: ['nato', 'joint ops', 'joint operations', 'article 5', 'alliance ops', 'coastal shield'],
-    policy: [clearance('secret'), coi('nato')],
-    policyNote: 'SECRET AND the NATO release caveat — a wider community than FVEY, so the French and German liaisons are in.',
+    policy: [clearance('secret'), ...coalitionFqns('nato')],
+    policyNote: 'SECRET AND a nationality in NATO — a wider roster than FVEY, so the French and German '
+      + 'liaisons are in on FRA and DEU while the same clearance left them out of the Five Eyes product. '
+      + `The alliance has 32 members and this policy names the ${coalitionFqns('nato').length} the platform `
+      + 'seeds; the rest are dropped rather than shipped, because a policy naming a value nobody '
+      + 'created is denied to everyone.',
     text: `
 NATO JOINT OPS PLAN — SECRET // REL TO NATO
 Operation COASTAL SHIELD — Phase II Annex
@@ -308,8 +315,8 @@ export default {
       detail: 'The TS-SCI intel analyst is refused the SECRET legal file. A hierarchy admits you to a level; a compartment decides whether that level is relevant.',
     },
     {
-      title: 'Release caveats are markings, not rosters',
-      detail: 'The French and German liaisons hold the same SECRET as the UK liaison and are still refused the Five Eyes product, because REL TO FVEY is a marking they do not carry.',
+      title: 'A coalition is a roster of nationalities',
+      detail: `The French and German liaisons hold the same SECRET as the UK liaison and are still refused the Five Eyes product. Nobody holds an entitlement called FVEY: the document names ${coalitionLabel('fvey')} and nationality is ANY_OF, so the UK liaison is admitted on GBR alone while FRA and DEU are simply not on the list. Switch to the NATO product and the same two are in.`,
     },
     {
       title: 'An admin role is not an entitlement',
@@ -324,7 +331,8 @@ export default {
     { name: 'clearance',  rule: 'HIERARCHY', detail: 'ts-sci › secret › cui › unclassified. Tagging a document SECRET admits TS-SCI holders without listing them.' },
     { name: 'mission',    rule: 'ANY_OF',    detail: 'intel, ops, legal, cyber, external — the functional compartment.' },
     { name: 'needtoknow', rule: 'ANY_OF',    detail: 'A community that cuts across missions. The status-only casualty report is scoped to intel or ops.' },
-    { name: 'coi',        rule: 'ANY_OF',    detail: 'fvey, nato — the release caveat, held or not held.' },
+    { name: 'nationality', rule: 'ANY_OF',   detail: `Releasability. REL TO FVEY is the roster ${coalitionLabel('fvey')}; REL TO NATO is a wider one. Nobody holds an entitlement called FVEY — you qualify by being one of its members, and ANY_OF means one is enough.` },
+    { name: 'coi',        rule: 'ANY_OF',    detail: 'fvey, nato — the old way of saying the same thing, still granted to the coalition personas so documents tagged with it keep opening. No built-in policy names it.' },
   ],
   defaultPersonaId: 'dow-sarah',
   // The mission-scoped agent by default: it is the one that produces a refusal a fully cleared

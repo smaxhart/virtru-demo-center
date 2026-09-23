@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useDemo } from '../../context/DemoContext.jsx'
 import { getEntitlements, getKasPublicKey } from '../../api/platform.js'
 import { FEDERAL_PERSONA_DOCS } from '../../data/sectors.js'
+import { evaluatePolicy, groupLabel } from '../../data/policyMatch.js'
 import Icon from '../../components/Icon.jsx'
 import ClassificationBanner from '../../components/ClassificationBanner.jsx'
 
@@ -97,14 +98,15 @@ export default function RevocationPage() {
     if (platformReady) {
       try { await getEntitlements(activePersona.username, doc.policyFqns) } catch { /* ignore */ }
     }
-    const entitled = doc.policyFqns.every(pFqn => activeAttrs.has(pFqn))
+    // Per definition, not per FQN. A REL TO FVEY policy names five nations and holding one of them
+    // satisfies it — `every()` here reported Emma denied a document the KAS grants her.
+    const { satisfied: entitled, missing } = evaluatePolicy([...activeAttrs], doc.policyFqns)
     await sleep(800)
     setCurrentStep(2)
     await sleep(600)
-    const missingAttrs = doc.policyFqns.filter(fqn => !activeAttrs.has(fqn))
     const reason = entitled
       ? 'All required attributes present'
-      : `Missing: ${missingAttrs.map(f => f.split('/value/')[1]).join(', ')}`
+      : `Missing: ${missing.map(groupLabel).join('; ')}`
     setLastReason(reason)
     setCheckStatus(entitled ? 'granted' : 'denied')
     setCurrentStep(3)
@@ -120,7 +122,9 @@ export default function RevocationPage() {
     }, ...prev].slice(0, 10))
   }
 
-  const missingPolicyAttrs = doc.policyFqns.filter(fqn => !activeAttrs.has(fqn))
+  // The live verdict the panels below render. `groups` is one entry per attribute definition, so a
+  // thirteen-nation NATO roster is one requirement rather than thirteen.
+  const verdict = evaluatePolicy([...activeAttrs], doc.policyFqns)
   const isGeneric = activePersona.id === 'generic'
 
   return (
@@ -176,7 +180,7 @@ export default function RevocationPage() {
                 </div>
                 <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, lineHeight: 1.6 }}>
                   The document below requires{' '}
-                  <strong style={{ color: '#ffffff' }}>{doc.policyFqns.map(f => f.split('/value/')[1]).join(' + ')}</strong>.
+                  <strong style={{ color: '#ffffff' }}>{verdict.groups.map(groupLabel).join(' + ')}</strong>.
                   Toggle any of those attributes off on the right to simulate a revocation, then click Try Decrypt.
                 </div>
                 {techMode && (
@@ -231,26 +235,31 @@ export default function RevocationPage() {
                 Required to decrypt:
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {doc.policyFqns.map(fqn => {
-                  const short = fqn.split('/value/')[1]
-                  const missing = missingPolicyAttrs.includes(fqn)
+                {verdict.groups.map(g => {
+                  // One chip per requirement. A satisfied roster names the value that carried it —
+                  // "nationality:gbr (1 of 5)" — which is the sentence the revocation demo needs:
+                  // switch that one value off and the same document shuts.
+                  const roster = g.values.length > 1
+                  const label = g.satisfied
+                    ? `${g.name}:${g.matched.split('/value/')[1]}${roster ? ` (1 of ${g.values.length})` : ''}`
+                    : roster ? `${g.name}: none of ${g.values.length}` : groupLabel(g)
                   return (
-                    <span key={fqn} style={{
-                      padding: '3px 10px', borderRadius: 4, fontSize: 11, fontWeight: 600, fontFamily: 'monospace',
-                      background: missing ? '#fee2e2' : '#dcfce7',
-                      color: missing ? '#dc2626' : '#16a34a',
-                      border: `1px solid ${missing ? '#fca5a5' : '#86efac'}`,
-                      textDecoration: missing ? 'line-through' : 'none',
-                    }}>
-                      {techMode ? fqn.split('/attr/')[1]?.replace('/value/', ':') : short}
-                      {missing && ' ✗'}
+                    <span key={g.definition} title={`${groupLabel(g)}${g.held.length ? `  ·  holds ${g.held.join(', ')}` : ''}`}
+                      style={{
+                        padding: '3px 10px', borderRadius: 4, fontSize: 11, fontWeight: 600, fontFamily: 'monospace',
+                        background: g.satisfied ? '#dcfce7' : '#fee2e2',
+                        color: g.satisfied ? '#16a34a' : '#dc2626',
+                        border: `1px solid ${g.satisfied ? '#86efac' : '#fca5a5'}`,
+                      }}>
+                      {techMode ? groupLabel(g) : label}
+                      {!g.satisfied && ' ✗'}
                     </span>
                   )
                 })}
               </div>
-              {missingPolicyAttrs.length > 0 && (
+              {verdict.missing.length > 0 && (
                 <div style={{ marginTop: 8, fontSize: 11, color: '#dc2626' }}>
-                  ⚠ {missingPolicyAttrs.length} required attribute{missingPolicyAttrs.length > 1 ? 's' : ''} revoked — decrypt will be denied
+                  ⚠ {verdict.missing.map(groupLabel).join('; ')} — decrypt will be denied
                 </div>
               )}
             </div>

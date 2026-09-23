@@ -1,6 +1,8 @@
 // Single source of truth for all sector-specific content
 // Used by DemoContext, Layout, and all page components
 
+import { coalitionFqns } from './coalitions.js'
+
 const NS = 'https://demo.com/attr'
 
 // ─── Commercial ───────────────────────────────────────────────────────────────
@@ -529,9 +531,15 @@ export const FEDERAL_PERSONA_DOCS = {
     title: 'FVEY Intelligence Summary',
     classification: 'SECRET // REL TO FVEY',
     plaintext: 'FIVE EYES INTELLIGENCE SUMMARY\n\nSECRET // REL TO FVEY\n\nJoint intelligence product from FVEY partner agencies. Releasable to USA, GBR, AUS, CAN, NZL only. Handle per FVEY sharing protocols.',
+    // Releasability is the roster of member nations: nobody holds an entitlement called FVEY, they
+    // hold a nationality, and `nationality` is ANY_OF. Two things had to be true before this could
+    // go back to a roster — `src/data/coalitions.js` keeps it inside the 20-value policy ceiling and
+    // names only seeded nations, and this page now evaluates the policy per definition instead of
+    // asking whether the persona holds every value, which is what made a five-nation roster read as
+    // a denial for the one British persona it was written for.
     policyFqns: [
       `${NS}/clearance/value/secret`,
-      ...['usa', 'gbr', 'aus', 'nzl', 'can'].map(n => `${NS}/nationality/value/${n}`),
+      ...coalitionFqns('fvey'),
     ],
   },
   'nato-fr': {
@@ -540,9 +548,7 @@ export const FEDERAL_PERSONA_DOCS = {
     plaintext: 'NATO COLLECTIVE CYBER DEFENSE BRIEFING\n\nSECRET // REL TO NATO\n\nThreat assessment and defensive posture for NATO member-state infrastructure. Releasable to all NATO member nations.',
     policyFqns: [
       `${NS}/clearance/value/secret`,
-      ...['usa', 'can', 'gbr', 'fra', 'bel', 'nld', 'lux', 'nor', 'dnk', 'isl', 'ita', 'prt',
-          'grc', 'tur', 'deu', 'esp', 'hun', 'pol', 'cze', 'bgr', 'est', 'lva', 'ltu', 'rou',
-          'svk', 'svn', 'alb', 'hrv', 'mne', 'mkd', 'fin', 'swe'].map(n => `${NS}/nationality/value/${n}`),
+      ...coalitionFqns('nato'),
     ],
   },
   'nato-de': {
@@ -551,30 +557,15 @@ export const FEDERAL_PERSONA_DOCS = {
     plaintext: 'NATO COLLECTIVE CYBER DEFENSE BRIEFING\n\nSECRET // REL TO NATO\n\nThreat assessment and defensive posture for NATO member-state infrastructure. Releasable to all NATO member nations.',
     policyFqns: [
       `${NS}/clearance/value/secret`,
-      ...['usa', 'can', 'gbr', 'fra', 'bel', 'nld', 'lux', 'nor', 'dnk', 'isl', 'ita', 'prt',
-          'grc', 'tur', 'deu', 'esp', 'hun', 'pol', 'cze', 'bgr', 'est', 'lva', 'ltu', 'rou',
-          'svk', 'svn', 'alb', 'hrv', 'mne', 'mkd', 'fin', 'swe'].map(n => `${NS}/nationality/value/${n}`),
+      ...coalitionFqns('nato'),
     ],
   },
 }
 
-export const FEDERAL_SAMPLE_FILES = [
-  { id: 'opord',       name: 'OPORD_Op_Meridian.pdf',         icon: 'document', size: '1.8 MB', classification: 'SECRET' },
-  { id: 'sitrep',      name: 'SITREP_Daily_Report.pdf',       icon: 'document', size: '540 KB', classification: 'SECRET' },
-  { id: 'intel',       name: 'Intel_Briefing_NOFORN.pdf',     icon: 'search',   size: '3.2 MB', classification: 'TOP SECRET' },
-  { id: 'roe',         name: 'ROE_Coalition_Partners.docx',   icon: 'document', size: '720 KB', classification: 'SECRET' },
-  { id: 'cyber',       name: 'Cyber_Incident_G6.txt',         icon: 'shield',   size: '95 KB',  classification: 'SECRET' },
-  { id: 'pws',         name: 'Contractor_PWS_SOCOM.pdf',      icon: 'document', size: '410 KB', classification: 'UNCLASSIFIED' },
-]
-
-export const FEDERAL_FILE_PREVIEWS = {
-  opord:  'OPERATION ORDER — OPERATION MERIDIAN\n\nSecret\n\nTask organization, commander\'s intent, and execution phase lines for Operation Meridian. This document is classified SECRET and subject to OPSEC restrictions.',
-  sitrep: 'SITUATION REPORT — Daily SITREP\n\nSecret\n\nCurrent operational status, enemy activity, and friendly force disposition as of 0600Z. Distribution: J2, J3, battalion commanders.',
-  intel:  'INTELLIGENCE BRIEFING — NOFORN\n\nTop Secret/SCI\n\nSignals intelligence assessment and adversary order of battle. NOT RELEASABLE TO FOREIGN NATIONALS. Handle per SCI procedures.',
-  roe:    'RULES OF ENGAGEMENT — Coalition Operations\n\nSecret\n\nEngagement authority and ROE card for coalition partner forces. Annex C to OPORD 24-003.',
-  cyber:  'CYBER INCIDENT REPORT — G6\n\nSecret\n\n[2024-03-15 14:22Z] Anomalous lateral movement detected on SIPR cluster 7.\n[2024-03-15 14:31Z] Containment initiated. COOP activated.',
-  pws:    'PERFORMANCE WORK STATEMENT — SOCOM Support\n\nUnclassified\n\nScope, deliverables, and security requirements for contractor support of SOCOM information operations.',
-}
+// The sample files and their plaintext now live in `federalDocs.js`, which holds the documents
+// themselves — full-length, with measured sizes. Re-exported here because EncryptPage and TDF
+// Explorer have always imported them from this module.
+export { FEDERAL_SAMPLE_FILES, FEDERAL_FILE_PREVIEWS } from './federalDocs.js'
 
 const FED_NS = 'demo.com'
 export const FEDERAL_FLAT_ATTRS = [

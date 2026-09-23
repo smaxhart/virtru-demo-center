@@ -534,7 +534,7 @@ export default function ScenarioBuilderPage() {
               Attributes in a customer's own vocabulary, the people who hold them, the agents acting
               for those people, and documents to put under policy. Saving seeds the attribute
               definitions into the running platform and encrypts the corpus — after that it behaves
-              exactly like the four scenarios that ship with the app, because it goes through the
+              exactly like the five scenarios that ship with the app, because it goes through the
               same code.
             </p>
           </div>

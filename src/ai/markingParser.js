@@ -1,10 +1,22 @@
+import { coalitionFqns, nationFqns } from '../data/coalitions.js'
+
 const NS = 'https://demo.com/attr'
-const COI_FVEY_FQNS = ['usa', 'gbr', 'aus', 'nzl', 'can'].map(n => `${NS}/nationality/value/${n}`)
-const COI_NATO_FQNS = [
-  'usa', 'can', 'gbr', 'fra', 'bel', 'nld', 'lux', 'nor', 'dnk', 'isl', 'ita', 'prt',
-  'grc', 'tur', 'deu', 'esp', 'hun', 'pol', 'cze', 'bgr', 'est', 'lva', 'ltu', 'rou',
-  'svk', 'svn', 'alb', 'hrv', 'mne', 'mkd', 'fin', 'swe',
-].map(n => `${NS}/nationality/value/${n}`)
+
+// REL TO expands to the member nations, because nobody holds an entitlement called FVEY.
+//
+// A person qualifies for REL TO FVEY by *being* American, British, Canadian, Australian or a New
+// Zealander. `nationality` is ANY_OF, so listing the members grants anyone holding one of them —
+// which is the actual policy, and it is also what makes a refusal legible: Henri is refused because
+// FRA is not in the Five Eyes, not because he lacks an attribute named after the club.
+//
+// This was briefly modelled as a single `relto:fvey` value after the 32-nation NATO roster was
+// measured denying all seven personas. That measurement was real but the diagnosis was wrong: the
+// roster was over the platform's 20-value ceiling *and* named 17 nations that were never seeded.
+// `src/data/coalitions.js` fixes both by intersecting the alliance with the seeded set — NATO comes
+// out at 13 values and FVEY at 5, both verified granting live. `relto` still exists on the platform
+// for the Collaborate and Architecture simulations; no file policy should name it.
+const FVEY = coalitionFqns('fvey')
+const NATO = coalitionFqns('nato')
 
 // Parse standard US classification marking from first line of text.
 // Returns { fqns, firstLine, tokens } — fqns is empty if no clearance token found.
@@ -25,9 +37,12 @@ export function parseMarkingToFqns(text) {
     } else if (token === 'UNCLASSIFIED' || token === 'U') {
       fqns.add(`${NS}/clearance/value/unclassified`); foundClearance = true
     } else if (token.includes('FVEY')) {
-      COI_FVEY_FQNS.forEach(f => fqns.add(f))
+      for (const f of FVEY) fqns.add(f)
     } else if (token.includes('NATO')) {
-      COI_NATO_FQNS.forEach(f => fqns.add(f))
+      for (const f of NATO) fqns.add(f)
+    } else if (/^REL\s+TO\s+USA$/.test(token)) {
+      // Only the bare form. `REL TO USA, FVEY` is a FVEY marking and is caught above.
+      for (const f of nationFqns('usa')) fqns.add(f)
     } else if (token === 'INTEL' || token === 'SI') {
       fqns.add(`${NS}/mission/value/intel`)
     } else if (token === 'CYBER') {

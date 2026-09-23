@@ -6,9 +6,66 @@ import { classifyQuery, buildSystemPrompt, explainPolicy, missingAttributes } fr
 import { retrieve, probeAccess } from '../ai/corpusVault.js'
 import { streamChat } from '../ai/gatewayClient.js'
 import { saveTdf } from '../api/download.js'
+import DerivedBanner from '../components/DerivedBanner.jsx'
 
 /** Tier units are labelled "Document — Tier"; show just the tier half. */
 const tierName = (unit) => unit.label.split(' — ')[1] ?? unit.label
+
+/**
+ * The unit a trace is *about*.
+ *
+ * On a grant it is the unit released. On a refusal nothing was released, so it is the first tier
+ * tried — the most privileged, which is the version of the document the question asked for. Without
+ * this the rail falls back to `doc.classification`, which a mode is under no obligation to set:
+ * every DIB document derives its marking per unit and has no document-level string at all.
+ */
+const decidedUnit = (r) => r?.entry?.unit ?? r?.attempts?.[0]?.entry?.unit ?? null
+
+/**
+ * The attributes that withheld a document, charged to whichever subject actually fell short.
+ *
+ * Measured against the *last* attempt, which is the least-privileged tier tried: that is the
+ * minimal shortfall — the cheapest thing that would have admitted any version of the document.
+ * Blaming the human for the agent's gap is the one wrong answer this could give, so each subject
+ * is measured against its own attributes and the two are unioned.
+ */
+function shortfall(result, entityFqns, agentFqns) {
+  if (!result || result.granted) return []
+  const last = result.attempts?.[result.attempts.length - 1]
+  if (!last) return []
+  return [...new Set([
+    ...(last.user.granted  ? [] : missingAttributes(last.entry.unit.policy, entityFqns)),
+    ...(last.agent.granted ? [] : missingAttributes(last.entry.unit.policy, agentFqns)),
+  ])]
+}
+
+/**
+ * What the retrieval layer would admit for this pair of subjects, and what withheld the rest.
+ *
+ * The honest scope of a RAG query, stated before anyone asks. Per-*chunk* filtering is the larger
+ * version of this and is not what the app does — `classifyQuery` selects one whole document — so
+ * the unit counted here is the document, and the withheld counts are attributes, not passages.
+ */
+function retrievalScope(accessMap, documents, entityFqns, agentFqns) {
+  if (!accessMap || accessMap.size === 0) return null
+
+  const counts = new Map() // `cui:sp-cti` → how many documents it withheld
+  let admitted = 0
+
+  for (const doc of documents) {
+    const r = accessMap.get(doc.id)
+    if (r?.granted) { admitted++; continue }
+    for (const m of shortfall(r, entityFqns, agentFqns)) counts.set(m, (counts.get(m) ?? 0) + 1)
+  }
+
+  return {
+    admitted,
+    withheld: documents.length - admitted,
+    total: documents.length,
+    // Most-withholding attribute first: it is the one worth talking about.
+    by: [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])),
+  }
+}
 
 /** The opening message, named after the mode so the scenario is obvious from the first line. */
 const welcomeFor = (mode) => ({
@@ -398,7 +455,10 @@ function blockerNote(trace, persona, agent) {
 }
 
 function DecisionPanel({ trace, accessMap }) {
-  const { mode, documents, persona, agent } = useApp()
+  const { mode, documents, persona, agent, entityFqns, agentFqns } = useApp()
+
+  const unit  = decidedUnit(trace)
+  const scope = retrievalScope(accessMap, documents, entityFqns, agentFqns)
 
   return (
     <div style={{ width: 236, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 8, overflowY: 'auto' }}>
@@ -443,7 +503,7 @@ function DecisionPanel({ trace, accessMap }) {
                   marginTop: 3, fontSize: 9.5, fontWeight: 600,
                   color: trace.granted ? 'var(--c-grant)' : 'var(--c-deny)',
                 }}>
-                  {trace.entry?.unit.classification ?? trace.doc.classification}
+                  {unit?.classification ?? trace.doc.classification}
                 </div>
               </div>
             ) : (
@@ -452,6 +512,10 @@ function DecisionPanel({ trace, accessMap }) {
               </div>
             )}
           </div>
+
+          {/* Directly under the verdict, because on a CUI document the banner in the card above is
+              this derivation's output and the two belong together. */}
+          {unit && <DerivedBanner policy={unit.policy} compact />}
 
           {trace.attempts?.length > 0 && (
             <div className="card" style={{ padding: '10px 12px' }}>
@@ -474,6 +538,34 @@ function DecisionPanel({ trace, accessMap }) {
 
       <div className="card" style={{ padding: '10px 12px' }}>
         <div className="section-label" style={{ marginBottom: 7 }}>CORPUS ACCESS</div>
+
+        {/* The retrieval filter, stated as a number rather than left to be inferred from the rows.
+            This is the answer to "what did the assistant have to work with" — the question a
+            compliance reviewer asks about a RAG system, and the one a chat transcript cannot
+            answer, because a withheld document leaves no trace in the conversation. */}
+        {scope && (
+          <div style={{
+            marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid var(--c-border)',
+          }}>
+            <div style={{ fontSize: 10.5, color: 'var(--c-text-4)', lineHeight: 1.55 }}>
+              <strong style={{ color: 'var(--c-text-2)' }}>{scope.admitted} of {scope.total}</strong>
+              {' '}admitted to retrieval
+              {scope.withheld > 0 && <> · {scope.withheld} withheld</>}
+            </div>
+            {scope.by.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 5 }}>
+                {scope.by.map(([attr, n]) => (
+                  <span key={attr} className="mono" title={`Withheld ${n} document(s)`} style={{
+                    fontSize: 9, padding: '2px 5px', borderRadius: 4,
+                    background: 'var(--c-deny-bg)', color: 'var(--c-deny)',
+                    border: '1px solid var(--c-deny-br)',
+                  }}>{n}× {attr}</span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* A legend rather than aligned column headers — "AGENT" is wider than the glyph column
             it would label, and a header that does not line up reads as a mistake. */}
         {agent && (
@@ -650,6 +742,8 @@ export default function ChatPage() {
 
     setTrace({ doc, ...result })
 
+    const unit = decidedUnit(result)
+
     logEvent({
       persona: persona.name,
       personaId,
@@ -657,9 +751,13 @@ export default function ChatPage() {
       agentId: agentId ?? null,
       document: doc ? doc.label : 'General query',
       tier: result.entry?.unit.tierId ?? null,
-      classification: result.entry?.unit.classification ?? doc?.classification ?? null,
+      classification: unit?.classification ?? doc?.classification ?? null,
       granted: doc ? result.granted : true,
       attempts: result.attempts.length,
+      // The controlling attribute, which is the column an assessor reads. "Denied" on its own
+      // records that a decision happened; naming the shortfall is what makes the entry evidence
+      // that policy — and not an outage, a bug, or someone's discretion — did the refusing.
+      missing: shortfall(result, entityFqns, agentFqns),
       // Recorded because "who was refused" is the part an audit reader cannot reconstruct from
       // the persona alone — the same person, through a different agent, gets a different answer.
       blockedBy: result.blockedBy ?? null,
@@ -689,11 +787,17 @@ export default function ChatPage() {
         return `• ${name} — ${parts.join('; ')}`
       })
 
+      // The unit's marking, not the document's: a mode is free to carry no document-level string
+      // and mark each version instead, and `(undefined)` in a chat message is worse than no
+      // marking at all.
+      const marking = unit?.classification ?? doc.classification
+      const named = `${doc.label}${marking ? ` (${marking})` : ''}`
+
       const opener = result.blockedBy === 'agent'
         ? `You're entitled to that. I'm not.\n\nI'm running as ${agent?.name ?? 'an agent'}, a policy subject with attributes of its own. The platform released ${doc.label} to you and refused it to me — and a document only reaches me when both of us are granted.`
         : result.blockedBy === 'both'
-          ? `I don't have that document, and neither of us is entitled to it.\n\nYour query matches ${doc.label} (${doc.classification}), and the platform refused both subjects.`
-          : `I don't have that document.\n\nYour query matches ${doc.label} (${doc.classification}), and the platform refused to release its key to you.`
+          ? `I don't have that document, and neither of us is entitled to it.\n\nYour query matches ${named}, and the platform refused both subjects.`
+          : `I don't have that document.\n\nYour query matches ${named}, and the platform refused to release its key to you.`
 
       const detail = lines.length === 0
         ? ''

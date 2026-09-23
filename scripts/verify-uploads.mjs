@@ -155,7 +155,14 @@ partners retain tasking authority over the maritime corridor.
 const det = detectMarkings(SITREP, vocab)
 console.log(`  detected: ${det.fqns.map(f => f.replace(vocab.namespace + '/', '').replace('/value/', ':')).join(', ') || '(none)'}`)
 check(det.fqns.some(f => f.endsWith('/clearance/value/secret')), 'SECRET banner became clearance:secret')
-check(det.fqns.some(f => f.endsWith('/coi/value/fvey')), 'REL TO ... FVEY became coi:fvey')
+// REL TO FVEY is a roster of nationalities, not a value named after the coalition. All five members
+// have to land, because the point of the roster is that any one of them is enough — proposing a
+// subset would quietly refuse a partner the marking releases to.
+check(
+  ['usa', 'gbr', 'can', 'aus', 'nzl'].every(n => det.fqns.includes(`${vocab.namespace}/nationality/value/${n}`)),
+  'REL TO ... FVEY became the five-nation nationality roster',
+)
+check(!det.fqns.some(f => f.includes('/coi/')), 'no coi value proposed — the coalition is not an entitlement')
 
 const vault = new Map()
 const textRecord = await window.electronAPI.addUpload({
@@ -179,9 +186,10 @@ check(
   `manifest carries exactly the proposed policy (${boundText.length} value(s))`
 )
 
-// dow-sarah holds ts-sci (≥ secret) and coi:fvey. dow-henri holds NATO but not FVEY.
-check(await verdict(vault, textDoc, 'dow-sarah'), 'dow-sarah granted — satisfies clearance and coi')
-check(!(await verdict(vault, textDoc, 'dow-henri')), 'dow-henri refused — holds coi:nato, not coi:fvey')
+// dow-sarah holds ts-sci (≥ secret) and nationality:usa, which is on the roster. dow-henri holds the
+// same SECRET and nationality:fra, which is not — one value decides it, in both directions.
+check(await verdict(vault, textDoc, 'dow-sarah'), 'dow-sarah granted — clearance, and usa is on the roster')
+check(!(await verdict(vault, textDoc, 'dow-henri')), 'dow-henri refused — fra is not in the Five Eyes')
 
 check(
   classifyQuery('what changed in the northern lantern resupply cadence?', [textDoc])?.id === textDoc.id,

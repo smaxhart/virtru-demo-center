@@ -19,6 +19,28 @@
  * See `src/modes/vocab.js` for the vocabulary and the 20-value ceiling.
  */
 
+import { bannerFor } from './banner.js'
+
+/**
+ * The marking to show for one unit: its own if it has one, otherwise derived from its policy.
+ *
+ * This single line is why the banner derivation reaches everything. Every surface that displays a
+ * marking — the corpus list, the decision trace, the audit log, the system prompt handed to the
+ * model, the filename of a downloaded TDF — reads `unit.classification` and goes through here, so
+ * a mode that omits `classification` gets a computed banner in all of them at once.
+ *
+ * A document's own string still wins when it has one, which keeps the classified modes exactly as
+ * they were and leaves the statutory references in the Federal Civilian banners (`§6103`,
+ * `SORN 60-0089`, `PRE-DECISIONAL`) intact — a derived banner has no grammar for those, and
+ * deriving over the top of them would trade real information for consistency.
+ */
+function marking(src) {
+  return src.classification ?? bannerFor(src.policy) ?? null
+}
+
+/** True when the marking shown was computed from the policy rather than authored. */
+const isDerived = (src) => !src.classification && Boolean(bannerFor(src.policy))
+
 /**
  * Flat list of every encryptable unit in a document set: one per document, or one per tier.
  * @param {Array} documents a mode's `documents` array
@@ -33,7 +55,8 @@ export function corpusUnits(documents) {
           docId: doc.id,
           tierId: tier.id,
           label: `${doc.label} — ${tier.label}`,
-          classification: tier.classification,
+          classification: marking(tier),
+          derivedMarking: isDerived(tier),
           policy: tier.policy,
           policyNote: tier.policyNote,
           text: tier.text,
@@ -45,7 +68,8 @@ export function corpusUnits(documents) {
         docId: doc.id,
         tierId: null,
         label: doc.label,
-        classification: doc.classification,
+        classification: marking(doc),
+        derivedMarking: isDerived(doc),
         policy: doc.policy,
         policyNote: doc.policyNote,
         text: doc.text,

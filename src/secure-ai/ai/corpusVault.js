@@ -178,6 +178,10 @@ export async function probeAccess(vault, personaId, documents, agentId = null) {
     const { granted, entry, attempts, blockedBy } = await retrieve(vault, doc, personaId, agentId)
     results.set(doc.id, {
       granted, tierId: entry?.unit.tierId ?? null, entry: entry ?? null, blockedBy,
+      // Kept rather than discarded so a caller can say *which attribute* withheld a document,
+      // not only that one was withheld. Every attempt carries the unit whose policy was refused,
+      // and the last one is the least-privileged tier — the minimal shortfall for the document.
+      attempts,
       // Each subject's own reach, tracked apart from the verdict. "You could open this and the
       // assistant could not" is only sayable if the two were never collapsed into one boolean.
       userGranted:  attempts.some(a => a.user.granted),

@@ -72,7 +72,7 @@ function ModeSection({ mode }) {
           ))}
         </div>
         <div style={{ fontSize: 11, color: 'var(--c-text-6)', marginTop: 10, lineHeight: 1.7 }}>
-          All four modes share one <code>demo.com</code> namespace and one set of subject
+          All five modes share one <code>demo.com</code> namespace and one set of subject
           mappings. Nothing about the enforcement path is per-scenario — only the vocabulary is.
         </div>
       </Section>

@@ -1,10 +1,71 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 import { useApp } from '../context/AppContext.jsx'
+import { saveText } from '../api/download.js'
 
 const fmtTime = (d) => d.toLocaleTimeString([], { hour12: false })
 
+/**
+ * The log as a file someone else can read.
+ *
+ * A demo that ends at "look, it was denied" stops one step short of the thing a CISO actually has
+ * to produce. The exportable record is the deliverable: it names the subject, the object, the
+ * verdict, and — the column that makes it evidence rather than an anecdote — the attribute that
+ * withheld it.
+ *
+ * CSV, not the app's internal shape: the audience for this file is a spreadsheet and a GRC tool.
+ * JSON is offered alongside for anything that wants the structure back intact.
+ */
+const COLUMNS = [
+  ['timestamp',   e => e.at.toISOString()],
+  ['mode',        e => e.mode ?? ''],
+  ['verdict',     e => (e.granted ? 'GRANT' : 'DENY')],
+  ['subject',     e => e.persona ?? ''],
+  ['subject_id',  e => e.personaId ?? ''],
+  ['agent',       e => e.agent ?? ''],
+  ['agent_id',    e => e.agentId ?? ''],
+  ['object',      e => e.document ?? ''],
+  ['tier',        e => e.tier ?? ''],
+  ['marking',     e => e.classification ?? ''],
+  // The whole point of the column. Space-separated so one cell holds a compound shortfall
+  // (`cui:sp-cti ldc:noforn`) without needing a nested quoting convention.
+  ['controlling_attributes', e => (e.missing ?? []).join(' ')],
+  ['blocked_subject', e => e.blockedBy ?? ''],
+  ['rewrap_attempts', e => String(e.attempts ?? '')],
+  ['reason',      e => e.reason ?? ''],
+]
+
+/** RFC 4180 quoting: double the quotes, wrap anything with a comma, quote or newline in them. */
+const csvCell = (v) => (/[",\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v)
+
+function toCsv(log) {
+  // Oldest first. The log is newest-first on screen because that is where attention goes, but a
+  // record read end to end is a sequence of events, and a reversed one reads as a different story.
+  const rows = [...log].reverse()
+  return [
+    COLUMNS.map(([name]) => name).join(','),
+    ...rows.map(e => COLUMNS.map(([, get]) => csvCell(get(e))).join(',')),
+  ].join('\r\n') + '\r\n'
+}
+
 export default function AuditPage() {
   const { auditLog, clearAudit, modeId, modes } = useApp()
+  const [saved, setSaved] = useState(null) // null | 'csv' | 'json' | 'error'
+
+  const exportLog = useCallback(async (format) => {
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+    try {
+      const where = format === 'csv'
+        ? await saveText(`virtru-access-decisions-${stamp}.csv`, toCsv(auditLog), 'text/csv')
+        : await saveText(
+            `virtru-access-decisions-${stamp}.json`,
+            JSON.stringify([...auditLog].reverse(), null, 2),
+            'application/json',
+          )
+      setSaved(where ? format : null) // null = the save dialog was dismissed
+    } catch {
+      setSaved('error')
+    }
+  }, [auditLog])
 
   const stats = useMemo(() => {
     const granted = auditLog.filter(e => e.granted).length
@@ -26,14 +87,31 @@ export default function AuditPage() {
               Every access decision this session, in order, across every mode you have opened —
               the log outlives a mode switch on purpose. Denials are recorded the same way grants
               are; in a real deployment this is the record showing a request was made and refused,
-              which is usually the more interesting half.
+              which is usually the more interesting half. Each denial names the attribute that
+              withheld it, which is what an assessor asks for against NIST 800-171 3.1.1 and
+              3.1.3: not that access is limited, but evidence of which rule limited it.
             </div>
           </div>
           {auditLog.length > 0 && (
-            <button onClick={clearAudit} style={{
-              flexShrink: 0, fontSize: 11, padding: '6px 12px', borderRadius: 7, cursor: 'pointer',
-              background: 'var(--c-surface-2)', border: '1px solid var(--c-border)', color: 'var(--c-text-4)',
-            }}>Clear</button>
+            <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+              <button onClick={() => exportLog('csv')}
+                title="Every decision this session as CSV, oldest first — including the attribute that withheld each denial"
+                style={{
+                  fontSize: 11, padding: '6px 12px', borderRadius: 7, cursor: 'pointer',
+                  background: 'var(--c-surface-2)',
+                  border: `1px solid ${saved === 'error' ? 'var(--c-deny-br)' : 'var(--c-border)'}`,
+                  color: saved === 'csv' ? 'var(--c-grant)' : saved === 'error' ? 'var(--c-deny)' : 'var(--c-text-4)',
+                }}>{saved === 'csv' ? '✓ Saved CSV' : saved === 'error' ? 'Save failed' : 'Export CSV'}</button>
+              <button onClick={() => exportLog('json')} title="The same records with their structure intact" style={{
+                fontSize: 11, padding: '6px 12px', borderRadius: 7, cursor: 'pointer',
+                background: 'var(--c-surface-2)', border: '1px solid var(--c-border)',
+                color: saved === 'json' ? 'var(--c-grant)' : 'var(--c-text-4)',
+              }}>{saved === 'json' ? '✓ Saved JSON' : 'JSON'}</button>
+              <button onClick={clearAudit} style={{
+                fontSize: 11, padding: '6px 12px', borderRadius: 7, cursor: 'pointer',
+                background: 'var(--c-surface-2)', border: '1px solid var(--c-border)', color: 'var(--c-text-4)',
+              }}>Clear</button>
+            </div>
           )}
         </div>
 
@@ -119,6 +197,21 @@ export default function AuditPage() {
                     {e.reason}
                     {e.attempts > 1 && ` · ${e.attempts} rewrap attempts`}
                   </div>
+                  {/* The controlling attribute. Without it a row says a refusal happened; with it
+                      the row says what did the refusing, which is the difference between a log and
+                      an audit record. Grants have no shortfall, so nothing renders on them. */}
+                  {e.missing?.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 5, alignItems: 'baseline' }}>
+                      <span className="section-label">WITHHELD BY</span>
+                      {e.missing.map(m => (
+                        <span key={m} className="mono" style={{
+                          fontSize: 9, padding: '1px 5px', borderRadius: 4,
+                          background: 'var(--c-deny-bg)', color: 'var(--c-deny)',
+                          border: '1px solid var(--c-deny-br)',
+                        }}>{m}</span>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {e.classification && (
