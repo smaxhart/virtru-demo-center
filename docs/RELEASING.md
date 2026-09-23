@@ -172,12 +172,16 @@ shell environment and `process.env.GH_TOKEN` is empty in the only case that matt
 
 - **Branch protection.** Unavailable — private repo on the free plan. The gates above live in
   `release.mjs`, not in GitHub, so they hold only for releases cut through `npm run release*`.
-- **CI.** `.github/workflows/qa-agent.yml` is committed as of `22050fa` — the self-trigger loop, the
-  dead model ID and the shell injection in `qa-agent.mjs` are fixed. It is still not running, for two
-  reasons. It needs `ANTHROPIC_API_KEY` and `SLACK_WEBHOOK_URL` in the repo secrets (neither is set;
-  see `.github/QA_AGENT_SETUP.md`), and it is only on `develop`: GitHub takes `issues` and `push`
-  workflows from the **default branch**, so issue triage and the direct-push alert stay dormant until
-  this reaches `main`, while a `pull_request` run uses the workflow from the PR's own merge commit and
-  can fire sooner. It reviews and comments — it gates nothing, and `release.mjs` never consults it.
+- **CI.** `.github/workflows/qa-agent.yml` is committed as of `22050fa`, which fixed its self-trigger
+  loop, its dead model ID and the shell injection in `qa-agent.mjs`. GitHub registered it when
+  `ead4e05` merged it to `main`, and that same push proved it end to end: every step up to the API
+  call succeeded, the `if:` guards skipped the PR-diff and Slack steps correctly, and it failed only
+  on the missing key. **It is now `disabled_manually`**, so nothing fires until someone runs
+  `gh workflow enable "QA Agent"`. It was disabled because `ANTHROPIC_API_KEY` and `SLACK_WEBHOOK_URL`
+  are not in the repo secrets — without them every push to `main` and every new issue produced a red
+  run and a failure email. Add both (see `.github/QA_AGENT_SETUP.md`) before re-enabling. Note that
+  `issues` and `push` workflows resolve against the **default branch**, whereas a `pull_request` run
+  uses the workflow from the PR's own merge commit and so can fire from a branch. Either way it only
+  reviews and comments — it gates nothing, and `release.mjs` never consults it.
 - **Headless `verify`.** Would turn staging into a real automated gate. Needs the platform sidecar
   and Postgres to come up in CI.
