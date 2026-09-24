@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react'
 import { useDemo } from '../context/DemoContext.jsx'
+import { collaborateDoc } from '../data/collaborateDocs.js'
 
 // ── File catalogue ────────────────────────────────────────────────────────────
 // Visibility (trimming) and required (KAS) are scoped so each persona sees a
@@ -690,18 +691,196 @@ function SecurityToggle({ label, value, onChange }) {
 }
 
 // ── Preview Modal ─────────────────────────────────────────────────────────────
-const PREVIEW_CONTENT = {
-  pdf:  { lines: [28, 22, 26, 18, 24, 20, 26, 14, 22, 24, 18, 26, 20, 16, 24], color: '#374151' },
-  docx: { lines: [20, 24, 18, 26, 22, 16, 28, 20, 24, 18, 22, 26, 14, 20, 24], color: '#1e3a5f' },
-  xlsx: { lines: [null, null, null, null, null, null, null, null],                color: '#14532d' },
-  txt:  { lines: [18, 22, 26, 20, 24, 18, 28, 22, 16, 24, 20, 26, 18, 22, 24], color: '#374151' },
+// The document bodies live in `src/data/collaborateDocs.js`, keyed by the same ids as BASE_FILES.
+// What used to be here was a table of grey bar widths per extension, so every file opened to the
+// same page of skeleton lines — which undercut the one thing this page argues, that KAS decided
+// whether you may read *this document*.
+
+const SERIF = 'Georgia, "Times New Roman", serif'
+const MONO = 'ui-monospace, SFMono-Regular, Menlo, monospace'
+
+function DocBlock({ block, mono }) {
+  const face = mono ? MONO : SERIF
+
+  if (block.h) return (
+    <div style={{
+      marginTop: 18, marginBottom: 7,
+      fontSize: 11.5, fontWeight: 700, letterSpacing: '0.04em',
+      color: '#111827', fontFamily: face,
+    }}>{block.h}</div>
+  )
+
+  if (block.p) return (
+    <div style={{ fontSize: 12, lineHeight: 1.65, marginBottom: 10, color: '#374151', fontFamily: face }}>
+      {block.p}
+    </div>
+  )
+
+  if (block.ul) return (
+    <ul style={{ margin: '0 0 10px', paddingLeft: 18 }}>
+      {block.ul.map((li, i) => (
+        <li key={i} style={{ fontSize: 12, lineHeight: 1.6, marginBottom: 7, color: '#374151', fontFamily: face }}>
+          {li}
+        </li>
+      ))}
+    </ul>
+  )
+
+  if (block.pre) return (
+    <pre style={{
+      margin: '0 0 12px', padding: '10px 12px',
+      background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 4,
+      fontSize: 10.5, lineHeight: 1.55, color: '#374151',
+      fontFamily: MONO, whiteSpace: 'pre-wrap', overflowX: 'auto',
+    }}>{block.pre}</pre>
+  )
+
+  if (block.kv) return (
+    <div style={{ marginTop: 18, paddingTop: 10, borderTop: '1px solid #e5e7eb' }}>
+      {block.kv.map(([k, v]) => (
+        <div key={k} style={{ display: 'flex', gap: 10, marginBottom: 4 }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', width: 150, flexShrink: 0 }}>{k}</span>
+          <span style={{ fontSize: 10.5, color: '#374151', fontFamily: face, lineHeight: 1.45 }}>{v}</span>
+        </div>
+      ))}
+    </div>
+  )
+
+  if (block.table) return <DocTable spec={block.table} />
+
+  return null
 }
 
-function PreviewModal({ file, onClose, getSetting, viewerName, viewerEmail }) {
+function DocTable({ spec }) {
+  const accent = spec.accent || '#1a2b45'
+  const status = spec.status || null
+  return (
+    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10.5, margin: '4px 0 12px' }}>
+      <thead>
+        <tr style={{ background: accent, color: '#fff' }}>
+          {spec.head.map(h => (
+            <th key={h} style={{ padding: '5px 8px', textAlign: 'left', fontWeight: 600 }}>{h}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {spec.rows.map((row, i) => (
+          <tr key={i} style={{ background: i % 2 ? '#f9fafb' : '#fff', borderBottom: '1px solid #e5e7eb' }}>
+            {row.map((cell, j) => (
+              <td key={j} style={{
+                padding: '5px 8px', verticalAlign: 'top', lineHeight: 1.45,
+                color: (status && status[cell]) || '#374151',
+                fontWeight: status && status[cell] ? 600 : 400,
+              }}>{cell}</td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
+
+/** The plaintext of a catalogue file: title block, then whatever blocks the document declares. */
+function DocContent({ doc, mono }) {
+  return (
+    <div>
+      <div style={{ marginBottom: 4, fontSize: 14.5, fontWeight: 700, color: '#111827', lineHeight: 1.3, fontFamily: mono ? MONO : SERIF }}>
+        {doc.title}
+      </div>
+      <div style={{ fontSize: 10.5, color: '#6b7280', paddingBottom: 10, borderBottom: '1px solid #e5e7eb', marginBottom: 4 }}>
+        {doc.subtitle}
+      </div>
+      {doc.sheet && (
+        <div style={{ marginTop: 14 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 5 }}>
+            Sheet: {doc.sheet.name}
+          </div>
+          <DocTable spec={doc.sheet.table} />
+        </div>
+      )}
+      {doc.blocks.map((b, i) => <DocBlock key={i} block={b} mono={mono} />)}
+    </div>
+  )
+}
+
+/**
+ * The document is not shown to a viewer KAS would deny.
+ *
+ * Nothing in the current catalogue can reach this: every file's `visible` list equals its
+ * `required` list, so a file you can see is a file you can open, and before this page had real
+ * plaintext an ungated preview leaked nothing anyway. It is here because that is now one edit away
+ * from being false — loosen a `visible` array to make a file discoverable-but-locked, which is a
+ * demo worth doing, and an ungated preview would hand over the text the panel beside it just
+ * refused.
+ */
+function DeniedBody({ file, attrs }) {
+  const missing = file.required.filter(a => !attrs.includes(a))
+  return (
+    <div style={{ textAlign: 'center', paddingTop: 40 }}>
+      <div style={{ fontSize: 32, marginBottom: 10 }}>🚫</div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: '#b91c1c', marginBottom: 6 }}>KAS denied this request</div>
+      <div style={{ fontSize: 12, lineHeight: 1.6, color: '#6b7280', maxWidth: 340, margin: '0 auto 18px' }}>
+        The payload stays wrapped. {file.name} is not decrypted, cached or rendered for this viewer —
+        the policy travels with the file, so where it is stored makes no difference.
+      </div>
+      <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 4, textAlign: 'left' }}>
+        {file.required.map(a => {
+          const has = attrs.includes(a)
+          return (
+            <div key={a} style={{
+              display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 4,
+              background: has ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
+              border: `1px solid ${has ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`,
+            }}>
+              <span style={{ fontSize: 12, color: has ? '#15803d' : '#b91c1c' }}>{has ? '✓' : '✗'}</span>
+              <span style={{ fontSize: 11.5, fontFamily: MONO, color: has ? '#166534' : '#b91c1c' }}>{a}</span>
+            </div>
+          )
+        })}
+      </div>
+      <div style={{ marginTop: 16, fontSize: 11, color: '#9ca3af' }}>
+        Missing {missing.length} of {file.required.length} required attribute{file.required.length === 1 ? '' : 's'}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Files a user uploads during the demo have no content to show — the page holds the policy the PEP
+ * derived from the filename, never the bytes. Say that, rather than drawing a page of grey lines
+ * that implies there is a document behind the decision.
+ */
+function UploadedBody({ file }) {
+  return (
+    <div>
+      <div style={{ marginBottom: 4, fontSize: 14.5, fontWeight: 700, color: '#111827', lineHeight: 1.3, fontFamily: SERIF }}>
+        {file.name}
+      </div>
+      <div style={{ fontSize: 10.5, color: '#6b7280', paddingBottom: 10, borderBottom: '1px solid #e5e7eb' }}>
+        Uploaded by {file.owner} · {file.modified}
+      </div>
+      <div style={{ marginTop: 16, padding: '12px 14px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 6 }}>
+        <div style={{ fontSize: 12, lineHeight: 1.6, color: '#374151', fontFamily: SERIF }}>
+          This file was uploaded during the demo, so there is no plaintext to render here. What the
+          simulation captured is the policy the PEP derived from the filename — shown below, and
+          enforced on every open attempt exactly as it is for the catalogue files.
+        </div>
+      </div>
+      <DocBlock block={{ kv: [
+        ['Sensitivity label', file.msLabel],
+        ['Releasable to', file.relTo && file.relTo !== '—' ? file.relTo : 'No releasability caveat'],
+        ['Required attributes', file.required.length ? file.required.join(', ') : 'None — no restrictions'],
+        ['Size on upload', file.size],
+      ] }} />
+    </div>
+  )
+}
+
+function PreviewModal({ file, onClose, getSetting, viewerName, viewerEmail, attrs }) {
   const settings = getSetting(file.id)
   const ext = file.ext.toLowerCase()
-  const isXlsx = ext === 'xlsx'
-  const content = PREVIEW_CONTENT[ext] || PREVIEW_CONTENT.txt
+  const granted = canOpen(file, attrs)
+  const doc = collaborateDoc(file.id)
   const cls = MS_LABEL_STYLES[file.msClass] || MS_LABEL_STYLES.u
   const wmLabel = `${viewerEmail} · ${viewerName}`
 
@@ -760,56 +939,12 @@ function PreviewModal({ file, onClose, getSetting, viewerName, viewerEmail }) {
               </span>
             </div>
 
-            {/* Simulated document body */}
-            {isXlsx ? (
-              // Spreadsheet preview
-              <div>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
-                  <thead>
-                    <tr style={{ background: '#16a34a', color: '#fff' }}>
-                      {['Asset', 'Status', 'Priority', 'Assignee', 'Due'].map(h => (
-                        <th key={h} style={{ padding: '6px 10px', textAlign: 'left', fontWeight: 600 }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[
-                      ['FW-01', 'Critical', 'High', 'Chen, L.', 'Jul 20'],
-                      ['NET-04', 'Warning', 'High', 'Rivera, J.', 'Jul 22'],
-                      ['SRV-12', 'Nominal', 'Med', 'Johnson, M.', 'Jul 30'],
-                      ['VPN-03', 'Critical', 'High', 'Chen, L.', 'Jul 18'],
-                      ['DB-07', 'Warning', 'Med', 'Rivera, J.', 'Aug 01'],
-                    ].map((row, i) => (
-                      <tr key={i} style={{ background: i % 2 ? '#f9fafb' : '#fff', borderBottom: '1px solid #e5e7eb' }}>
-                        {row.map((cell, j) => (
-                          <td key={j} style={{ padding: '5px 10px', color: j === 1 ? (cell === 'Critical' ? '#dc2626' : cell === 'Warning' ? '#d97706' : '#16a34a') : '#374151' }}>{cell}</td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <div style={{ marginTop: 20 }}>
-                  {[...Array(4)].map((_, i) => (
-                    <div key={i} style={{ height: 8, background: '#e5e7eb', borderRadius: 4, marginBottom: 10, width: `${[90, 70, 85, 60][i]}%` }} />
-                  ))}
-                </div>
-              </div>
-            ) : (
-              // Text/PDF/DOCX preview
-              <div>
-                {/* Title */}
-                <div style={{ height: 14, background: '#d1d5db', borderRadius: 4, marginBottom: 20, width: '70%' }} />
-                {/* Body lines */}
-                {content.lines.map((w, i) => (
-                  <div key={i} style={{ height: 8, background: '#e5e7eb', borderRadius: 4, marginBottom: 8, width: `${w * 3.2}%` }} />
-                ))}
-                {/* Section break */}
-                <div style={{ height: 10, background: '#d1d5db', borderRadius: 4, margin: '20px 0 14px', width: '50%' }} />
-                {[...Array(6)].map((_, i) => (
-                  <div key={i} style={{ height: 8, background: '#e5e7eb', borderRadius: 4, marginBottom: 8, width: `${[88, 75, 92, 68, 80, 55][i]}%` }} />
-                ))}
-              </div>
-            )}
+            {/* Document body — plaintext only once KAS has granted it */}
+            {!granted
+              ? <DeniedBody file={file} attrs={attrs} />
+              : doc
+                ? <DocContent doc={doc} mono={ext === 'txt'} />
+                : <UploadedBody file={file} />}
 
             {/* Classification banner bottom */}
             <div style={{ textAlign: 'center', marginTop: 28 }}>
@@ -825,7 +960,9 @@ function PreviewModal({ file, onClose, getSetting, viewerName, viewerEmail }) {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 pointerEvents: 'none', overflow: 'hidden',
               }}>
-                {[...Array(9)].map((_, i) => (
+                {/* Tiled by row count rather than by percentage of height: the documents run to
+                    several screens now, and nine marks spread over that reads as three marks. */}
+                {[...Array(36)].map((_, i) => (
                   <div key={i} style={{
                     position: 'absolute',
                     fontSize: 11, fontWeight: 700,
@@ -834,7 +971,7 @@ function PreviewModal({ file, onClose, getSetting, viewerName, viewerEmail }) {
                     transform: 'rotate(-35deg)',
                     whiteSpace: 'nowrap',
                     left: `${(i % 3) * 38 - 10}%`,
-                    top: `${Math.floor(i / 3) * 32 + 8}%`,
+                    top: `${Math.floor(i / 3) * 160 + 40}px`,
                   }}>
                     {wmLabel}
                   </div>
@@ -849,10 +986,11 @@ function PreviewModal({ file, onClose, getSetting, viewerName, viewerEmail }) {
                 background: 'rgba(220,38,38,0.04)',
                 border: '2px solid rgba(220,38,38,0.2)',
                 borderRadius: 4,
-                display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-                paddingBottom: 16,
+                display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+                paddingTop: 12,
                 pointerEvents: 'none',
               }}>
+                {/* Top, not bottom: the bottom of a real document is now several screens down. */}
                 <div style={{ background: 'rgba(220,38,38,0.9)', color: '#fff', fontSize: 11, fontWeight: 700, padding: '5px 14px', borderRadius: 20, letterSpacing: '0.06em' }}>
                   ⊘ DOWNLOAD DISABLED BY POLICY
                 </div>
@@ -863,7 +1001,9 @@ function PreviewModal({ file, onClose, getSetting, viewerName, viewerEmail }) {
 
         {/* Footer */}
         <div style={{ padding: '10px 16px', background: '#f9fafb', borderTop: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-          <span style={{ fontSize: 11, color: '#8a96a3' }}>Viewed via Virtru Collaborate · KAS access verified</span>
+          <span style={{ fontSize: 11, color: granted ? '#8a96a3' : '#b91c1c' }}>
+            {granted ? 'Viewed via Virtru Collaborate · KAS access verified' : 'Virtru Collaborate · KAS refused the rewrap — nothing was decrypted'}
+          </span>
           <button onClick={onClose} style={{ padding: '6px 16px', borderRadius: 6, background: '#1a56db', color: '#fff', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Close</button>
         </div>
       </div>
@@ -1204,7 +1344,7 @@ export default function CollaboratePage() {
       </div>
 
       {showUpload && <UploadModal onClose={() => setShowUpload(false)} onComplete={handleUploadComplete} />}
-      {previewFile && <PreviewModal file={previewFile} onClose={() => setPreviewFile(null)} getSetting={getSetting} viewerName={activePersona.name} viewerEmail={userEmail} />}
+      {previewFile && <PreviewModal file={previewFile} onClose={() => setPreviewFile(null)} getSetting={getSetting} viewerName={activePersona.name} viewerEmail={userEmail} attrs={attrs} />}
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
     </div>
   )
