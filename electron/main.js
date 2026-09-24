@@ -12,6 +12,7 @@ autoUpdater.logger = log
 const jwtIssuer = require('./jwt-issuer')
 const sidecar   = require('./sidecar')
 const seeder    = require('./seeder')
+const { isNewerVersion } = require('./update-version')
 
 // The AI Protection page brings its own vocabulary, its own uploads, and the scenarios a user
 // builds. All four are additive — nothing above changes because they exist.
@@ -67,8 +68,7 @@ function setupUpdater() {
 
   autoUpdater.on('update-downloaded', info => {
     const current = app.getVersion()
-    const isNewer = info.version.localeCompare(current, undefined, { numeric: true, sensitivity: 'base' }) > 0
-    if (!isNewer) {
+    if (!isNewerVersion(info.version, current)) {
       log.info(`[updater] Downloaded v${info.version} is not newer than current v${current} — ignoring`)
       return
     }
