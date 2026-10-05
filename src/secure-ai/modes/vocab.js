@@ -83,6 +83,8 @@ export const nationality = def('nationality')
 export const SEEDED_NATIONALITIES = [
   'usa', 'gbr', 'can', 'aus', 'nzl',
   'fra', 'deu', 'bel', 'nld', 'nor', 'dnk', 'ita', 'esp', 'pol', 'tur',
+  // GCAP partner. In neither alliance roster, so FVEY/NATO resolve exactly as before.
+  'jpn',
 ]
 
 const MEMBERSHIP = {

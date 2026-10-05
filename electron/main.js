@@ -213,6 +213,11 @@ ipcMain.handle('get-user-token', (_event, personaId) => {
   return jwtIssuer.issueToken(personaId)
 })
 
+// GCAP: disable / re-enable a `gcap-` account at the issuer. See `revokeIdentity` for what this is
+// and is not — it withdraws the account, it does not reach into a token already issued.
+ipcMain.handle('gcap-revoke',  (_e, id) => jwtIssuer.revokeIdentity(id))
+ipcMain.handle('gcap-restore', (_e, id) => (id === '*' ? (jwtIssuer.restoreAllIdentities(), true) : jwtIssuer.restoreIdentity(id)))
+
 ipcMain.handle('get-platform-token', () => {
   return jwtIssuer.issueToken('admin')
 })

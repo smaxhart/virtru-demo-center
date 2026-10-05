@@ -105,6 +105,39 @@ function registerIdentity(id, { name, grants }, defs = undefined) {
   PERSONA_FQNS[id] = aiIdentities.grantsToFqns(grants, defs)
 }
 
+/**
+ * Identities whose account has been disabled at the issuer.
+ *
+ * This is revocation as an identity provider does it: the account stops resolving to anything.
+ * The token is still signed and still authenticates, but its subject is one no mapping names and
+ * its entity attributes are empty, so the KAS has no entitlement to rewrap against. It does *not*
+ * reach into a bearer token that was issued earlier — that stays valid until it expires, which is
+ * why the GCAP talk track says so out loud. Only `gcap-` identities may be revoked, so a stray
+ * request cannot disable a persona another page depends on.
+ */
+const REVOKED = new Set()
+const REVOCABLE_PREFIX = 'gcap-'
+
+function revokeIdentity(id) {
+  if (!id.startsWith(REVOCABLE_PREFIX) || !PERSONA_CLAIMS[id]) return false
+  REVOKED.add(id)
+  return true
+}
+
+function restoreIdentity(id) {
+  return REVOKED.delete(id)
+}
+
+function restoreAllIdentities() {
+  const had = [...REVOKED]
+  REVOKED.clear()
+  return had
+}
+
+function revokedIdentities() {
+  return [...REVOKED]
+}
+
 /** Drop a scenario's identities when it is deleted, so its tokens stop being issuable. */
 function unregisterIdentity(id) {
   if (RESERVED_IDENTITY_IDS.has(id)) return false
@@ -165,8 +198,11 @@ function getJwks() {
 }
 
 function issueToken(personaId, expiresInSeconds = 3600) {
-  const claims = PERSONA_CLAIMS[personaId]
-  if (!claims) throw new Error(`Unknown persona: ${personaId}`)
+  const base = PERSONA_CLAIMS[personaId]
+  if (!base) throw new Error(`Unknown persona: ${personaId}`)
+  const revoked = REVOKED.has(personaId)
+  // A revoked account keeps authenticating under a subject nothing maps, with nothing attached.
+  const claims = revoked ? { ...base, sub: `${personaId}#revoked` } : base
 
   const now = Math.floor(Date.now() / 1000)
   const header = { alg: 'RS256', typ: 'JWT', kid: KID }
@@ -183,9 +219,11 @@ function issueToken(personaId, expiresInSeconds = 3600) {
     'tdf_claims': {
       entitlements: [{
         entity_identifier: claims.sub,
-        entity_attributes: PERSONA_FQNS[personaId]
-          ? PERSONA_FQNS[personaId].map(attribute => ({ attribute }))
-          : buildEntityAttributes(claims),
+        entity_attributes: revoked
+          ? []
+          : PERSONA_FQNS[personaId]
+            ? PERSONA_FQNS[personaId].map(attribute => ({ attribute }))
+            : buildEntityAttributes(claims),
       }]
     },
   }
@@ -232,6 +270,7 @@ function buildEntityAttributes(claims) {
  * any id in the table, not just the AI ones.
  */
 function getEntityAttributes(personaId) {
+  if (REVOKED.has(personaId)) return []
   if (PERSONA_FQNS[personaId]) return PERSONA_FQNS[personaId]
   const claims = PERSONA_CLAIMS[personaId]
   if (!claims) return []
@@ -269,6 +308,18 @@ function startServer() {
             res.end(JSON.stringify({ error: e.message }))
           }
         })
+      } else if ((req.url === '/revoke' || req.url === '/restore') && req.method === 'POST') {
+        // Same trust level as /token above, which already mints a token for any persona by name.
+        let body = ''
+        req.on('data', d => { body += d })
+        req.on('end', () => {
+          const id = new URLSearchParams(body).get('username') || ''
+          const ok = req.url === '/revoke'
+            ? revokeIdentity(id)
+            : (id === '*' ? (restoreAllIdentities(), true) : restoreIdentity(id))
+          res.statusCode = ok ? 200 : 400
+          res.end(JSON.stringify({ ok, revoked: revokedIdentities() }))
+        })
       } else {
         res.statusCode = 404
         res.end('{}')
@@ -293,5 +344,6 @@ function stop() {
 module.exports = {
   loadOrGenerateKeys, startServer, issueToken, stop,
   getEntityAttributes, registerIdentity, unregisterIdentity,
+  revokeIdentity, restoreIdentity, restoreAllIdentities, revokedIdentities,
   ISSUER, PORT, PERSONA_CLAIMS,
 }

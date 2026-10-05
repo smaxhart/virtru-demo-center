@@ -90,6 +90,14 @@ const DEMO_CARDS = [
     badge: null,
   },
   {
+    to: '/gcap',
+    icon: '✈',
+    label: 'GCAP',
+    desc: 'UK, Italy and Japan in one workspace — supply-chain and sovereignty controls enforced per person',
+    accent: '#7c3aed',
+    badge: 'New',
+  },
+  {
     to: '/ai-agent',
     icon: '🛡',
     label: 'AI Protection',
