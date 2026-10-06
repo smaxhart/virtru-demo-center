@@ -33,6 +33,8 @@ export const NS = 'https://demo.com/attr'
 export const SEEDED_NATIONALITIES = [
   'usa', 'gbr', 'can', 'aus', 'nzl',
   'fra', 'deu', 'bel', 'nld', 'nor', 'dnk', 'ita', 'esp', 'pol', 'tur',
+  // GCAP partner. In neither alliance roster, so FVEY/NATO resolve exactly as before.
+  'jpn',
 ]
 
 /** The real alliances, in full. What a policy may name is the intersection with the seeded set. */

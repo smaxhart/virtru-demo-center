@@ -58,7 +58,7 @@ const ATTRIBUTE_DEFS = [
   { name: 'coi',         rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ANY_OF',    values: ['fvey', 'nato'] },
 
   // ── Shared ────────────────────────────────────────────────────────────────
-  { name: 'role',        rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ANY_OF',    values: ['analyst', 'contractor', 'counsel', 'operator', 'commander', 'admin', 'auditor', 'caseworker', 'contracting', 'investigator'] },
+  { name: 'role',        rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ANY_OF',    values: ['analyst', 'contractor', 'counsel', 'operator', 'commander', 'admin', 'auditor', 'caseworker', 'contracting', 'investigator', 'finance', 'export', 'security'] },
   { name: 'agency',      rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ANY_OF',    values: ['irs', 'ssa', 'gsa', 'hhs', 'oig', 'nsa', 'cia', 'nga', 'dia', 'odni'] },
 
   // ── Federal Civilian · Defense Industrial Base ────────────────────────────
@@ -101,7 +101,14 @@ const ATTRIBUTE_DEFS = [
   // list identical to `SEEDED_NATIONALITIES` in that file and in `src/data/coalitions.js`;
   // `scripts/verify-matrix.mjs` asserts all three agree.
   { name: 'nationality', rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ANY_OF',
-    values: ['usa', 'gbr', 'can', 'aus', 'nzl', 'fra', 'deu', 'bel', 'nld', 'nor', 'dnk', 'ita', 'esp', 'pol', 'tur'] },
+    values: ['usa', 'gbr', 'can', 'aus', 'nzl', 'fra', 'deu', 'bel', 'nld', 'nor', 'dnk', 'ita', 'esp', 'pol', 'tur', 'jpn'] },
+
+  // ── GCAP · Advanced Collaborative Environment ─────────────────────────────
+  // Both ANY_OF: a work package or a supply tier is held or not held, it does not rank. With
+  // `clearance` and `nationality` they are the whole GCAP policy vocabulary; the programme markings
+  // (GCAP RESTRICTED / GCAP SECRET) are rendered from these by `src/gcap/marking.js`, not stored.
+  { name: 'workpackage', rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ANY_OF',    values: ['airframe', 'propulsion', 'sensors', 'integration'] },
+  { name: 'supplytier',  rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ANY_OF',    values: ['partner', 'tier2', 'tier3'] },
 ]
 
 /**
@@ -174,6 +181,23 @@ const HUMANS = {
   'le-jo':   { name: 'Jo Amari',            grants: {                    discipline: 'ems',            jurisdiction: 'mutual-aid' } },
   'le-hank': { name: 'BC Hank Molina',      grants: {                    discipline: 'fire',           jurisdiction: 'mutual-aid' } },
   'le-dee':  { name: 'Dee Kwan',            grants: {                    discipline: 'publicdefender' } },
+
+  // ── GCAP · Advanced Collaborative Environment ─────────────────────────────
+  // `clearance` reuses the existing ladder (ts-sci = national TOP SECRET, secret = GCAP SECRET,
+  // cui = GCAP RESTRICTED, unclassified) so no hierarchy value had to be inserted into an
+  // already-seeded platform. Nationality is what separates sovereign files from shared ones.
+  'gcap-marco':   { name: 'Marco Bellandi', grants: { clearance: 'secret',       nationality: 'ita', workpackage: ['airframe', 'propulsion', 'sensors', 'integration'], supplytier: 'partner' } },
+  'gcap-harriet': { name: 'Harriet Lowe',   grants: { clearance: 'ts-sci',       nationality: 'gbr', workpackage: ['sensors', 'integration'], supplytier: 'partner', role: 'security' } },
+  'gcap-kenji':   { name: 'Kenji Watanabe', grants: { clearance: 'secret',       nationality: 'jpn', workpackage: ['propulsion', 'airframe'], supplytier: 'partner' } },
+  'gcap-priya':   { name: 'Priya Nair',     grants: { clearance: 'secret',       nationality: 'gbr', workpackage: 'sensors', supplytier: 'partner' } },
+  'gcap-oliver':  { name: 'Oliver Hartley', grants: { clearance: 'cui',          nationality: 'gbr', supplytier: 'partner', role: 'finance' } },
+  'gcap-giulia':  { name: 'Giulia Ferraro', grants: { clearance: 'cui',          nationality: 'ita', supplytier: 'partner', role: 'export' } },
+  'gcap-wren':    { name: 'Wren Castellan', grants: { clearance: 'cui',          nationality: 'gbr', workpackage: 'airframe', supplytier: 'tier2' } },
+  // The account an adversary takes over in the compromise act. Nothing about its grants is unusual,
+  // which is the point: the blast radius is small because the account is ordinary.
+  'gcap-owen':    { name: 'Owen Pryce',     grants: { clearance: 'cui',          nationality: 'gbr', workpackage: 'airframe', supplytier: 'tier3' } },
+  'gcap-sanjay':  { name: 'Sanjay Rao',     grants: { clearance: 'unclassified', nationality: 'gbr', supplytier: 'partner', role: 'admin' } },
+  'gcap-ryan':    { name: 'Ryan Mercer',    grants: { clearance: 'unclassified', nationality: 'usa' } },
 }
 
 /**

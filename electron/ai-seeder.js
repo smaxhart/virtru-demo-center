@@ -59,6 +59,9 @@ const PLATFORM_BASE = 'http://localhost:7777'
  *      people outside the roster. Also `nationality: usa` for the two DoW agents that retrieve
  *      coalition material: without the mapping they are on no roster and refused both documents,
  *      which is the silent-denial failure this counter exists for.
+ *   4  the GCAP page — `nationality:jpn`, the `workpackage` and `supplytier` definitions, three more
+ *      `role` values (finance, export, security) and ten `gcap-` identities. Without the bump all
+ *      ten authenticate and hold nothing, and every GCAP tree is empty but for the public overview.
  *
  * Re-seeding is additive — nothing is ever deleted. A grant that stops being correct is removed
  * from `ai-identities.js`, which stops the *token* from carrying it, and the leftover mapping goes
@@ -70,7 +73,7 @@ const PLATFORM_BASE = 'http://localhost:7777'
  * authenticate and entitled to nothing — every document withheld, with a trace that blames the
  * persona for holding no attributes rather than the seeder for never having written them.
  */
-const SEED_VERSION = '3'
+const SEED_VERSION = '4'
 
 async function rpc(token, service, method, body = {}) {
   const res = await fetch(`${PLATFORM_BASE}/${service}/${method}`, {

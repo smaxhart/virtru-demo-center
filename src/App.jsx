@@ -10,6 +10,7 @@ import AuditPage from './pages/AuditPage.jsx'
 import SettingsPage from './pages/SettingsPage.jsx'
 import TdfExplorerPage from './pages/TdfExplorerPage.jsx'
 import HomePage from './pages/HomePage.jsx'
+import GcapPage from './gcap/GcapPage.jsx'
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
             <Route path="/architecture" element={<ArchitecturePage />} />
             <Route path="/cop"          element={<CopPage />} />
             <Route path="/collaborate"  element={<CollaboratePage />} />
+            <Route path="/gcap"         element={<GcapPage />} />
             {/* AI Protection is a whole app rather than a page — five scenarios, a corpus, a
                 scenario builder — so it gets a splat and routes the rest itself. The path stays
                 `/ai-agent` because that string is the key saved page-visibility preferences are

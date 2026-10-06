@@ -4,6 +4,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Token issuance — returns { access_token, token_type, expires_in }
   getUserToken:    (personaId)           => ipcRenderer.invoke('get-user-token', personaId),
   getPlatformToken: ()                   => ipcRenderer.invoke('get-platform-token'),
+  gcapRevoke:      (id)                  => ipcRenderer.invoke('gcap-revoke', id),
+  gcapRestore:     (id)                  => ipcRenderer.invoke('gcap-restore', id),
 
   // Platform status
   getPlatformStatus: ()                  => ipcRenderer.invoke('get-platform-status'),
