@@ -98,6 +98,14 @@ const DEMO_CARDS = [
     badge: 'New',
   },
   {
+    to: '/sable',
+    icon: '◆',
+    label: 'SABLE',
+    desc: 'Three US suppliers and a program office run joint AFSIM simulations — execute without read, and results sealed by what went in',
+    accent: '#0891b2',
+    badge: 'New',
+  },
+  {
     to: '/ai-agent',
     icon: '🛡',
     label: 'AI Protection',

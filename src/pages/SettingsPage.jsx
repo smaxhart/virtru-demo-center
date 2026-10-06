@@ -7,6 +7,7 @@ const DEFAULT_PAGE_VISIBILITY = {
   cop: true,
   collaborate: true,
   gcap: true,
+  sable: true,
   'ai-agent': true,
   'tdf-explorer': true,
   architecture: true,
@@ -22,6 +23,7 @@ const PAGE_GROUPS = [
       { id: 'cop',          label: 'COP',           icon: 'globe'   },
       { id: 'collaborate',  label: 'Collaborate',   icon: 'revoke'  },
       { id: 'gcap',         label: 'GCAP',          icon: 'boxes'   },
+      { id: 'sable',        label: 'SABLE',         icon: 'shield'  },
       { id: 'ai-agent',     label: 'AI Protection', icon: 'shield'  },
       { id: 'tdf-explorer', label: 'TDF Explorer',  icon: 'tdf'     },
     ]
