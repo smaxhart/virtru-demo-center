@@ -1,0 +1,197 @@
+/* TDF Explorer.
+   One figure recurs: a sheet of paper with a classification band top and bottom, the same object as
+   the briefing on Home (.brief-sheet / .brief-banner / .brief-open / .brief-shut live in index.css
+   and are reused as-is). The source document is a sheet, a GRANT is that sheet unsealing, a DENY is
+   the same sheet under ink. Everything else here is deliberately quiet.
+   Scoped under .tx so nothing leaks into other pages. */
+
+/* ── Classification levels ──────────────────────────────────── */
+/* Same colours as the Home briefing banners, plus CONFIDENTIAL and CUI. */
+.tx .tx-lv                   { --band-bg: #5b6b82; --band-fg: #ffffff; }
+.tx .tx-lv[data-lv="ts"]     { --band-bg: #f5a800; --band-fg: #0a1a33; }
+.tx .tx-lv[data-lv="s"]      { --band-bg: #c8102e; --band-fg: #ffffff; }
+.tx .tx-lv[data-lv="c"]      { --band-bg: #0033a0; --band-fg: #ffffff; }
+.tx .tx-lv[data-lv="cui"]    { --band-bg: #502b85; --band-fg: #ffffff; }
+.tx .tx-lv[data-lv="u"]      { --band-bg: #007a33; --band-fg: #ffffff; }
+.tx .tx-lv[data-lv="none"]   { --band-bg: var(--c-border-2); --band-fg: var(--c-text-1); }
+
+/* ── Layout ─────────────────────────────────────────────────── */
+.tx-cols { display: flex; gap: 32px; align-items: flex-start; }
+.tx-rail { width: 264px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px; }
+@media (max-width: 1000px) {
+  .tx-cols { gap: 24px; }
+  .tx-rail { width: 236px; }
+}
+
+/* ── Step bar ───────────────────────────────────────────────── */
+/* Three rules across the page, like the steps on Home: the rule carries the state. */
+.tx-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+.tx-steps li { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.tx-step-rule { position: relative; display: block; height: 3px; border-radius: 2px; background: var(--c-border); overflow: hidden; }
+.tx-step-rule i { position: absolute; inset: 0; background: transparent; }
+.tx-steps li[data-state="done"]   .tx-step-rule i { background: var(--c-grant); }
+.tx-steps li[data-state="active"] .tx-step-rule i { background: var(--c-accent); }
+.tx-step-rule.is-busy i { right: auto; width: 38%; animation: tx-slide 1.1s ease-in-out infinite; }
+@keyframes tx-slide { from { transform: translateX(-100%); } to { transform: translateX(265%); } }
+
+.tx-step-top { display: flex; align-items: center; gap: 8px; }
+.tx-step-n {
+  width: 20px; height: 20px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; border: 1px solid var(--c-border-2); background: var(--c-surface);
+  font-size: 11px; font-weight: 700; color: var(--c-text-5);
+}
+.tx-steps li[data-state="done"]   .tx-step-n { background: var(--c-grant);  border-color: var(--c-grant);  color: #fff; }
+.tx-steps li[data-state="active"] .tx-step-n { background: var(--c-accent); border-color: var(--c-accent); color: #fff; }
+.tx-step-label { font-size: 14px; font-weight: 550; color: var(--c-text-5); }
+.tx-steps li[data-state="active"] .tx-step-label { font-weight: 650; color: var(--c-text-1); }
+.tx-steps li[data-state="done"]   .tx-step-label { color: var(--c-text-3); }
+.tx-step-note {
+  padding-left: 28px; font-size: 12px; color: var(--c-text-5);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ── Offline ────────────────────────────────────────────────── */
+.tx-offline {
+  display: flex; align-items: flex-start; gap: 12px; margin-bottom: 20px; padding: 12px 14px;
+  font-size: 13px; color: var(--c-text-3);
+  background: var(--c-surface); border: 1px solid var(--c-deny-br); border-left: 4px solid var(--c-deny);
+  border-radius: 8px;
+}
+.tx-offline > svg { flex-shrink: 0; margin-top: 1px; color: var(--c-deny); }
+.tx-offline-title { font-weight: 650; color: var(--c-deny); }
+
+/* ── Left rail ──────────────────────────────────────────────── */
+.tx-doc {
+  position: relative; display: flex; width: 100%; flex-direction: column; gap: 4px;
+  padding: 10px 12px 10px 18px; text-align: left; font-family: inherit;
+  background: transparent; border: 0; cursor: pointer;
+  transition: background-color .12s;
+}
+.tx-doc + .tx-doc { border-top: 1px solid var(--c-border); }
+.tx-doc::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px;
+  background: var(--band-bg); transition: width .14s;
+}
+.tx-doc:hover { background: var(--c-surface-2); }
+.tx-doc[aria-pressed="true"] { background: var(--c-surface-3); }
+.tx-doc[aria-pressed="true"]::before { width: 9px; }
+.tx-doc:focus-visible { outline-offset: -2px; }
+.tx-doc-name { font-family: var(--font-mono); font-size: 11.5px; font-weight: 500; color: var(--c-text-3); }
+.tx-doc[aria-pressed="true"] .tx-doc-name { font-weight: 700; color: var(--c-text-1); }
+.tx-doc-meta { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--c-text-5); }
+.tx-doc-meta > span:first-child { font-family: var(--font-mono); font-weight: 600; letter-spacing: .02em; }
+
+.tx-upload {
+  position: relative; padding: 12px 12px 12px 18px; font-size: 12px;
+  background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--c-radius-card); overflow: hidden;
+}
+.tx-upload::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--band-bg); }
+
+.tx-note { padding: 2px 0 2px 12px; font-size: 12px; border-left: 3px solid var(--c-border-2); }
+.tx-note-deny  { border-left-color: var(--c-deny);  color: var(--c-deny); }
+.tx-note-grant { border-left-color: var(--c-grant); }
+
+/* ── Paper sheet ────────────────────────────────────────────── */
+/* Mirrors .brief-sheet with a shadow fit for a light page. */
+.tx-sheet {
+  background: #fdfdfb; color: #1b2a41;
+  border: 1px solid var(--c-border-2); border-radius: 4px; overflow: hidden;
+  box-shadow: var(--c-shadow-md);
+}
+.tx-sheet .tx-banner { background: var(--band-bg); color: var(--band-fg); }
+.tx-sheet-head { padding: 20px 28px 0; }
+.tx-sheet-title { margin: 0; font-size: 17px; font-weight: 700; line-height: 1.25; letter-spacing: -0.02em; color: #0a1a33; overflow-wrap: anywhere; }
+.tx-sheet-sub { margin: 4px 0 0; font-size: 13px; color: #5b6b82; }
+.tx-sheet-body {
+  margin: 0; padding: 16px 28px 24px; max-height: 440px; overflow: auto;
+  font-family: var(--font-mono); font-size: 12.5px; line-height: 1.65; color: #1b2a41;
+  white-space: pre-wrap; word-break: break-word;
+}
+.tx-sheet.is-compact .tx-sheet-body { padding: 12px 18px 16px; max-height: 260px; font-size: 12px; line-height: 1.6; }
+
+.tx-bars { padding: 16px 28px 22px; font-family: var(--font-mono); font-size: 12.5px; overflow: hidden; }
+.tx-sheet.is-compact .tx-bars { padding: 14px 18px 16px; font-size: 12px; }
+.tx-bars .brief-shut { display: block; max-width: 100%; height: .95em; margin-top: 0; margin-bottom: .62em; }
+.tx-bars .brief-shut:last-child { margin-bottom: 0; }
+
+/* Encrypting: the bars draw themselves across the sheet, one line after another. */
+.tx-sealing { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 28px; align-items: center; max-width: 720px; }
+@media (max-width: 1000px) { .tx-sealing { grid-template-columns: minmax(0, 1fr); gap: 16px; } }
+.tx-seal .brief-shut { transform-origin: left center; animation: tx-seal 1.8s ease-in-out infinite; animation-delay: calc(var(--i) * 120ms); }
+@keyframes tx-seal {
+  0%   { transform: scaleX(0); opacity: 1; }
+  55%  { transform: scaleX(1); opacity: 1; }
+  88%  { transform: scaleX(1); opacity: 1; }
+  100% { transform: scaleX(1); opacity: 0; }
+}
+
+/* Nothing picked yet: a blank sheet. */
+.tx-ghost {
+  position: relative; min-height: 300px; padding: 28px; display: flex; flex-direction: column; justify-content: space-between;
+  border: 1px dashed var(--c-border-2); border-radius: 4px; background: var(--c-surface-2);
+}
+.tx-ghost-lines { display: flex; flex-direction: column; gap: 12px; }
+.tx-ghost-lines span { display: block; height: 9px; border-radius: 2px; background: var(--c-border); max-width: 100%; }
+.tx-ghost-copy { padding-top: 24px; }
+
+/* ── Tabs: the plaintext, then the archive and the two files inside it ───── */
+.tx-tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 6px; }
+.tx-track {
+  display: inline-flex; flex-wrap: wrap; align-items: center; gap: 2px; padding: 3px; min-width: 0; max-width: 100%;
+  background: var(--c-surface-3); border: 1px solid var(--c-border); border-radius: calc(var(--c-radius-btn) + 2px);
+}
+.tx-arch { background: transparent; border-style: dashed; border-color: var(--c-border-2); }
+.tx-arch.is-on { background: var(--c-surface-3); border-style: solid; border-color: var(--c-border); }
+.tx-arch-head {
+  display: inline-flex; align-items: center; gap: 8px; min-width: 0; padding: 0 9px 0 7px; margin-right: 1px;
+  height: 28px; flex-shrink: 0; color: var(--c-text-3); border-right: 1px solid var(--c-border-2);
+}
+.tx-arch:not(.is-on) .tx-arch-head { color: var(--c-text-5); }
+.tx-arch-name { min-width: 56px; max-width: 92px; font-family: var(--font-mono); font-size: 11.5px; font-weight: 600; color: var(--c-text-1); }
+.tx-arch-meta { font-size: 11.5px; color: var(--c-text-5); white-space: nowrap; }
+.tx-tab {
+  display: inline-flex; align-items: center; gap: 8px; height: 28px; padding: 0 9px;
+  border: 0; border-radius: var(--c-radius-btn); background: transparent;
+  flex-shrink: 0; font-family: inherit; font-size: 13px; font-weight: 550; color: var(--c-text-4); cursor: pointer; white-space: nowrap;
+  transition: background-color .12s, color .12s;
+}
+.tx-tab-mono { font-family: var(--font-mono); font-size: 12px; }
+.tx-tab:hover:not(:disabled) { color: var(--c-text-1); }
+.tx-tab[aria-pressed="true"] {
+  background: var(--c-surface); color: var(--c-text-1); font-weight: 650;
+  box-shadow: 0 1px 2px rgba(10,26,51,0.12), 0 0 0 1px rgba(10,26,51,0.04);
+}
+.tx-tab:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ── Files inside the ZIP ───────────────────────────────────── */
+.tx-file { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--c-radius-card); overflow: hidden; box-shadow: var(--c-shadow-sm); }
+.tx-file-head {
+  display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 16px;
+  background: var(--c-surface-2); border-bottom: 1px solid var(--c-border);
+}
+.tx-file-name { flex-shrink: 0; white-space: nowrap; font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--c-text-1); }
+.tx-file-meta { font-size: 11.5px; color: var(--c-text-5); min-width: 0; white-space: nowrap; }
+.tx-file-body { padding: 2px 16px; font-family: var(--font-mono); font-size: 12px; color: var(--c-text-2); }
+.tx-sec + .tx-sec { border-top: 1px solid var(--c-border-2); }
+.tx-sec-btn { width: 100%; display: flex; align-items: center; gap: 8px; padding: 10px 0; text-align: left; cursor: pointer; background: none; border: 0; font-family: inherit; }
+.tx-hex { padding: 14px 16px; font-family: var(--font-mono); font-size: 11.5px; line-height: 1.8; color: var(--c-text-2); }
+.tx-hex-row { display: flex; gap: 24px; white-space: nowrap; }
+.tx-hex-off { min-width: 68px; padding-right: 20px; border-right: 1px solid var(--c-border); color: var(--c-text-5); user-select: none; }
+
+/* ── Try to open: one verdict rail per persona ──────────────── */
+.tx-row { position: relative; padding: 12px 16px 12px 22px; }
+.tx-row + .tx-row { border-top: 1px solid var(--c-border); }
+.tx-row::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--c-border); transition: background-color .2s; }
+.tx-row[data-state="grant"]::before   { background: var(--c-grant); }
+.tx-row[data-state="deny"]::before    { background: var(--c-deny); }
+.tx-row[data-state="loading"]::before { background: var(--c-accent); animation: tx-pulse 1s ease-in-out infinite; }
+@keyframes tx-pulse { 50% { opacity: .35; } }
+
+.tx-result { margin: 10px 0 2px 44px; max-width: 640px; }
+.tx-reason { margin-top: 8px; font-size: 12px; line-height: 1.5; color: var(--c-text-3); }
+
+@media (prefers-reduced-motion: reduce) {
+  .tx-seal .brief-shut, .tx-step-rule.is-busy i, .tx-row[data-state="loading"]::before { animation: none; }
+  .tx-step-rule.is-busy i { width: 100%; opacity: .5; }
+  .tx-doc, .tx-doc::before { transition: none; }
+}

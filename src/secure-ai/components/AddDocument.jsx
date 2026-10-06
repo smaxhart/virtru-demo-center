@@ -63,7 +63,7 @@ export default function AddDocument({ onClose }) {
     const stem = file.filename.replace(/\.(tdf|txt|md|json|csv)$/i, '').replace(/[_-]+/g, ' ')
 
     if (format === 'tdf1') {
-      setReject(`${file.filename} is a TDF1 file — the XML format Virtru's commercial products `
+      setReject(`${file.filename} is a TDF1 file, the XML format Virtru's commercial products `
         + `write (Secure Share, the Desktop client). This app's platform speaks TDF3/ZTDF, and `
         + `the OpenTDF SDK cannot read TDF1 at all. Nothing here can open or even inspect it.`)
       return
@@ -147,17 +147,14 @@ export default function AddDocument({ onClose }) {
   }, [kind, label, cls, policy, note, keywords, picked, addDocument, onClose])
 
   return (
-    <div className="card" style={{ padding: '15px 17px', borderColor: mode.accent + '55' }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 3 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--c-text-1)', flex: 1 }}>
+    <div className="card" style={{ padding: '18px 20px', borderColor: mode.accent + '55' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+        <h2 className="section-title" style={{ flex: 1, margin: 0 }}>
           Add a document to the {mode.short} corpus
-        </div>
-        <button onClick={onClose} style={{
-          fontSize: 11, padding: '4px 10px', borderRadius: 6, cursor: 'pointer',
-          background: 'transparent', border: '1px solid var(--c-border)', color: 'var(--c-text-5)',
-        }}>Cancel</button>
+        </h2>
+        <button className="btn btn-sm btn-ghost" onClick={onClose}>Cancel</button>
       </div>
-      <div style={{ fontSize: 11, color: 'var(--c-text-5)', lineHeight: 1.6, marginBottom: 13 }}>
+      <div style={{ fontSize: 13, color: 'var(--c-text-4)', lineHeight: 1.6, marginBottom: 16, maxWidth: '72ch' }}>
         Text gets encrypted into a TDF here, with the policy you choose. A .tdf this app made
         joins the corpus as-is. A .tdf from another platform can be inspected but never opened —
         its key is wrapped to that platform's KAS, not this one.
@@ -165,7 +162,7 @@ export default function AddDocument({ onClose }) {
 
       {!picked && !window.electronAPI && (
         <Notice tone="warn">
-          Adding documents needs the desktop app — the file dialog and the store both live in the
+          Adding documents needs the desktop app: the file dialog and the store both live in the
           main process. In browser mode the built-in corpus still works.
         </Notice>
       )}
@@ -174,13 +171,10 @@ export default function AddDocument({ onClose }) {
         <>
           {/* Held back until the seeded vocabulary is in hand: opening the picker first would
               mean detecting markings against nothing and appearing to have found none. */}
-          <button onClick={choose} disabled={!vocab} style={{
-            fontSize: 12, fontWeight: 600, padding: '7px 14px', borderRadius: 7,
-            cursor: vocab ? 'pointer' : 'wait',
-            background: vocab ? '#1e40af' : 'var(--c-surface-2)',
-            border: '1px solid var(--c-border)',
-            color: vocab ? '#fff' : 'var(--c-text-6)',
-          }}>{vocab ? 'Choose a file…' : 'Reading the attribute list…'}</button>
+          <button className="btn btn-primary" onClick={choose} disabled={!vocab}
+            style={vocab ? undefined : { cursor: 'wait' }}>
+            {vocab ? 'Choose a file…' : 'Reading the attribute list…'}
+          </button>
           {reject && <div style={{ marginTop: 11 }}><Notice tone="deny">{reject}</Notice></div>}
         </>
       )}
@@ -188,9 +182,9 @@ export default function AddDocument({ onClose }) {
       {picked && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
           {/* What the file turned out to be — stated before anything is editable */}
-          <div className="mono" style={{ fontSize: 10, color: 'var(--c-text-5)' }}>
-            {picked.filename} · {fmtBytes(picked.bytes.length)} · {picked.format}
-            {picked.info && ` · spec ${picked.info.specVersion ?? 'unversioned'}`}
+          <div className="mono" style={{ fontSize: 11.5, color: 'var(--c-text-5)' }}>
+            {picked.filename}, {fmtBytes(picked.bytes.length)}, {picked.format}
+            {picked.info && `, spec ${picked.info.specVersion ?? 'unversioned'}`}
           </div>
 
           {kind === 'ztdf-local' && (
@@ -216,48 +210,44 @@ export default function AddDocument({ onClose }) {
           )}
 
           {detected && (detected.fqns.length > 0 || detected.unmapped.length > 0) && (
-            <div className="card" style={{ padding: '10px 12px', background: 'var(--c-surface-2)' }}>
-              <Label>MARKINGS FOUND IN THE DOCUMENT</Label>
+            <div className="card" style={{ padding: '12px 14px', background: 'var(--c-surface-2)' }}>
+              <Label>Markings found in the document</Label>
               {detected.fqns.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 6 }}>
                   {detected.hits.map(h => (
-                    <span key={h.fqn} className="mono" title={h.marking} style={{
-                      fontSize: 9.5, padding: '2px 6px', borderRadius: 4,
-                      background: 'var(--c-grant-bg)', color: 'var(--c-grant)',
-                      border: '1px solid var(--c-grant-br)',
-                    }}>{shortFqn(h.fqn)}</span>
+                    <span key={h.fqn} className="chip chip-mono chip-grant" title={h.marking}>{shortFqn(h.fqn)}</span>
                   ))}
                 </div>
               )}
               {detected.unmapped.map(u => (
-                <div key={u.marking} style={{ fontSize: 10, color: 'var(--c-warn)', lineHeight: 1.6 }}>
-                  <span className="mono">{u.marking}</span> — {u.why}
+                <div key={u.marking} style={{ fontSize: 12, color: 'var(--c-warn)', lineHeight: 1.6 }}>
+                  <span className="mono">{u.marking}</span>: {u.why}
                 </div>
               ))}
               {detected.dropped > 0 && (
-                <div style={{ fontSize: 10, color: 'var(--c-deny)', lineHeight: 1.6 }}>
-                  {detected.dropped} further value(s) left off — a policy tops out at 20.
+                <div style={{ fontSize: 12, color: 'var(--c-deny)', lineHeight: 1.6 }}>
+                  {detected.dropped} further value(s) left off, since a policy tops out at 20.
                 </div>
               )}
-              <div style={{ fontSize: 10, color: 'var(--c-text-6)', marginTop: 6, lineHeight: 1.6 }}>
+              <div style={{ fontSize: 12, color: 'var(--c-text-5)', marginTop: 6, lineHeight: 1.6 }}>
                 Pre-filled below, not applied. Nothing is encrypted until you save.
               </div>
             </div>
           )}
 
           <div>
-            <Label>LABEL</Label>
+            <Label>Label</Label>
             <input style={field} value={label} onChange={e => setLabel(e.target.value)} />
           </div>
 
           <div>
-            <Label hint="shown on the card and given to the model as a banner">CLASSIFICATION</Label>
+            <Label hint="shown on the card and given to the model as a banner">Classification</Label>
             <input style={field} value={cls} onChange={e => setCls(e.target.value)} />
           </div>
 
           {kind === 'plaintext' ? (
             <div>
-              <Label hint="written verbatim into the manifest">POLICY</Label>
+              <Label hint="written verbatim into the manifest">Policy</Label>
               {vocab
                 ? <AttributePicker vocab={vocab} selected={policy} onChange={setPolicy} />
                 : <Notice tone="deny">
@@ -267,20 +257,16 @@ export default function AddDocument({ onClose }) {
             </div>
           ) : (
             <div>
-              <Label hint="read back out of the manifest — not editable, because the file already says so">
-                POLICY IN THE MANIFEST
+              <Label hint="read back out of the manifest; not editable, because the file already says so">
+                Policy in the manifest
               </Label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                 {picked.info.attributes.length === 0
-                  ? <span className="mono" style={{ fontSize: 9.5, color: 'var(--c-text-5)' }}>
-                      no attributes — releases to any authenticated caller
+                  ? <span className="mono" style={{ fontSize: 11.5, color: 'var(--c-text-5)' }}>
+                      no attributes: releases to any authenticated caller
                     </span>
                   : picked.info.attributes.map(f => (
-                      <span key={f} className="mono" title={f} style={{
-                        fontSize: 9.5, padding: '2px 6px', borderRadius: 4,
-                        background: 'var(--c-surface-2)', color: 'var(--c-text-4)',
-                        border: '1px solid var(--c-border)',
-                      }}>{shortFqn(f)}</span>
+                      <span key={f} className="chip chip-mono" title={f}>{shortFqn(f)}</span>
                     ))}
               </div>
             </div>
@@ -289,13 +275,13 @@ export default function AddDocument({ onClose }) {
           {kind !== 'ztdf-foreign' && (
             <div>
               <Label hint={kind === 'ztdf-local'
-                ? 'the only clue is the filename — there is no readable text to mine'
+                ? 'the only clue is the filename; there is no readable text to mine'
                 : 'comma separated; a question has to hit one of these to retrieve the document'}>
-                RETRIEVAL KEYWORDS
+                Retrieval keywords
               </Label>
               <input style={field} value={keywords} onChange={e => setKw(e.target.value)} />
               {keywords.trim() === '' && (
-                <div style={{ fontSize: 10, color: 'var(--c-warn)', marginTop: 4, lineHeight: 1.6 }}>
+                <div style={{ fontSize: 12, color: 'var(--c-warn)', marginTop: 4, lineHeight: 1.6 }}>
                   With no keywords this document is encrypted and enforced, but no question will
                   ever reach it.
                 </div>
@@ -304,30 +290,21 @@ export default function AddDocument({ onClose }) {
           )}
 
           <div>
-            <Label hint="the sentence under the policy chips">NOTE</Label>
+            <Label hint="the sentence under the policy chips">Note</Label>
             <input style={field} value={note} onChange={e => setNote(e.target.value)} />
           </div>
 
           {error && <Notice tone="deny">{error}</Notice>}
 
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <button onClick={save} disabled={!canSave} style={{
-              fontSize: 12, fontWeight: 600, padding: '7px 14px', borderRadius: 7,
-              cursor: canSave ? 'pointer' : 'not-allowed',
-              background: canSave ? '#1e40af' : 'var(--c-surface-2)',
-              border: '1px solid var(--c-border)',
-              color: canSave ? '#fff' : 'var(--c-text-6)',
-            }}>
+            <button className="btn btn-primary" onClick={save} disabled={!canSave}>
               {busy ? 'Encrypting…'
                 : kind === 'plaintext' ? 'Encrypt and add'
                 : kind === 'ztdf-local' ? 'Add to the corpus'
                 : 'Store inspect-only'}
             </button>
-            <button onClick={choose} style={{
-              fontSize: 11, padding: '6px 11px', borderRadius: 7, cursor: 'pointer',
-              background: 'transparent', border: '1px solid var(--c-border)', color: 'var(--c-text-5)',
-            }}>Pick a different file</button>
-            <span style={{ fontSize: 10, color: 'var(--c-text-6)' }}>
+            <button className="btn btn-ghost" onClick={choose}>Pick a different file</button>
+            <span style={{ fontSize: 12, color: 'var(--c-text-5)' }}>
               Kept in this app's data directory — it survives restarts and updates.
             </span>
           </div>

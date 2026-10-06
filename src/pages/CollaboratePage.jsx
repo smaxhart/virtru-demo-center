@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { useDemo } from '../context/DemoContext.jsx'
 import { collaborateDoc } from '../data/collaborateDocs.js'
+import UiIcon from '../components/UiIcon.jsx'
 
 // ── File catalogue ────────────────────────────────────────────────────────────
 // Visibility (trimming) and required (KAS) are scoped so each persona sees a
@@ -213,21 +214,21 @@ function downloadTdf(file) {
 // ── Toast ─────────────────────────────────────────────────────────────────────
 function Toast({ msg, onDone }) {
   return (
-    <div style={{
+    <div role="status" style={{
       position: 'fixed', bottom: 28, right: 28, zIndex: 200,
-      background: '#0f2035', border: '1px solid #22c55e44',
-      borderLeft: '3px solid #22c55e',
-      borderRadius: 10, padding: '12px 18px',
-      boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+      background: 'var(--c-ink)', color: '#fff',
+      border: '1px solid rgba(255,255,255,0.1)',
+      borderRadius: 10, padding: '12px 14px 12px 16px',
+      boxShadow: 'var(--c-shadow-lg)',
       display: 'flex', alignItems: 'flex-start', gap: 10,
-      maxWidth: 340, animation: 'fadeInUp 0.2s ease',
+      maxWidth: 360, animation: 'fadeInUp 0.2s ease',
     }}>
-      <span style={{ color: '#22c55e', fontSize: 16, flexShrink: 0 }}>✓</span>
+      <span style={{ color: '#4ade80', flexShrink: 0, display: 'flex', marginTop: 1 }}><UiIcon name="check" size={16} strokeWidth={2.2} /></span>
       <div>
-        <div style={{ fontSize: 13, fontWeight: 600, color: '#f8fafc', marginBottom: 2 }}>{msg.title}</div>
-        <div style={{ fontSize: 11, color: '#94a3b8' }}>{msg.sub}</div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginBottom: 2 }}>{msg.title}</div>
+        <div style={{ fontSize: 12, color: 'rgba(214,226,244,0.75)' }}>{msg.sub}</div>
       </div>
-      <button onClick={onDone} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: 14, lineHeight: 1, flexShrink: 0 }}>✕</button>
+      <button onClick={onDone} aria-label="Dismiss" style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(214,226,244,0.6)', display: 'flex', padding: 2, flexShrink: 0 }}><UiIcon name="x" size={14} /></button>
     </div>
   )
 }
@@ -235,62 +236,58 @@ function Toast({ msg, onDone }) {
 // ── KAS Access Panel ──────────────────────────────────────────────────────────
 function KasPanel({ file, attrs }) {
   if (!file) return (
-    <div style={{ padding: '20px', textAlign: 'center', color: '#475569' }}>
-      <div style={{ fontSize: 28, marginBottom: 8 }}>🔒</div>
-      <div style={{ fontSize: 13, fontWeight: 500, color: '#94a3b8' }}>Select a file to open</div>
-      <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>KAS evaluates policy on every open attempt</div>
+    <div style={{ padding: '28px 20px', textAlign: 'center' }}>
+      <div style={{ color: 'var(--c-text-6)', display: 'flex', justifyContent: 'center', marginBottom: 10 }}><UiIcon name="lock" size={26} strokeWidth={1.5} /></div>
+      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--c-text-2)' }}>Select a file to open</div>
+      <div style={{ fontSize: 12, color: 'var(--c-text-5)', marginTop: 4 }}>KAS evaluates policy on every open attempt</div>
     </div>
   )
 
   const granted = canOpen(file, attrs)
   const labelStyle = MS_LABEL_STYLES[file.msClass] || MS_LABEL_STYLES.u
+  const tone = granted ? 'grant' : 'deny'
 
   return (
     <div>
       <div style={{
-        padding: '10px 14px',
-        background: granted ? 'rgba(34,197,94,0.07)' : 'rgba(239,68,68,0.07)',
-        borderBottom: '1px solid var(--c-border)',
-        display: 'flex', alignItems: 'center', gap: 8,
+        padding: '12px 16px',
+        background: `var(--c-${tone}-bg)`,
+        borderBottom: `1px solid var(--c-${tone}-br)`,
+        display: 'flex', alignItems: 'center', gap: 10,
       }}>
-        <span style={{ fontSize: 18 }}>{granted ? '✅' : '🚫'}</span>
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: granted ? '#15803d' : '#b91c1c' }}>
-            KAS: {granted ? 'ACCESS GRANTED' : 'ACCESS DENIED'}
+        <span style={{ color: `var(--c-${tone})`, display: 'flex' }}><UiIcon name={granted ? 'check' : 'x'} size={18} strokeWidth={2.2} /></span>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color: `var(--c-${tone})` }}>
+            KAS {granted ? 'granted access' : 'denied access'}
           </div>
-          <div style={{ fontSize: 11, color: '#64748b' }}>{file.name}</div>
+          <div style={{ fontSize: 12, color: 'var(--c-text-4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</div>
         </div>
       </div>
-      <div style={{ padding: '12px 14px' }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: '#475569', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>
-          File Policy
+      <div style={{ padding: '14px 16px 16px' }}>
+        <div style={{ fontSize: 12.5, fontWeight: 650, color: 'var(--c-text-3)', marginBottom: 8 }}>
+          File policy
         </div>
         {file.required.length === 0 ? (
-          <div style={{ fontSize: 12, color: '#15803d' }}>No restrictions — public</div>
+          <div style={{ fontSize: 12.5, color: 'var(--c-grant)' }}>No restrictions, public</div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
             {file.required.map(attr => {
               const has = attrs.includes(attr)
               return (
-                <div key={attr} style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  padding: '4px 8px', borderRadius: 4,
-                  background: has ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
-                  border: `1px solid ${has ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`,
-                }}>
-                  <span style={{ fontSize: 12, color: has ? '#15803d' : '#b91c1c' }}>{has ? '✓' : '✗'}</span>
-                  <span style={{ fontSize: 12, fontFamily: 'monospace', color: has ? '#166534' : '#b91c1c' }}>{attr}</span>
+                <div key={attr} className={`chip ${has ? 'chip-grant' : 'chip-deny'}`} style={{ height: 26, justifyContent: 'flex-start', gap: 8 }}>
+                  <UiIcon name={has ? 'check' : 'x'} size={12} strokeWidth={2.4} />
+                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 500, fontSize: 12 }}>{attr}</span>
                 </div>
               )
             })}
           </div>
         )}
-        <div style={{ marginTop: 12 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#475569', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>
-            Sensitivity Label
+        <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--c-border)' }}>
+          <div style={{ fontSize: 12.5, fontWeight: 650, color: 'var(--c-text-3)', marginBottom: 6 }}>
+            Sensitivity label
           </div>
           <span style={{
-            display: 'inline-block', padding: '2px 10px', borderRadius: 4, fontSize: 12, fontWeight: 700,
+            display: 'inline-block', padding: '2px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700,
             background: labelStyle.bg, color: labelStyle.color, border: `1px solid ${labelStyle.border}`,
           }}>{file.msLabel}</span>
         </div>
@@ -349,11 +346,11 @@ function UploadModal({ onClose, onComplete }) {
   return (
     <div
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(10,26,51,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
     >
-      <div style={{ background: '#0f2035', border: '1px solid #1e3a5f', borderRadius: 14, padding: '24px 28px', width: 420, maxWidth: '95vw', boxShadow: '0 24px 60px rgba(0,0,0,0.5)' }}>
-        <h3 style={{ fontSize: 15, fontWeight: 700, color: '#f8fafc', margin: '0 0 4px' }}>Upload &amp; Encrypt File</h3>
-        <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 16px' }}>
+      <div role="dialog" aria-label="Upload and encrypt file" className="card-raised" style={{ padding: '24px 26px', width: 440, maxWidth: '95vw' }}>
+        <h3 style={{ fontSize: 16, fontWeight: 680, letterSpacing: '-0.01em', color: 'var(--c-text-1)', margin: '0 0 4px' }}>Upload &amp; encrypt file</h3>
+        <p style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--c-text-4)', margin: '0 0 16px' }}>
           Virtru PEP reads the file's existing tags and applies TDF policy automatically before writing to the bucket.
         </p>
         <div
@@ -362,53 +359,48 @@ function UploadModal({ onClose, onComplete }) {
           onDragLeave={() => setIsDrag(false)}
           onDrop={handleDrop}
           style={{
-            border: `2px dashed ${isDrag ? '#3b82f6' : '#1e3a5f'}`,
-            borderRadius: 10, padding: '28px 20px', textAlign: 'center', cursor: 'pointer',
-            background: isDrag ? 'rgba(29,78,216,0.07)' : '#07111f',
-            marginBottom: 14, transition: 'all 0.15s',
+            border: `1.5px dashed ${isDrag ? 'var(--c-focus)' : 'var(--c-border-2)'}`,
+            borderRadius: 10, padding: '26px 20px', textAlign: 'center', cursor: 'pointer',
+            background: isDrag ? 'var(--c-info-bg)' : 'var(--c-surface-2)',
+            marginBottom: 14, transition: 'background-color 0.15s, border-color 0.15s',
           }}
         >
           <input ref={fileRef} type="file" style={{ display: 'none' }} onChange={e => stageFile(e.target.files[0])} />
-          <div style={{ fontSize: 28, marginBottom: 6 }}>📁</div>
-          <div style={{ fontSize: 13, color: '#94a3b8' }}>Drop a file here or click to browse</div>
-          <div style={{ fontSize: 11, color: '#475569', marginTop: 3 }}>PDF, DOCX, XLSX, TXT — existing sensitivity tags will be detected</div>
+          <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--c-text-2)' }}>Drop a file here or click to browse</div>
+          <div style={{ fontSize: 12, color: 'var(--c-text-5)', marginTop: 4 }}>PDF, DOCX, XLSX, TXT. Existing sensitivity tags will be detected.</div>
         </div>
         {staged && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', marginBottom: 14, background: '#07111f', border: '1px solid #1e3a5f', borderRadius: 8 }}>
-            <span style={{ fontSize: 20 }}>📄</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', marginBottom: 14, background: 'var(--c-surface-2)', border: '1px solid var(--c-border)', borderRadius: 8 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, color: '#e2e8f0', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{staged.name}</div>
-              <div style={{ fontSize: 11, color: '#64748b' }}>{staged.size ? `${(staged.size / 1024).toFixed(0)} KB` : '—'}</div>
+              <div style={{ fontSize: 13, color: 'var(--c-text-1)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{staged.name}</div>
+              <div style={{ fontSize: 12, color: 'var(--c-text-5)' }}>{staged.size ? `${(staged.size / 1024).toFixed(0)} KB` : '—'}</div>
             </div>
           </div>
         )}
         {phase !== 'idle' && (
-          <div style={{ background: '#07111f', border: '1px solid #1e3a5f', borderRadius: 8, padding: '12px 14px', marginBottom: 14 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#475569', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Virtru PEP</div>
+          <div style={{ borderTop: '1px solid var(--c-border)', padding: '12px 2px 2px', marginBottom: 14 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 650, color: 'var(--c-text-3)', marginBottom: 6 }}>Virtru PEP</div>
             {PEP_STEPS.map((step, i) => {
               const done = i < stepIdx || phase === 'done'
               const active = i === stepIdx && phase === 'processing'
               return (
-                <div key={step} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', opacity: i > stepIdx && phase === 'processing' ? 0.35 : 1, transition: 'opacity 0.3s' }}>
-                  <span style={{ fontSize: 13, width: 16, flexShrink: 0 }}>{done ? '✓' : active ? '⟳' : '○'}</span>
-                  <span style={{ fontSize: 12, color: done ? '#4ade80' : active ? '#60a5fa' : '#475569' }}>{step}</span>
+                <div key={step} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', opacity: i > stepIdx && phase === 'processing' ? 0.45 : 1, transition: 'opacity 0.3s' }}>
+                  <span style={{ width: 16, flexShrink: 0, display: 'flex', justifyContent: 'center', color: done ? 'var(--c-grant)' : active ? 'var(--c-accent)' : 'var(--c-text-6)' }}>
+                    {done
+                      ? <UiIcon name="check" size={14} strokeWidth={2.3} />
+                      : active
+                        ? <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid currentColor', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+                        : <span style={{ width: 8, height: 8, borderRadius: '50%', border: '1.5px solid currentColor' }} />}
+                  </span>
+                  <span style={{ fontSize: 13, color: done ? 'var(--c-grant)' : active ? 'var(--c-accent)' : 'var(--c-text-5)', fontWeight: active ? 600 : 500 }}>{step}</span>
                 </div>
               )
             })}
           </div>
         )}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <button onClick={onClose} style={{ padding: '8px 16px', borderRadius: 6, fontSize: 13, cursor: 'pointer', background: 'transparent', border: '1px solid #1e3a5f', color: '#94a3b8' }}>Cancel</button>
-          <button
-            onClick={runUpload}
-            disabled={!staged || phase === 'processing'}
-            style={{
-              padding: '8px 18px', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: staged && phase === 'idle' ? 'pointer' : 'default',
-              background: staged && phase === 'idle' ? '#1d4ed8' : '#1e3a5f',
-              color: staged && phase === 'idle' ? '#fff' : '#475569',
-              border: 'none', transition: 'all 0.15s',
-            }}
-          >Encrypt &amp; Upload</button>
+          <button className="btn" onClick={onClose}>Cancel</button>
+          <button className="btn btn-primary" onClick={runUpload} disabled={!staged || phase === 'processing'}>Encrypt &amp; upload</button>
         </div>
       </div>
     </div>
@@ -646,7 +638,7 @@ function S3Shell({ files, activeFile, onSelect, onUpload, onDownload, getSetting
         </table>
       </div>
       <div style={{ marginTop: 12, fontSize: 11, color: '#475569' }}>
-        {files.length} objects · {files.filter(f => f.required.length).length} TDF-protected
+        {files.length} objects, {files.filter(f => f.required.length).length} TDF-protected
       </div>
     </div>
   )
@@ -817,9 +809,9 @@ function DeniedBody({ file, attrs }) {
   const missing = file.required.filter(a => !attrs.includes(a))
   return (
     <div style={{ textAlign: 'center', paddingTop: 40 }}>
-      <div style={{ fontSize: 32, marginBottom: 10 }}>🚫</div>
-      <div style={{ fontSize: 15, fontWeight: 700, color: '#b91c1c', marginBottom: 6 }}>KAS denied this request</div>
-      <div style={{ fontSize: 12, lineHeight: 1.6, color: '#6b7280', maxWidth: 340, margin: '0 auto 18px' }}>
+      <div style={{ color: 'var(--c-deny)', display: 'flex', justifyContent: 'center', marginBottom: 10 }}><UiIcon name="lock" size={30} strokeWidth={1.6} /></div>
+      <div style={{ fontSize: 15, fontWeight: 700, fontFamily: 'var(--font-ui)', color: 'var(--c-deny)', marginBottom: 6 }}>KAS denied this request</div>
+      <div style={{ fontSize: 12, lineHeight: 1.6, fontFamily: 'var(--font-ui)', color: 'var(--c-text-4)', maxWidth: 340, margin: '0 auto 18px' }}>
         The payload stays wrapped. {file.name} is not decrypted, cached or rendered for this viewer —
         the policy travels with the file, so where it is stored makes no difference.
       </div>
@@ -827,18 +819,14 @@ function DeniedBody({ file, attrs }) {
         {file.required.map(a => {
           const has = attrs.includes(a)
           return (
-            <div key={a} style={{
-              display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 4,
-              background: has ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
-              border: `1px solid ${has ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`,
-            }}>
-              <span style={{ fontSize: 12, color: has ? '#15803d' : '#b91c1c' }}>{has ? '✓' : '✗'}</span>
-              <span style={{ fontSize: 11.5, fontFamily: MONO, color: has ? '#166534' : '#b91c1c' }}>{a}</span>
+            <div key={a} className={`chip ${has ? 'chip-grant' : 'chip-deny'}`} style={{ height: 26, gap: 8 }}>
+              <UiIcon name={has ? 'check' : 'x'} size={12} strokeWidth={2.4} />
+              <span style={{ fontSize: 11.5, fontFamily: 'var(--font-mono)', fontWeight: 500 }}>{a}</span>
             </div>
           )
         })}
       </div>
-      <div style={{ marginTop: 16, fontSize: 11, color: '#9ca3af' }}>
+      <div style={{ marginTop: 16, fontSize: 11.5, fontFamily: 'var(--font-ui)', color: 'var(--c-text-5)' }}>
         Missing {missing.length} of {file.required.length} required attribute{file.required.length === 1 ? '' : 's'}
       </div>
     </div>
@@ -857,7 +845,7 @@ function UploadedBody({ file }) {
         {file.name}
       </div>
       <div style={{ fontSize: 10.5, color: '#6b7280', paddingBottom: 10, borderBottom: '1px solid #e5e7eb' }}>
-        Uploaded by {file.owner} · {file.modified}
+        Uploaded by {file.owner}, {file.modified}
       </div>
       <div style={{ marginTop: 16, padding: '12px 14px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 6 }}>
         <div style={{ fontSize: 12, lineHeight: 1.6, color: '#374151', fontFamily: SERIF }}>
@@ -889,7 +877,7 @@ function PreviewModal({ file, onClose, getSetting, viewerName, viewerEmail, attr
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0, zIndex: 1000,
-        background: 'rgba(0,0,0,0.6)',
+        background: 'rgba(10,26,51,0.6)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}
     >
@@ -898,28 +886,28 @@ function PreviewModal({ file, onClose, getSetting, viewerName, viewerEmail, attr
         style={{
           width: 680, maxHeight: '90vh', borderRadius: 12, overflow: 'hidden',
           display: 'flex', flexDirection: 'column',
-          background: '#fff', boxShadow: '0 24px 60px rgba(0,0,0,0.4)',
+          background: 'var(--c-surface)', boxShadow: 'var(--c-shadow-lg)',
         }}
       >
         {/* Modal header */}
-        <div style={{ padding: '12px 16px', background: '#1a2b45', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+        <div style={{ padding: '12px 16px', background: 'var(--c-ink)', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
           <OfficeIcon ext={ext} size={20} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', marginTop: 1 }}>{file.owner} · {file.size}</div>
+            <div style={{ fontSize: 12, color: 'rgba(214,226,244,0.65)', marginTop: 1 }}>{file.owner}, {file.size}</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, background: cls.bg, color: cls.color, border: `1px solid ${cls.border}` }}>{file.msLabel.toUpperCase()}</span>
-            <span style={{ fontSize: 11, padding: '2px 8px', background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)', borderRadius: 4 }}>🔐 TDF Protected</span>
+            <span style={{ fontSize: 11.5, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: cls.bg, color: cls.color, border: `1px solid ${cls.border}` }}>{file.msLabel}</span>
+            <span style={{ fontSize: 11.5, fontWeight: 600, padding: '2px 8px', background: 'rgba(255,255,255,0.1)', color: 'rgba(214,226,244,0.85)', borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 5 }}><UiIcon name="lock" size={12} strokeWidth={2} />TDF protected</span>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: 18, lineHeight: 1, marginLeft: 4 }}>✕</button>
+          <button onClick={onClose} aria-label="Close preview" style={{ background: 'none', border: 'none', color: 'rgba(214,226,244,0.7)', cursor: 'pointer', display: 'flex', padding: 4, marginLeft: 4 }}><UiIcon name="x" size={16} /></button>
         </div>
 
         {/* Security badge bar */}
         {(settings.watermark || settings.preventDownload) && (
-          <div style={{ padding: '6px 16px', background: '#1a56db', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-            {settings.watermark && <span style={{ fontSize: 11, color: '#fff', fontWeight: 600 }}>◈ Watermark active</span>}
-            {settings.preventDownload && <span style={{ fontSize: 11, color: '#fff', fontWeight: 600 }}>⊘ Download disabled</span>}
+          <div style={{ padding: '6px 16px', background: 'var(--c-accent)', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+            {settings.watermark && <span style={{ fontSize: 12, color: '#fff', fontWeight: 600 }}>Watermark active</span>}
+            {settings.preventDownload && <span style={{ fontSize: 12, color: '#fff', fontWeight: 600 }}>Download disabled</span>}
           </div>
         )}
 
@@ -991,8 +979,8 @@ function PreviewModal({ file, onClose, getSetting, viewerName, viewerEmail, attr
                 pointerEvents: 'none',
               }}>
                 {/* Top, not bottom: the bottom of a real document is now several screens down. */}
-                <div style={{ background: 'rgba(220,38,38,0.9)', color: '#fff', fontSize: 11, fontWeight: 700, padding: '5px 14px', borderRadius: 20, letterSpacing: '0.06em' }}>
-                  ⊘ DOWNLOAD DISABLED BY POLICY
+                <div style={{ background: 'var(--c-deny)', color: '#fff', fontSize: 11.5, fontWeight: 700, padding: '5px 14px', borderRadius: 20 }}>
+                  Download disabled by policy
                 </div>
               </div>
             )}
@@ -1000,11 +988,11 @@ function PreviewModal({ file, onClose, getSetting, viewerName, viewerEmail, attr
         </div>
 
         {/* Footer */}
-        <div style={{ padding: '10px 16px', background: '#f9fafb', borderTop: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-          <span style={{ fontSize: 11, color: granted ? '#8a96a3' : '#b91c1c' }}>
-            {granted ? 'Viewed via Virtru Collaborate · KAS access verified' : 'Virtru Collaborate · KAS refused the rewrap — nothing was decrypted'}
+        <div style={{ padding: '10px 16px', background: 'var(--c-surface-2)', borderTop: '1px solid var(--c-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexShrink: 0 }}>
+          <span style={{ fontSize: 12, color: granted ? 'var(--c-text-5)' : 'var(--c-deny)' }}>
+            {granted ? 'Viewed via Virtru Collaborate. KAS access verified.' : 'Virtru Collaborate: KAS refused the rewrap, nothing was decrypted.'}
           </span>
-          <button onClick={onClose} style={{ padding: '6px 16px', borderRadius: 6, background: '#1a56db', color: '#fff', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Close</button>
+          <button className="btn btn-primary btn-sm" onClick={onClose}>Close</button>
         </div>
       </div>
     </div>
@@ -1172,10 +1160,21 @@ function CollaborateShell({ files, activeFile, onSelect, onUpload, onDownload, u
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 const BUCKET_TABS = [
-  { id: 'sharepoint', label: 'SharePoint', icon: '🟦' },
-  { id: 's3',         label: 'Amazon S3',  icon: '🟧' },
-  { id: 'collaborate',label: 'Collaborate', icon: '🔵' },
+  { id: 'sharepoint', label: 'SharePoint', dot: '#0078d4' },
+  { id: 's3',         label: 'Amazon S3',  dot: '#ff9900' },
+  { id: 'collaborate',label: 'Collaborate', dot: '#1565a8' },
 ]
+
+// Last two words skip rank prefixes ("Maj.", "CW3", "Flt Lt") without a lookup table.
+const initialsOf = (p) => {
+  if (p.id.startsWith('ai-')) return 'AI'
+  return p.name.trim().split(/\s+/).slice(-2).map(w => w[0]).join('').toUpperCase()
+}
+const inkOn = (hex) => {
+  const n = parseInt(hex.slice(1), 16)
+  const lum = (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255
+  return lum > 0.62 ? '#0a1a33' : '#ffffff'
+}
 
 export default function CollaboratePage() {
   const { activePersona, personas, setActivePersona } = useDemo()
@@ -1237,38 +1236,43 @@ export default function CollaboratePage() {
   const userEmail = `${activePersona.username}@contoso.com`
 
   return (
-    <div style={{ padding: 24, maxWidth: 1340, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="page" style={{ maxWidth: 1360, display: 'flex', flexDirection: 'column' }}>
       <style>{`
         @keyframes fadeInUp {
           from { opacity: 0; transform: translateY(8px); }
           to   { opacity: 1; transform: translateY(0); }
         }
+        .collab-tab { position: relative; flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
+          height: 42px; padding: 0 20px; border: 0; background: transparent; color: var(--c-text-4);
+          font-size: 13px; font-weight: 600; cursor: pointer; transition: background-color .12s, color .12s; }
+        .collab-tab + .collab-tab { border-left: 1px solid var(--c-border); }
+        .collab-tab:hover { color: var(--c-text-1); background: var(--c-surface-2); }
+        .collab-tab[aria-pressed="true"] { color: var(--c-text-1); background: var(--c-surface); box-shadow: inset 0 -2px 0 var(--c-accent); }
       `}</style>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--c-text-1)', margin: 0 }}>Collaborate</h1>
-        <p style={{ fontSize: 13, color: 'var(--c-text-5)', lineHeight: 1.5, maxWidth: 680, margin: 0 }}>
-          Files in shared buckets — SharePoint, S3, or Virtru Collaborate — stay policy-bound wherever they go. Users only see files they're entitled to. Attempts to open protected files are evaluated live at KAS.
-        </p>
+      <div className="page-hero">
+        <div>
+          <h1 className="page-title">Collaborate</h1>
+          <p className="page-subtitle">
+            Files in shared buckets (SharePoint, S3 or Virtru Collaborate) stay policy-bound wherever they go. Users only see files they're entitled to. Attempts to open protected files are evaluated live at KAS.
+          </p>
+        </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
         {/* Left: bucket viewer */}
         <div style={{ flex: 3, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-          <div style={{ display: 'flex', borderRadius: '10px 10px 0 0', overflow: 'hidden', background: '#0f2035', border: '1px solid #1e3a5f', borderBottom: 'none' }}>
+          <div role="group" aria-label="Bucket" style={{ display: 'flex', borderRadius: '10px 10px 0 0', overflow: 'hidden', background: 'var(--c-surface)', border: '1px solid var(--c-border-2)', borderBottom: '1px solid var(--c-border)' }}>
             {BUCKET_TABS.map(tab => (
               <button
                 key={tab.id}
+                className="collab-tab"
+                aria-pressed={activeBucket === tab.id}
                 onClick={() => setActiveBucket(tab.id)}
-                style={{
-                  flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  gap: 7, padding: '10px 20px', border: 'none',
-                  borderRight: tab.id !== 'collaborate' ? '1px solid #1e3a5f' : 'none',
-                  background: activeBucket === tab.id ? 'rgba(29,78,216,0.13)' : 'transparent',
-                  color: activeBucket === tab.id ? '#60a5fa' : '#64748b',
-                  fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
-                }}
-              >{tab.icon} {tab.label}</button>
+              >
+                <span style={{ width: 8, height: 8, borderRadius: 2, background: tab.dot, flexShrink: 0 }} />
+                {tab.label}
+              </button>
             ))}
           </div>
 
@@ -1285,59 +1289,52 @@ export default function CollaboratePage() {
 
         {/* Right: persona + KAS panel */}
         <div style={{ flex: 2, display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
-          <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 10, padding: 14 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--c-text-5)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>Who is viewing this bucket?</div>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-              {personas.map(p => (
-                <button
-                  key={p.id}
-                  onClick={() => { setActivePersona(p); setActiveFile(null) }}
-                  title={`${p.name} — ${p.title}`}
-                  style={{
-                    flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-                    padding: '8px 4px', borderRadius: 8, cursor: 'pointer',
-                    background: activePersona.id === p.id ? p.color + '18' : 'var(--c-surface-2)',
-                    border: `2px solid ${activePersona.id === p.id ? p.color : 'transparent'}`,
-                    transition: 'all 0.15s',
-                  }}
-                >
-                  <span style={{ fontSize: 18 }}>{p.avatar}</span>
-                  <span style={{ fontSize: 10, color: activePersona.id === p.id ? p.color : 'var(--c-text-5)', fontWeight: activePersona.id === p.id ? 700 : 400 }}>
-                    {p.name.split(' ')[0]}
-                  </span>
-                </button>
-              ))}
+          <div className="card" style={{ padding: 16 }}>
+            <h2 className="section-title" style={{ fontSize: 14, marginBottom: 12 }}>Who is viewing this bucket?</h2>
+            <div className="persona-strip" role="group" aria-label="Viewing as" style={{ flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+              {personas.map(p => {
+                const generic = p.id === 'generic'
+                return (
+                  <button
+                    key={p.id}
+                    className="persona-dot"
+                    aria-pressed={activePersona.id === p.id}
+                    aria-label={`View as ${p.name}`}
+                    onClick={() => { setActivePersona(p); setActiveFile(null) }}
+                    title={`${p.name} — ${p.title}`}
+                    style={{ background: generic ? 'var(--c-surface-3)' : p.color, color: generic ? 'var(--c-text-4)' : inkOn(p.color) }}
+                  >
+                    {generic ? <UiIcon name="user" size={15} strokeWidth={1.9} /> : initialsOf(p)}
+                  </button>
+                )
+              })}
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-              <div style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0, background: activePersona.color + '22', border: `2px solid ${activePersona.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
-                {activePersona.avatar}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text-1)' }}>{activePersona.name}</div>
-                <div style={{ fontSize: 11, color: 'var(--c-text-5)', marginBottom: 6 }}>{activePersona.title}</div>
-                {rawAttrs.filter(a => !a.startsWith('relto:')).length > 0 ? (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                    {rawAttrs.filter(a => !a.startsWith('relto:')).map(a => (
-                      <span key={a} style={{ fontSize: 10, fontWeight: 500, padding: '2px 7px', borderRadius: 4, background: activePersona.color + '12', color: activePersona.color, border: `1px solid ${activePersona.color}25` }}>{a}</span>
-                    ))}
-                  </div>
-                ) : (
-                  <span style={{ fontSize: 11, color: 'var(--c-text-6)' }}>No entitlements</span>
-                )}
-              </div>
+            <div style={{ paddingTop: 12, borderTop: '1px solid var(--c-border)' }}>
+              <div style={{ fontSize: 14, fontWeight: 650, color: 'var(--c-text-1)' }}>{activePersona.name}</div>
+              <div style={{ fontSize: 12.5, color: 'var(--c-text-5)', marginBottom: 8 }}>{activePersona.title}</div>
+              {rawAttrs.filter(a => !a.startsWith('relto:')).length > 0 ? (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                  {rawAttrs.filter(a => !a.startsWith('relto:')).map(a => (
+                    <span key={a} className="chip chip-mono">{a}</span>
+                  ))}
+                </div>
+              ) : (
+                <span style={{ fontSize: 12.5, color: 'var(--c-text-5)' }}>No entitlements</span>
+              )}
             </div>
 
             <button
+              className={selectedFile ? 'btn btn-primary' : 'btn'}
               onClick={() => selectedFile && setPreviewFile(selectedFile)}
               disabled={!selectedFile}
-              style={{ marginTop: 12, width: '100%', padding: '9px 0', borderRadius: 8, background: selectedFile ? '#1d4ed8' : 'var(--c-surface-2)', color: selectedFile ? '#fff' : 'var(--c-text-5)', border: 'none', fontSize: 13, fontWeight: 600, cursor: selectedFile ? 'pointer' : 'default' }}
+              style={{ marginTop: 14, width: '100%' }}
             >
               {selectedFile ? `Preview "${selectedFile.name.split('_')[0]}…"` : 'Select a file to preview'}
             </button>
           </div>
 
-          <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 10, overflow: 'hidden' }}>
+          <div className="card" style={{ overflow: 'hidden' }}>
             <KasPanel file={selectedFile} attrs={attrs} />
           </div>
         </div>

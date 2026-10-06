@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useDemo } from '../context/DemoContext.jsx'
-import Icon from '../components/Icon.jsx'
+import UiIcon from '../components/UiIcon.jsx'
 
 const DEFAULT_PAGE_VISIBILITY = {
   home: true,
@@ -18,20 +18,20 @@ const PAGE_GROUPS = [
   {
     label: 'Demo',
     pages: [
-      { id: 'home',         label: 'Home',          icon: 'globe'   },
-      { id: 'cop',          label: 'COP',           icon: 'globe'   },
-      { id: 'collaborate',  label: 'Collaborate',   icon: 'revoke'  },
-      { id: 'gcap',         label: 'GCAP',          icon: 'boxes'   },
-      { id: 'ai-agent',     label: 'AI Protection', icon: 'shield'  },
-      { id: 'tdf-explorer', label: 'TDF Explorer',  icon: 'tdf'     },
+      { id: 'home',         label: 'Home' },
+      { id: 'cop',          label: 'COP' },
+      { id: 'collaborate',  label: 'Collaborate' },
+      { id: 'gcap',         label: 'GCAP' },
+      { id: 'ai-agent',     label: 'AI Protection' },
+      { id: 'tdf-explorer', label: 'TDF Explorer' },
     ]
   },
   {
     label: 'Core',
     pages: [
-      { id: 'architecture', label: 'Architecture',    icon: 'boxes'   },
-      { id: 'audit',        label: 'Audit Log',       icon: 'tdf-doc' },
-      { id: 'platform',     label: 'Platform Connectivity', icon: 'globe' },
+      { id: 'architecture', label: 'Architecture' },
+      { id: 'audit',        label: 'Audit Log' },
+      { id: 'platform',     label: 'Platform Connectivity' },
     ]
   },
 ]
@@ -73,12 +73,12 @@ export default function SettingsPage() {
   // Only Generic persona can access settings
   if (activePersona.id !== 'generic') {
     return (
-      <div className="p-6 flex flex-col items-center justify-center h-full">
-        <div className="max-w-md text-center">
-          <Icon name="shield" size={64} style={{ color: 'var(--c-text-6)', margin: '0 auto 1rem' }} />
-          <h1 className="text-2xl font-bold mb-2" style={{ color: 'var(--c-text-1)' }}>Access Restricted</h1>
-          <p style={{ color: 'var(--c-text-4)' }}>
-            Settings are only available to the Generic persona. Please switch personas to access this page.
+      <div className="page" style={{ display: 'flex', justifyContent: 'center', paddingTop: 96 }}>
+        <div style={{ maxWidth: 420, textAlign: 'center' }}>
+          <UiIcon name="lock" size={32} style={{ color: 'var(--c-text-6)', margin: '0 auto 14px' }} />
+          <h1 className="page-title">Access restricted</h1>
+          <p className="page-subtitle" style={{ margin: '0 auto' }}>
+            Settings are only available to the Generic persona. Switch to Generic on Home, then open Settings from the Developer menu.
           </p>
         </div>
       </div>
@@ -89,118 +89,66 @@ export default function SettingsPage() {
   const totalCount = Object.keys(visibility).length
 
   return (
-    <div className="p-6 flex flex-col gap-6 max-w-5xl mx-auto">
+    <div className="page" style={{ maxWidth: 820 }}>
       <div className="page-hero">
         <p className="page-subtitle">Configure which pages appear in navigation. Customize the demo for each prospect or presentation context.</p>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="rounded-xl p-4" style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)' }}>
-          <div className="text-2xl font-bold mb-1" style={{ color: 'var(--c-text-2)' }}>{visibleCount}</div>
-          <div className="text-xs" style={{ color: 'var(--c-text-5)' }}>Visible Pages</div>
-        </div>
-        <div className="rounded-xl p-4" style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)' }}>
-          <div className="text-2xl font-bold mb-1" style={{ color: 'var(--c-text-4)' }}>{totalCount - visibleCount}</div>
-          <div className="text-xs" style={{ color: 'var(--c-text-5)' }}>Hidden Pages</div>
-        </div>
-        <div className="rounded-xl p-4" style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)' }}>
-          <div className="text-2xl font-bold mb-1" style={{ color: 'var(--c-text-4)' }}>{totalCount}</div>
-          <div className="text-xs" style={{ color: 'var(--c-text-5)' }}>Total Pages</div>
+        <div className="page-actions">
+          <button type="button" className="btn" onClick={resetToDefaults}>Reset to defaults</button>
+          <button
+            type="button"
+            className={saved ? 'btn' : 'btn btn-primary'}
+            onClick={saveSettings}
+            style={saved ? { color: 'var(--c-grant)', borderColor: 'var(--c-grant-br)', background: 'var(--c-grant-bg)' } : undefined}
+          >
+            {saved ? <><UiIcon name="check" size={15} /> Saved</> : 'Save settings'}
+          </button>
         </div>
       </div>
 
-      {/* Page Visibility Controls */}
-      <div className="rounded-xl p-6" style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)' }}>
-        <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--c-text-2)' }}>Page Visibility</h2>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
+        <h2 className="section-title" style={{ margin: 0 }}>Page visibility</h2>
+        <span className="num" style={{ fontSize: 12.5, color: 'var(--c-text-5)' }}>
+          {visibleCount} visible, {totalCount - visibleCount} hidden, {totalCount} total
+        </span>
+      </div>
 
-        <div className="flex flex-col gap-6">
-          {PAGE_GROUPS.map(group => (
-            <div key={group.label}>
-              <div className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: 'var(--c-text-5)' }}>
-                {group.label}
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                {group.pages.map(page => (
-                  <label
-                    key={page.id}
-                    className="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all"
-                    style={{
-                      background: visibility[page.id] ? 'var(--c-bg)' : 'var(--c-border)',
-                      border: `1px solid ${visibility[page.id] ? '#4ade80' : 'var(--c-border-2)'}`,
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={visibility[page.id]}
-                      onChange={() => togglePage(page.id)}
-                      className="w-4 h-4 cursor-pointer"
-                      style={{ accentColor: '#4ade80' }}
-                    />
-                    <Icon name={page.icon} size={18} />
-                    <span className="text-sm" style={{ color: visibility[page.id] ? 'var(--c-text-2)' : 'var(--c-text-5)' }}>
-                      {page.label}
-                    </span>
-                    {visibility[page.id] && (
-                      <span className="ml-auto text-xs" style={{ color: '#4ade80' }}>✓</span>
-                    )}
-                  </label>
-                ))}
-              </div>
+      <div className="card" style={{ overflow: 'hidden' }}>
+        {PAGE_GROUPS.map((group, gi) => (
+          <div key={group.label} style={{ borderTop: gi === 0 ? 'none' : '1px solid var(--c-border)' }}>
+            <div style={{ padding: '12px 20px 4px', fontSize: 12.5, fontWeight: 650, color: 'var(--c-text-5)' }}>
+              {group.label}
             </div>
-          ))}
-        </div>
+            {group.pages.map((page, pi) => (
+              <label
+                key={page.id}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '11px 20px', cursor: 'pointer',
+                  borderTop: pi === 0 ? 'none' : '1px solid var(--c-border)',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={visibility[page.id]}
+                  onChange={() => togglePage(page.id)}
+                  style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--c-accent)', margin: 0 }}
+                />
+                <span style={{ fontSize: 14, fontWeight: 550, color: visibility[page.id] ? 'var(--c-text-1)' : 'var(--c-text-5)' }}>
+                  {page.label}
+                </span>
+                <span style={{ marginLeft: 'auto', fontSize: 12.5, color: 'var(--c-text-5)' }}>
+                  {visibility[page.id] ? 'Shown' : 'Hidden'}
+                </span>
+              </label>
+            ))}
+          </div>
+        ))}
       </div>
 
-      {/* Actions */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={saveSettings}
-          className="px-6 py-3 rounded-lg font-medium cursor-pointer transition-all"
-          style={{
-            background: saved ? '#0d2018' : '#004987',
-            color: saved ? '#4ade80' : '#ffffff',
-            border: `1px solid ${saved ? '#22c55e' : '#3b82f6'}`,
-          }}
-        >
-          {saved ? (
-            <>
-              <Icon name="check" size={16} /> Saved!
-            </>
-          ) : (
-            <>
-              <Icon name="gear" size={16} /> Save Settings
-            </>
-          )}
-        </button>
-
-        <button
-          onClick={resetToDefaults}
-          className="px-6 py-3 rounded-lg font-medium cursor-pointer transition-all"
-          style={{
-            background: 'var(--c-border)',
-            color: 'var(--c-text-3)',
-            border: '1px solid var(--c-border-2)',
-          }}
-        >
-          Reset to Defaults
-        </button>
-
-        {!saved && (
-          <span className="text-sm ml-auto" style={{ color: 'var(--c-text-5)' }}>
-            Unsaved changes
-          </span>
-        )}
-      </div>
-
-      {/* Help Text */}
-      <div className="rounded-lg p-4" style={{ background: 'var(--c-info-bg)', border: '1px solid #1e3a5f' }}>
-        <div className="text-xs font-bold mb-1" style={{ color: 'var(--c-text-2)' }}>💡 TIP</div>
-        <p className="text-xs" style={{ color: 'var(--c-text-4)' }}>
-          Settings are stored in your browser's local storage and persist across sessions.
-          Use this to customize the demo for different presentation scenarios or to focus on specific features.
-        </p>
-      </div>
+      <p style={{ margin: '16px 2px 0', fontSize: 12.5, lineHeight: 1.55, color: 'var(--c-text-5)' }}>
+        Settings are stored in your browser's local storage and persist across sessions.
+        Use this to customize the demo for different presentation scenarios or to focus on specific features.
+      </p>
     </div>
   )
 }

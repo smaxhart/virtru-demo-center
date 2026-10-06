@@ -9,6 +9,7 @@ import {
   canAccessFqns, missingFqns,
   SIM_BOUNDS, SIM_TICK_MS, SIM_SPEED_MULT, CLIP_CONFIGS,
 } from '../data/copSourceTypes.js'
+import UiIcon from '../components/UiIcon.jsx'
 import 'leaflet/dist/leaflet.css'
 
 // Like buildBanner but accepts raw relTo strings (e.g. ['FVEY', 'NATO']) instead of IDs
@@ -181,22 +182,20 @@ function CreateForm({ onClose, onCreated, activePersona }) {
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 2000,
-      background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'rgba(10,26,51,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
-      <div style={{
-        background: '#0d1117', border: '1px solid rgba(255,255,255,0.12)',
-        borderRadius: 12, padding: 24, width: 520, maxHeight: '85vh',
-        overflowY: 'auto', boxShadow: '0 24px 48px rgba(0,0,0,0.8)',
+      <div className="card-raised" style={{
+        padding: 24, width: 520, maxHeight: '85vh', overflowY: 'auto',
       }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#e8f0fe' }}>Create Encrypted Object</div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--c-text-1)' }}>Create Encrypted Object</div>
+            <div style={{ fontSize: 12.5, color: 'var(--c-text-5)', marginTop: 2 }}>
               Encrypting as {activePersona.name}
             </div>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontSize: 18 }}>✕</button>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={onClose} aria-label="Close" style={{ padding: 0, width: 30 }}><UiIcon name="x" size={16} /></button>
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -207,12 +206,12 @@ function CreateForm({ onClose, onCreated, activePersona }) {
               {SOURCE_TYPES.map(st => (
                 <button key={st.id} type="button" onClick={() => handleSrcTypeChange(st.id)}
                   style={{
-                    flex: 1, padding: '8px 4px', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 600,
-                    background: srcTypeId === st.id ? 'rgba(106,170,228,0.15)' : 'rgba(255,255,255,0.04)',
-                    border: `1px solid ${srcTypeId === st.id ? 'rgba(106,170,228,0.4)' : 'rgba(255,255,255,0.1)'}`,
-                    color: srcTypeId === st.id ? '#93c5fd' : 'rgba(255,255,255,0.5)',
+                    flex: 1, padding: '8px 4px', borderRadius: 'var(--c-radius-btn)', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+                    background: srcTypeId === st.id ? 'var(--c-info-bg)' : 'var(--c-surface)',
+                    border: `1px solid ${srcTypeId === st.id ? 'var(--c-accent)' : 'var(--c-border-2)'}`,
+                    color: srcTypeId === st.id ? 'var(--c-accent)' : 'var(--c-text-3)',
                   }}>
-                  {st.icon} {st.label}
+                  {st.label}
                 </button>
               ))}
             </div>
@@ -225,10 +224,10 @@ function CreateForm({ onClose, onCreated, activePersona }) {
               {CLASSIFICATIONS.map(c => (
                 <button key={c.id} type="button" onClick={() => setClassId(c.id)}
                   style={{
-                    padding: '5px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 700,
-                    background: classId === c.id ? c.color + '25' : 'rgba(255,255,255,0.04)',
-                    border: `1px solid ${classId === c.id ? c.color + '60' : 'rgba(255,255,255,0.1)'}`,
-                    color: classId === c.id ? c.color : 'rgba(255,255,255,0.4)',
+                    padding: '5px 12px', borderRadius: 'var(--c-radius-chip)', cursor: 'pointer', fontSize: 11.5, fontWeight: 700,
+                    background: classId === c.id ? c.color + '22' : 'var(--c-surface)',
+                    border: `1px solid ${classId === c.id ? c.color : 'var(--c-border-2)'}`,
+                    color: classId === c.id ? c.text : 'var(--c-text-4)',
                   }}>
                   {c.label}
                 </button>
@@ -244,10 +243,10 @@ function CreateForm({ onClose, onCreated, activePersona }) {
                 {NEEDTOKNOW_OPTIONS.map(n => (
                   <button key={n.id} type="button" onClick={() => toggleArr(needToKnow, setNeedToKnow, n.id)}
                     style={{
-                      padding: '5px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 700,
-                      background: needToKnow.includes(n.id) ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.04)',
-                      border: `1px solid ${needToKnow.includes(n.id) ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.1)'}`,
-                      color: needToKnow.includes(n.id) ? '#c4b5fd' : 'rgba(255,255,255,0.4)',
+                      padding: '5px 12px', borderRadius: 'var(--c-radius-chip)', cursor: 'pointer', fontSize: 11.5, fontWeight: 700,
+                      background: needToKnow.includes(n.id) ? 'var(--c-purple-bg)' : 'var(--c-surface)',
+                      border: `1px solid ${needToKnow.includes(n.id) ? '#cfc4f0' : 'var(--c-border-2)'}`,
+                      color: needToKnow.includes(n.id) ? '#5b3fb0' : 'var(--c-text-4)',
                     }}>
                     {n.label}
                   </button>
@@ -290,14 +289,14 @@ function CreateForm({ onClose, onCreated, activePersona }) {
           </div>
 
           {/* Schema-driven fields */}
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 14 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.4)', marginBottom: 10 }}>
-              {srcType.fullLabel} Fields
+          <div style={{ borderTop: '1px solid var(--c-border)', paddingTop: 14 }}>
+            <div style={{ fontSize: 13, fontWeight: 650, color: 'var(--c-text-1)', marginBottom: 10 }}>
+              {srcType.fullLabel} fields
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {srcType.fields.map(f => (
                 <div key={f.name}>
-                  <label style={labelStyle}>{f.label}{f.required && <span style={{ color: '#f87171' }}> *</span>}</label>
+                  <label style={labelStyle}>{f.label}{f.required && <span style={{ color: 'var(--c-deny)' }}> *</span>}</label>
                   {f.type === 'textarea' ? (
                     <textarea value={fieldVals[f.name] ?? ''} onChange={e => setField(f.name, e.target.value)}
                       placeholder={f.placeholder} required={f.required} rows={3}
@@ -318,19 +317,15 @@ function CreateForm({ onClose, onCreated, activePersona }) {
           </div>
 
           {error && (
-            <div style={{ padding: '8px 12px', borderRadius: 6, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', fontSize: 12, color: '#f87171' }}>
+            <div style={{ padding: '8px 12px', borderRadius: 'var(--c-radius-btn)', background: 'var(--c-deny-bg)', border: '1px solid var(--c-deny-br)', fontSize: 12.5, color: 'var(--c-deny)' }}>
               {error}
             </div>
           )}
 
           <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-            <button type="button" onClick={onClose}
-              style={{ flex: 1, padding: '10px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)' }}>
-              Cancel
-            </button>
-            <button type="submit" disabled={saving}
-              style={{ flex: 2, padding: '10px', borderRadius: 8, cursor: saving ? 'default' : 'pointer', fontSize: 13, fontWeight: 700, background: saving ? 'rgba(106,170,228,0.1)' : '#1a4a8a', border: '1px solid rgba(106,170,228,0.3)', color: saving ? 'rgba(106,170,228,0.5)' : '#e8f0fe', opacity: saving ? 0.7 : 1 }}>
-              {saving ? 'Encrypting…' : '🔒 Encrypt & Place'}
+            <button type="button" className="btn" onClick={onClose} style={{ flex: 1 }}>Cancel</button>
+            <button type="submit" className="btn btn-primary" disabled={saving} style={{ flex: 2 }}>
+              {saving ? 'Encrypting…' : <><UiIcon name="lock" size={15} /> Encrypt &amp; Place</>}
             </button>
           </div>
         </form>
@@ -339,8 +334,8 @@ function CreateForm({ onClose, onCreated, activePersona }) {
   )
 }
 
-const labelStyle = { display: 'block', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'rgba(255,255,255,0.4)', marginBottom: 5 }
-const inputStyle = { width: '100%', padding: '8px 10px', borderRadius: 7, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: '#e8f0fe', fontSize: 13, outline: 'none', boxSizing: 'border-box' }
+const labelStyle = { display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--c-text-3)', marginBottom: 5 }
+const inputStyle = { width: '100%', padding: '8px 10px', borderRadius: 'var(--c-radius-btn)', background: 'var(--c-surface)', border: '1px solid var(--c-border-2)', color: 'var(--c-text-1)', fontSize: 13, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }
 
 // ── CCTV Feed ─────────────────────────────────────────────────────────────────
 
@@ -394,14 +389,14 @@ function CctvFeed({ config, classification }) {
       <div style={{ position:'absolute', bottom:4, right:4, width:10, height:10, pointerEvents:'none', borderBottom:`1.5px solid ${cls.color}`, borderRight:`1.5px solid ${cls.color}` }} />
       <div style={{
         position: 'absolute', top: 6, left: 8, display: 'flex', alignItems: 'center', gap: 5,
-        fontFamily: 'monospace', fontSize: 9, fontWeight: 700, color: '#fff', pointerEvents: 'none',
+        fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700, color: '#fff', pointerEvents: 'none',
         textShadow: '0 0 4px rgba(0,0,0,0.9)',
       }}>
         <RecDot /> REC&nbsp;&nbsp;{config.camId}
       </div>
       <div style={{
         position: 'absolute', top: 6, right: 8,
-        fontFamily: 'monospace', fontSize: 9, fontWeight: 700,
+        fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700,
         color: 'rgba(255,255,255,0.65)', pointerEvents: 'none',
         textShadow: '0 0 4px rgba(0,0,0,0.9)',
       }}>
@@ -409,7 +404,7 @@ function CctvFeed({ config, classification }) {
       </div>
       <div style={{
         position: 'absolute', bottom: 4, left: 0, right: 0, textAlign: 'center',
-        fontFamily: 'monospace', fontSize: 8, fontWeight: 800,
+        fontFamily: 'var(--font-mono)', fontSize: 8, fontWeight: 800,
         color: cls.color, letterSpacing: '0.12em', pointerEvents: 'none',
         textShadow: '0 0 4px rgba(0,0,0,0.9)',
       }}>
@@ -432,14 +427,15 @@ function DetailPanel({ obj, liveObj, activePersona, onClose, onDecrypt, decryptS
   return (
     <div style={{
       position: 'absolute', top: 0, right: 0, bottom: 0, width: 320, zIndex: 800,
-      background: 'rgba(8,12,22,0.97)', borderLeft: '1px solid rgba(255,255,255,0.1)',
+      background: 'var(--c-surface)', borderLeft: '1px solid var(--c-border)',
+      boxShadow: 'var(--c-shadow-lg)',
       display: 'flex', flexDirection: 'column', overflowY: 'auto',
     }}>
       {/* Classification banner */}
       <div style={{
         padding: '6px 14px', textAlign: 'center',
-        background: cls.color + '22', borderBottom: `1px solid ${cls.color}40`,
-        fontSize: 10, fontWeight: 800, letterSpacing: '0.12em', color: cls.color,
+        background: cls.color + '22', borderBottom: `1px solid ${cls.color}66`,
+        fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', color: cls.text,
         flexShrink: 0,
       }}>
         {banner}
@@ -449,12 +445,12 @@ function DetailPanel({ obj, liveObj, activePersona, onClose, onDecrypt, decryptS
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
           <div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>
-              {srcType.icon} {srcType.fullLabel}
+            <div style={{ fontSize: 12, color: 'var(--c-text-5)', marginBottom: 4 }}>
+              {srcType.fullLabel}
             </div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#e8f0fe', lineHeight: 1.3 }}>{obj.title}</div>
+            <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--c-text-1)', lineHeight: 1.3 }}>{obj.title}</div>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)', fontSize: 16, flexShrink: 0, paddingTop: 2 }}>✕</button>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={onClose} aria-label="Close" style={{ padding: 0, width: 28, height: 28, flexShrink: 0 }}><UiIcon name="x" size={15} /></button>
         </div>
 
         {/* Meta */}
@@ -469,13 +465,13 @@ function DetailPanel({ obj, liveObj, activePersona, onClose, onDecrypt, decryptS
 
         {/* Required attributes */}
         <div>
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.35)', marginBottom: 6 }}>Required Attributes</div>
+          <div style={{ fontSize: 12.5, fontWeight: 650, color: 'var(--c-text-4)', marginBottom: 6 }}>Required attributes</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
             {fqns.map(fqn => {
               const m = fqn.match(/\/attr\/([^/]+)\/value\/(.+)$/)
               const label = m ? `${m[1]}:${m[2]}` : fqn
               return (
-                <span key={fqn} style={{ padding: '2px 7px', borderRadius: 4, fontSize: 10, background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.1)', fontFamily: 'monospace' }}>
+                <span key={fqn} className="chip chip-mono">
                   {label}
                 </span>
               )
@@ -485,31 +481,31 @@ function DetailPanel({ obj, liveObj, activePersona, onClose, onDecrypt, decryptS
 
         {/* Access status */}
         <div style={{
-          padding: '10px 12px', borderRadius: 8,
-          background: hasAccess ? 'rgba(74,222,128,0.08)' : 'rgba(239,68,68,0.08)',
-          border: `1px solid ${hasAccess ? 'rgba(74,222,128,0.25)' : 'rgba(239,68,68,0.25)'}`,
+          padding: '10px 12px', borderRadius: 'var(--c-radius-btn)',
+          background: hasAccess ? 'var(--c-grant-bg)' : 'var(--c-deny-bg)',
+          border: `1px solid ${hasAccess ? 'var(--c-grant-br)' : 'var(--c-deny-br)'}`,
         }}>
           {hasAccess ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 16 }}>✓</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--c-grant)' }}>
+              <UiIcon name="check" size={18} strokeWidth={2} />
               <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#4ade80' }}>ENTITLEMENTS SATISFIED</div>
-                <div style={{ fontSize: 11, color: 'rgba(74,222,128,0.6)' }}>KAS will grant access</div>
+                <div style={{ fontSize: 13, fontWeight: 650 }}>Entitlements satisfied</div>
+                <div style={{ fontSize: 12, color: 'var(--c-text-4)' }}>KAS will grant access</div>
               </div>
             </div>
           ) : (
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                <span style={{ fontSize: 16 }}>🔒</span>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#f87171' }}>INSUFFICIENT CLEARANCE</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, color: 'var(--c-deny)' }}>
+                <UiIcon name="lock" size={17} strokeWidth={2} />
+                <div style={{ fontSize: 13, fontWeight: 650 }}>Insufficient clearance</div>
               </div>
-              <div style={{ fontSize: 11, color: 'rgba(248,113,113,0.6)', marginBottom: 5 }}>Missing attributes:</div>
+              <div style={{ fontSize: 12, color: 'var(--c-text-4)', marginBottom: 5 }}>Missing attributes:</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                 {missing.map(fqn => {
                   const m = fqn.match(/\/attr\/([^/]+)\/value\/(.+)$/)
                   const label = m ? `${m[1]}:${m[2]}` : fqn
                   return (
-                    <span key={fqn} style={{ padding: '2px 8px', borderRadius: 4, fontSize: 11, background: 'rgba(239,68,68,0.12)', color: '#f87171', border: '1px solid rgba(239,68,68,0.25)', fontFamily: 'monospace' }}>
+                    <span key={fqn} className="chip chip-mono chip-deny">
                       {label}
                     </span>
                   )
@@ -527,9 +523,9 @@ function DetailPanel({ obj, liveObj, activePersona, onClose, onDecrypt, decryptS
           <CctvFeed config={CLIP_CONFIGS[obj.id]} classification={obj.classification} />
         )}
         {decryptState === 'denied' && (
-          <div style={{ padding: '10px 12px', borderRadius: 8, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#f87171', marginBottom: 4 }}>KAS — 403 Forbidden</div>
-            <div style={{ fontSize: 11, color: 'rgba(248,113,113,0.6)' }}>Entitlement check failed. The file remains encrypted.</div>
+          <div style={{ padding: '10px 12px', borderRadius: 'var(--c-radius-btn)', background: 'var(--c-deny-bg)', border: '1px solid var(--c-deny-br)' }}>
+            <div style={{ fontSize: 13, fontWeight: 650, color: 'var(--c-deny)', marginBottom: 4 }}>KAS: 403 Forbidden</div>
+            <div style={{ fontSize: 12, color: 'var(--c-text-4)' }}>Entitlement check failed. The file remains encrypted.</div>
           </div>
         )}
       </div>
@@ -539,18 +535,18 @@ function DetailPanel({ obj, liveObj, activePersona, onClose, onDecrypt, decryptS
 
 function MetaRow({ label, value }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 11 }}>
-      <span style={{ color: 'rgba(255,255,255,0.35)', flexShrink: 0 }}>{label}</span>
-      <span style={{ color: 'rgba(255,255,255,0.65)', textAlign: 'right' }}>{value}</span>
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 12.5 }}>
+      <span style={{ color: 'var(--c-text-5)', flexShrink: 0 }}>{label}</span>
+      <span className="num" style={{ color: 'var(--c-text-2)', textAlign: 'right' }}>{value}</span>
     </div>
   )
 }
 
 function DecryptedContent({ data, srcType }) {
   return (
-    <div style={{ borderTop: '1px solid rgba(74,222,128,0.2)', paddingTop: 12 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#4ade80', marginBottom: 10 }}>
-        Decrypted Payload
+    <div style={{ borderTop: '1px solid var(--c-border)', paddingTop: 12 }}>
+      <div style={{ fontSize: 13, fontWeight: 650, color: 'var(--c-grant)', marginBottom: 10 }}>
+        Decrypted payload
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {srcType.fields.map(f => {
@@ -558,8 +554,8 @@ function DecryptedContent({ data, srcType }) {
           if (!val) return null
           return (
             <div key={f.name}>
-              <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.35)', marginBottom: 2 }}>{f.label}</div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{val}</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--c-text-5)', marginBottom: 2 }}>{f.label}</div>
+              <div style={{ fontSize: 13, color: 'var(--c-text-2)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{val}</div>
             </div>
           )
         })}
@@ -791,14 +787,14 @@ export default function CopPage() {
   const accessibleCount = objects.filter(o => canAccessFqns(objFqns(o), activePersona)).length
 
   return (
-    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', background: '#0d1117', overflow: 'hidden' }}>
+    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', background: 'var(--c-bg)', overflow: 'hidden' }}>
 
       {/* ── Classification banner ─────────────────────────────────────────── */}
       <div style={{
-        flexShrink: 0, background: '#7f1d1d', textAlign: 'center',
-        fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', color: '#fca5a5', padding: '4px 0', zIndex: 1000,
+        flexShrink: 0, background: 'var(--c-surface-2)', borderBottom: '1px solid var(--c-border)', textAlign: 'center',
+        fontSize: 12.5, fontWeight: 600, color: 'var(--c-text-4)', padding: '5px 0', zIndex: 1000,
       }}>
-        CLASSIFICATION GUIDE — CONTENT VARIES BY VIEWER ENTITLEMENTS
+        Classification guide: content varies by viewer entitlements
       </div>
 
       {/* ── Body ──────────────────────────────────────────────────────────── */}
@@ -807,25 +803,25 @@ export default function CopPage() {
         {/* ── Left Sidebar ──────────────────────────────────────────────── */}
         <div style={{
           width: 260, flexShrink: 0,
-          background: 'rgba(5,9,18,0.97)', borderRight: '1px solid rgba(255,255,255,0.08)',
+          background: 'var(--c-surface)', borderRight: '1px solid var(--c-border)',
           display: 'flex', flexDirection: 'column', overflow: 'hidden',
         }}>
           {/* Persona / stats strip */}
-          <div style={{ padding: '12px 14px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 2 }}>{activePersona.name}</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#e8f0fe' }}>
+          <div style={{ padding: '14px', borderBottom: '1px solid var(--c-border)', flexShrink: 0 }}>
+            <div style={{ fontSize: 12, color: 'var(--c-text-5)', marginBottom: 2 }}>{activePersona.name}</div>
+            <div className="num" style={{ fontSize: 14, fontWeight: 650, color: 'var(--c-text-1)' }}>
               {seeding ? 'Seeding…' : `${accessibleCount} / ${objects.length} objects accessible`}
             </div>
             {(() => {
               const displayAttrs = activePersona.attributes.filter(a => !a.startsWith('relto:'))
               if (displayAttrs.length === 0) return null
               return (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 6 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
                   {displayAttrs.slice(0, 4).map(a => (
-                    <span key={a} style={{ fontSize: 10, padding: '1px 5px', borderRadius: 3, background: activePersona.color + '18', color: activePersona.color, border: `1px solid ${activePersona.color}30` }}>{a}</span>
+                    <span key={a} className="chip chip-mono" style={{ height: 20, fontSize: 10.5 }}>{a}</span>
                   ))}
                   {displayAttrs.length > 4 && (
-                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>+{displayAttrs.length - 4}</span>
+                    <span style={{ fontSize: 11, color: 'var(--c-text-5)', alignSelf: 'center' }}>+{displayAttrs.length - 4}</span>
                   )}
                 </div>
               )
@@ -833,30 +829,31 @@ export default function CopPage() {
           </div>
 
           {/* Simulation controls */}
-          <div style={{ padding: '8px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--c-border)', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
             <button
+              type="button"
+              className="btn btn-sm"
               onClick={simRunning ? stopSim : startSim}
               disabled={objects.length === 0}
               style={{
-                flex: 1, padding: '7px 10px', borderRadius: 7, cursor: objects.length === 0 ? 'default' : 'pointer',
-                fontSize: 12, fontWeight: 700,
-                background: simRunning ? 'rgba(74,222,128,0.12)' : 'rgba(255,255,255,0.06)',
-                border: `1px solid ${simRunning ? 'rgba(74,222,128,0.35)' : 'rgba(255,255,255,0.12)'}`,
-                color: simRunning ? '#4ade80' : 'rgba(255,255,255,0.55)',
-                opacity: objects.length === 0 ? 0.4 : 1,
+                flex: 1,
+                ...(simRunning ? { background: 'var(--c-grant-bg)', borderColor: 'var(--c-grant-br)', color: 'var(--c-grant)' } : null),
               }}>
-              {simRunning ? '⏸ Pause' : '▶ Simulate'}
+              {simRunning ? 'Pause' : 'Simulate'}
             </button>
             {simRunning && (
-              <span style={{ fontSize: 11, color: '#4ade80', fontWeight: 700, letterSpacing: '0.05em', flexShrink: 0 }}>● LIVE</span>
+              <span className="chip chip-grant" style={{ flexShrink: 0 }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--c-grant)' }} />
+                Live
+              </span>
             )}
           </div>
 
           {/* Filters */}
-          <div style={{ padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--c-border)', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
             <select value={filterType} onChange={e => setFilterType(e.target.value)} style={sidebarSelectStyle}>
               <option value="all">All types</option>
-              {SOURCE_TYPES.map(st => <option key={st.id} value={st.id}>{st.icon} {st.label}</option>)}
+              {SOURCE_TYPES.map(st => <option key={st.id} value={st.id}>{st.label}</option>)}
             </select>
             <select value={filterCls} onChange={e => setFilterCls(e.target.value)} style={sidebarSelectStyle}>
               <option value="all">All classifications</option>
@@ -867,11 +864,11 @@ export default function CopPage() {
           {/* Object list */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
             {seeding ? (
-              <div style={{ padding: '24px 14px', textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
+              <div style={{ padding: '24px 14px', textAlign: 'center', fontSize: 12.5, color: 'var(--c-text-5)' }}>
                 Encrypting seed objects via KAS…
               </div>
             ) : filteredObjects.length === 0 ? (
-              <div style={{ padding: '24px 14px', textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
+              <div style={{ padding: '24px 14px', textAlign: 'center', fontSize: 12.5, color: 'var(--c-text-5)' }}>
                 No objects match filters.
               </div>
             ) : filteredObjects.filter(o => canAccessFqns(objFqns(o), activePersona)).map(obj => {
@@ -882,20 +879,21 @@ export default function CopPage() {
                 <button key={obj.id} onClick={() => { const snap = { ...obj }; setSelectedObj(snap); setDecryptState(null); handleDecrypt(snap) }}
                   style={{
                     width: '100%', textAlign: 'left', padding: '9px 14px',
-                    background: isSelected ? 'rgba(106,170,228,0.1)' : 'transparent',
+                    background: isSelected ? 'var(--c-info-bg)' : 'transparent',
                     border: 'none', borderLeft: `3px solid ${isSelected ? cls.color : 'transparent'}`,
-                    cursor: 'pointer', display: 'flex', gap: 10, alignItems: 'flex-start',
-                    borderBottom: '1px solid rgba(255,255,255,0.04)',
+                    cursor: 'pointer', display: 'block',
+                    borderBottom: '1px solid var(--c-border)',
                   }}>
-                  <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{st.icon}</span>
                   <div style={{ overflow: 'hidden' }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: '#e8f0fe', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {obj.title}
                     </div>
-                    <div style={{ fontSize: 10, marginTop: 2, display: 'flex', gap: 5, alignItems: 'center' }}>
-                      <span style={{ color: cls.color, fontWeight: 700 }}>{cls.label}</span>
+                    <div style={{ fontSize: 11.5, marginTop: 3, display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: cls.color, flexShrink: 0 }} />
+                      <span style={{ color: 'var(--c-text-3)', fontWeight: 600 }}>{st.label}</span>
+                      <span style={{ color: cls.stroke, fontWeight: 700 }}>{cls.label}</span>
                       {(obj.needToKnow?.length > 0 || obj.relTo?.length > 0) && (
-                        <span style={{ color: 'rgba(255,255,255,0.3)' }}>
+                        <span style={{ color: 'var(--c-text-5)' }}>
                           {[...(obj.needToKnow ?? []), ...(obj.relTo ?? [])].join('/')}
                         </span>
                       )}
@@ -907,16 +905,10 @@ export default function CopPage() {
           </div>
 
           {/* Create button */}
-          <div style={{ padding: '12px 14px', borderTop: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
-            <button onClick={() => setShowCreate(true)} disabled={!platformReady}
-              style={{
-                width: '100%', padding: '10px', borderRadius: 8, cursor: platformReady ? 'pointer' : 'default',
-                fontSize: 13, fontWeight: 700,
-                background: platformReady ? '#1a4a8a' : 'rgba(255,255,255,0.04)',
-                border: `1px solid ${platformReady ? 'rgba(106,170,228,0.3)' : 'rgba(255,255,255,0.08)'}`,
-                color: platformReady ? '#e8f0fe' : 'rgba(255,255,255,0.25)',
-              }}>
-              {platformReady ? '+ Create Object' : 'Platform starting…'}
+          <div style={{ padding: '12px 14px', borderTop: '1px solid var(--c-border)', flexShrink: 0 }}>
+            <button type="button" className="btn btn-primary" onClick={() => setShowCreate(true)} disabled={!platformReady}
+              style={{ width: '100%' }}>
+              {platformReady ? 'Create object' : 'Platform starting…'}
             </button>
           </div>
         </div>
@@ -926,31 +918,28 @@ export default function CopPage() {
           <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} />
 
           {/* Legend toggle */}
-          <button onClick={() => setLegend(l => !l)}
+          <button type="button" className="btn btn-sm" onClick={() => setLegend(l => !l)}
             style={{
               position: 'absolute', bottom: 12, right: selectedObj ? 332 : 12, zIndex: 900,
-              background: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.15)',
-              borderRadius: 6, padding: '5px 10px', cursor: 'pointer', color: '#fff', fontSize: 11,
-              backdropFilter: 'blur(4px)', transition: 'right 0.2s',
+              boxShadow: 'var(--c-shadow-md)', transition: 'right 0.2s',
             }}>
-            {legend ? 'Hide Legend' : 'Show Legend'}
+            {legend ? 'Hide legend' : 'Show legend'}
           </button>
 
           {/* Legend panel */}
           {legend && (
-            <div style={{
-              position: 'absolute', bottom: 40, right: selectedObj ? 332 : 12, zIndex: 900,
-              background: 'rgba(10,16,30,0.92)', border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: 10, padding: '12px 14px', width: 200,
-              backdropFilter: 'blur(6px)', transition: 'right 0.2s',
+            <div className="card" style={{
+              position: 'absolute', bottom: 50, right: selectedObj ? 332 : 12, zIndex: 900,
+              padding: '12px 14px', width: 200,
+              boxShadow: 'var(--c-shadow-md)', transition: 'right 0.2s',
             }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.1em', marginBottom: 8 }}>CLASSIFICATION</div>
+              <div style={{ fontSize: 12.5, fontWeight: 650, color: 'var(--c-text-1)', marginBottom: 8 }}>Classification</div>
               {CLASSIFICATIONS.map(c => {
                 const hasAny = objects.filter(o => o.classification === c.id).some(o => canAccessFqns(objFqns(o), activePersona))
                 return (
                   <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5, opacity: hasAny ? 1 : 0.35 }}>
                     <div style={{ width: 10, height: 10, borderRadius: '50%', background: c.color, flexShrink: 0 }} />
-                    <span style={{ fontSize: 11, color: hasAny ? c.color : '#666' }}>{c.label}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: hasAny ? c.stroke : 'var(--c-text-5)' }}>{c.label}</span>
                   </div>
                 )
               })}
@@ -984,7 +973,7 @@ export default function CopPage() {
 }
 
 const sidebarSelectStyle = {
-  width: '100%', padding: '6px 8px', borderRadius: 6,
-  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-  color: 'rgba(255,255,255,0.6)', fontSize: 12, outline: 'none',
+  width: '100%', height: 32, padding: '0 8px', borderRadius: 'var(--c-radius-btn)',
+  background: 'var(--c-surface)', border: '1px solid var(--c-border-2)',
+  color: 'var(--c-text-2)', fontSize: 13, outline: 'none', fontFamily: 'inherit',
 }

@@ -3,10 +3,10 @@ import { useApp } from '../context/AppContext.jsx'
 
 function Section({ title, children }) {
   return (
-    <div style={{ marginBottom: 26 }}>
-      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--c-text-1)', marginBottom: 8 }}>{title}</div>
-      <div style={{ fontSize: 12.5, color: 'var(--c-text-4)', lineHeight: 1.8 }}>{children}</div>
-    </div>
+    <section className="sai-sec">
+      <h2>{title}</h2>
+      <div>{children}</div>
+    </section>
   )
 }
 
@@ -19,20 +19,17 @@ function Flow() {
     { n: '5', label: 'Prompt',     detail: 'Only if both keys came back does plaintext enter the model\'s context.' },
   ]
   return (
-    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '14px 0 4px' }}>
-      {steps.map((s, i) => (
-        <div key={s.n} style={{ display: 'flex', alignItems: 'stretch', gap: 8, flex: '1 1 160px' }}>
-          <div className="card" style={{ padding: '11px 12px', flex: 1 }}>
-            <div className="mono" style={{ fontSize: 10, color: 'var(--c-accent)', fontWeight: 700 }}>{s.n}</div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--c-text-2)', marginTop: 3 }}>{s.label}</div>
-            <div style={{ fontSize: 10.5, color: 'var(--c-text-5)', marginTop: 4, lineHeight: 1.55 }}>{s.detail}</div>
+    <ol className="flow" style={{ margin: '18px 0 4px' }}>
+      {steps.map(s => (
+        <li key={s.n}>
+          <span className="flow-n">{s.n}</span>
+          <div style={{ paddingTop: 3 }}>
+            <div style={{ fontSize: 14, fontWeight: 650, color: 'var(--c-text-1)' }}>{s.label}</div>
+            <div style={{ fontSize: 13.5, color: 'var(--c-text-4)', marginTop: 2, lineHeight: 1.55 }}>{s.detail}</div>
           </div>
-          {i < steps.length - 1 && (
-            <div style={{ display: 'grid', placeItems: 'center', color: 'var(--c-text-6)', fontSize: 13 }}>→</div>
-          )}
-        </div>
+        </li>
       ))}
-    </div>
+    </ol>
   )
 }
 
@@ -42,11 +39,11 @@ function ModeSection({ mode }) {
     <>
       <Section title={`What the ${mode.name} scenario is for`}>
         {mode.premise}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 16 }}>
           {mode.teaches.map(t => (
-            <div key={t.title} className="card" style={{ padding: '11px 13px' }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: mode.accent }}>{t.title}</div>
-              <div style={{ fontSize: 11.5, color: 'var(--c-text-4)', marginTop: 4, lineHeight: 1.65 }}>
+            <div key={t.title} style={{ paddingLeft: 14, borderLeft: `3px solid ${mode.accent}` }}>
+              <div style={{ fontSize: 14, fontWeight: 650, color: 'var(--c-text-1)' }}>{t.title}</div>
+              <div style={{ fontSize: 13.5, color: 'var(--c-text-4)', marginTop: 3, lineHeight: 1.6 }}>
                 {t.detail}
               </div>
             </div>
@@ -55,24 +52,24 @@ function ModeSection({ mode }) {
       </Section>
 
       <Section title="The attributes this mode decides on">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginTop: 2 }}>
-          {mode.vocabulary.map(v => (
-            <div key={v.name} style={{ display: 'flex', gap: 10, alignItems: 'baseline' }}>
-              <code style={{
-                fontSize: 11, flexShrink: 0, minWidth: 96,
-                color: 'var(--c-text-2)', fontWeight: 600,
-              }}>{v.name}</code>
-              <span className="mono" style={{
-                fontSize: 9.5, flexShrink: 0, minWidth: 74, padding: '1px 6px', borderRadius: 4,
-                background: 'var(--c-surface-2)', border: '1px solid var(--c-border)',
-                color: 'var(--c-text-5)',
-              }}>{v.rule}</span>
-              <span style={{ fontSize: 11.5, color: 'var(--c-text-4)', lineHeight: 1.6 }}>{v.detail}</span>
-            </div>
-          ))}
+        <div className="card" style={{ overflow: 'hidden', marginTop: 4 }}>
+          <table className="tbl">
+            <thead>
+              <tr><th>Attribute</th><th>Rule</th><th>What it decides</th></tr>
+            </thead>
+            <tbody>
+              {mode.vocabulary.map(v => (
+                <tr key={v.name}>
+                  <td><code className="code" style={{ fontWeight: 600 }}>{v.name}</code></td>
+                  <td><span className="chip chip-mono">{v.rule}</span></td>
+                  <td style={{ color: 'var(--c-text-4)', lineHeight: 1.55 }}>{v.detail}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-        <div style={{ fontSize: 11, color: 'var(--c-text-6)', marginTop: 10, lineHeight: 1.7 }}>
-          All five modes share one <code>demo.com</code> namespace and one set of subject
+        <div style={{ fontSize: 12.5, color: 'var(--c-text-5)', marginTop: 12, lineHeight: 1.65 }}>
+          All five modes share one <code className="code">demo.com</code> namespace and one set of subject
           mappings. Nothing about the enforcement path is per-scenario — only the vocabulary is.
         </div>
       </Section>
@@ -86,12 +83,16 @@ export default function HowItWorksPage() {
   const publicDocs = mode.documents.filter(d => Array.isArray(d.policy) && d.policy.length === 0)
 
   return (
-    <div style={{ height: '100%', overflowY: 'auto', padding: 20 }}>
-      <div style={{ maxWidth: 780, margin: '0 auto', paddingBottom: 32 }}>
+    <div style={{ height: '100%', overflowY: 'auto' }}>
+      <div className="page" style={{ maxWidth: 980 }}>
 
-        <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--c-text-1)' }}>How it works</div>
-        <div style={{ fontSize: 12, color: 'var(--c-text-5)', marginTop: 4, marginBottom: 24, lineHeight: 1.65 }}>
-          Everything in this app runs locally except the model call itself.
+        <div className="page-hero" style={{ marginBottom: 0 }}>
+          <div>
+            <h1 className="page-title">How it works</h1>
+            <p className="page-subtitle">
+              Everything in this app runs locally except the model call itself.
+            </p>
+          </div>
         </div>
 
         <Section title="The enforcement point is retrieval, not the prompt">
@@ -136,7 +137,7 @@ export default function HowItWorksPage() {
         <Section title="What is actually running">
           A full OpenTDF platform starts as a child process when the app launches, with an
           embedded Postgres for the policy store and its own KAS keypair generated on first
-          run. It listens on <code>{PLATFORM_URL}</code>. Identity comes from an in-process
+          run. It listens on <code className="code">{PLATFORM_URL}</code>. Identity comes from an in-process
           OIDC issuer that mints a real RS256 token per persona, so switching personas in the
           header genuinely changes the bearer token the KAS validates. There is no Keycloak
           and no cloud dependency. Launching a mode encrypts that mode's corpus on the spot,
@@ -157,7 +158,7 @@ export default function HowItWorksPage() {
               a document gets shared with several communities without being opened to everyone.
             </li>
             <li style={{ marginBottom: 5 }}>
-              <strong>HIERARCHY definitions rank their values.</strong> <code>clearance</code> is
+              <strong>HIERARCHY definitions rank their values.</strong> <code className="code">clearance</code> is
               the only one here: tagging a document SECRET admits TS-SCI holders without listing
               them, the same way a classification ladder works on paper.
             </li>
@@ -197,7 +198,7 @@ export default function HowItWorksPage() {
 
         <Section title="Where the model runs">
           Prompts go to Anthropic through the Virtru AI Gateway
-          (<code>developer-ai-gateway.virtru.com</code>), authenticated at the machine level by
+          (<code className="code">developer-ai-gateway.virtru.com</code>), authenticated at the machine level by
           WARP, so no API key ships in this app. If the gateway is unreachable the usual cause
           is WARP being disconnected. Note the shape of the trust boundary: released plaintext
           does leave the machine as part of the prompt. What the platform guarantees is that
@@ -225,7 +226,7 @@ export default function HowItWorksPage() {
               not plumbing.
             </li>
             <li>
-              The Corpus page will hand over a real <code>.tdf</code> file. It stays encrypted
+              The Corpus page will hand over a real <code className="code">.tdf</code> file. It stays encrypted
               wherever it goes, and opening it later still requires the KAS to agree.
             </li>
           </ul>

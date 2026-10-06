@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useDemo } from '../context/DemoContext.jsx'
-import Icon from '../components/Icon.jsx'
+import UiIcon from '../components/UiIcon.jsx'
 
 const FILTERS = ['All', 'Granted', 'Denied', 'Revoked']
 
@@ -78,212 +78,164 @@ export default function AuditPage() {
     URL.revokeObjectURL(url)
   }
 
-  const RESULT_COLORS = {
-    granted: { text: '#16a34a', bg: '#dcfce7', border: '#86efac', row: 'transparent' },
-    denied:  { text: '#dc2626', bg: '#fee2e2', border: '#fca5a5', row: '#ef444406' },
-    revoked: { text: '#d97706', bg: '#fef3c7', border: '#fde68a', row: '#f59e0b06' },
-  }
+  const CHIP = { granted: 'chip-grant', denied: 'chip-deny', revoked: 'chip-warn' }
+  const EDGE = { granted: 'var(--c-grant)', denied: 'var(--c-deny)', revoked: 'var(--c-warn)' }
+  const label = (r) => r.charAt(0).toUpperCase() + r.slice(1)
+
+  const stats = [
+    {
+      label: 'Total events', value: total, color: 'var(--c-text-1)',
+      sub: mostActive ? `Most active: ${mostActive[0]}` : null,
+    },
+    {
+      label: 'Granted', value: granted, color: 'var(--c-grant)',
+      sub: `${grantRate}% grant rate${last3Rate !== null ? (trendUp ? ', trending up' : ', trending down') : ''}`,
+    },
+    {
+      label: 'Denied', value: denied, color: 'var(--c-deny)',
+      sub: denied > total * 0.4 ? 'Elevated denial rate' : 'Nominal',
+    },
+    {
+      label: 'Revoked', value: revoked, color: 'var(--c-text-1)',
+      sub: revoked > 0 ? 'Policy changes logged' : 'No revocations',
+    },
+  ]
 
   return (
-    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 1100, margin: '0 auto' }}>
+    <div className="page">
 
-      {/* Page hero */}
       <div className="page-hero">
-        <div>
-          <p className="page-subtitle">
-            Every access attempt — granted, denied, or revoked — is cryptographically signed,
-            tamper-evident, and ready for CMMC, FedRAMP, and STIG auditors.
-          </p>
-        </div>
-        <div className="page-actions" style={{ gap: 10, alignItems: 'flex-start' }}>
-          <button onClick={exportCsv} style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: '8px 14px', borderRadius: 8, fontSize: 13, fontWeight: 500,
-            cursor: 'pointer', background: 'var(--c-surface-2)',
-            color: 'var(--c-text-3)', border: '1px solid var(--c-border)',
-          }}>
-            ⬇ Export CSV
-          </button>
+        <p className="page-subtitle">
+          Every access attempt, whether granted, denied or revoked, is cryptographically signed,
+          tamper-evident, and ready for CMMC, FedRAMP, and STIG auditors.
+        </p>
+        <div className="page-actions">
+          <button type="button" className="btn" onClick={exportCsv}>Export CSV</button>
         </div>
       </div>
 
-      {/* Stats row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-        {[
-          {
-            label: 'Total Events', value: total, color: 'var(--c-text-2)',
-            sub: mostActive ? `Most active: ${mostActive[0]}` : null,
-          },
-          {
-            label: 'Granted', value: granted, color: '#15803d',
-            sub: `${grantRate}% grant rate ${last3Rate !== null ? (trendUp ? '↑ trending up' : '↓ trending down') : ''}`,
-          },
-          {
-            label: 'Denied', value: denied, color: '#b91c1c',
-            sub: denied > total * 0.4 ? '⚠ elevated denial rate' : 'nominal',
-          },
-          {
-            label: 'Revoked', value: revoked, color: 'var(--c-text-3)',
-            sub: revoked > 0 ? 'policy changes logged' : 'no revocations',
-          },
-        ].map(s => (
-          <div key={s.label} style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 12, padding: 16 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--c-text-5)', marginBottom: 6 }}>
-              {s.label}
-            </div>
-            <div style={{ fontSize: 32, fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.value}</div>
-            {s.sub && <div style={{ fontSize: 11, marginTop: 6, color: 'var(--c-text-5)' }}>{s.sub}</div>}
+      {/* Stats: one strip, not four cards */}
+      <div className="card" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: 20 }}>
+        {stats.map((s, i) => (
+          <div key={s.label} style={{ padding: '16px 20px', borderLeft: i === 0 ? 'none' : '1px solid var(--c-border)' }}>
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--c-text-5)', marginBottom: 6 }}>{s.label}</div>
+            <div className="num" style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-0.02em', color: s.color, lineHeight: 1 }}>{s.value}</div>
+            {s.sub && <div style={{ fontSize: 12, marginTop: 8, color: 'var(--c-text-5)' }}>{s.sub}</div>}
           </div>
         ))}
       </div>
 
-      {/* Persona filter banner */}
+      {/* Persona filter note */}
       {isPersonaFiltered && (
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          padding: '10px 16px', borderRadius: 8, fontSize: 13,
-          background: activePersona.color + '18',
-          border: `1px solid ${activePersona.color}44`,
+          display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16,
+          padding: '10px 14px', borderRadius: 'var(--c-radius-btn)', fontSize: 13,
+          background: 'var(--c-surface-2)', border: '1px solid var(--c-border)',
         }}>
-          <span style={{ fontSize: 18 }}>{activePersona.avatar}</span>
-          <span style={{ color: activePersona.color, fontWeight: 600 }}>Showing events for {activePersona.name}</span>
-          <span style={{ fontSize: 11, color: 'var(--c-text-5)' }}>— switch to Generic to see all users</span>
+          <Dot persona={activePersona} />
+          <span style={{ color: 'var(--c-text-1)', fontWeight: 600 }}>Showing events for {activePersona.name}</span>
+          <span style={{ fontSize: 12.5, color: 'var(--c-text-5)' }}>Switch to Generic to see all users.</span>
         </div>
       )}
 
       {/* Filter bar */}
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-        {FILTERS.map(f => (
-          <button key={f} onClick={() => setFilter(f)} style={{
-            padding: '6px 16px', borderRadius: 99, fontSize: 13, fontWeight: 500,
-            cursor: 'pointer', transition: 'all 0.15s',
-            background: filter === f ? '#1e293b' : 'var(--c-surface)',
-            color: filter === f ? '#ffffff' : 'var(--c-text-4)',
-            border: `1px solid ${filter === f ? '#1e293b' : 'var(--c-border)'}`,
-          }}>
-            {f}
-            {f !== 'All' && (
-              <span style={{ marginLeft: 6, fontSize: 11, opacity: 0.7 }}>
-                ({f === 'Granted' ? granted : f === 'Denied' ? denied : revoked})
-              </span>
-            )}
-          </button>
-        ))}
-        <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--c-text-5)' }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}>
+        <div className="seg" role="group" aria-label="Filter events by result">
+          {FILTERS.map(f => (
+            <button key={f} type="button" aria-pressed={filter === f} onClick={() => setFilter(f)}>
+              {f}
+              {f !== 'All' && (
+                <span className="num" style={{ marginLeft: 6, fontSize: 12, opacity: 0.65, fontWeight: 500 }}>
+                  {f === 'Granted' ? granted : f === 'Denied' ? denied : revoked}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+        <span className="num" style={{ marginLeft: 'auto', fontSize: 12.5, color: 'var(--c-text-5)' }}>
           {filtered.length} event{filtered.length !== 1 ? 's' : ''}
         </span>
       </div>
 
       {/* Event table */}
-      <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 12, overflow: 'hidden' }}>
+      <div className="card" style={{ overflow: 'hidden' }}>
         {filtered.length === 0 ? (
           <div style={{ padding: 40, textAlign: 'center', fontSize: 13, color: 'var(--c-text-5)' }}>
             No events match this filter.
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table className="tbl">
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--c-border)' }}>
-                {['Time', 'User', 'Document', 'Result', 'Reason'].map(h => (
-                  <th key={h} style={{
-                    textAlign: 'left', padding: '10px 16px',
-                    fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
-                    letterSpacing: '0.5px', color: 'var(--c-text-5)',
-                  }}>{h}</th>
-                ))}
+              <tr>
+                {['Time', 'User', 'Document', 'Result', 'Reason'].map(h => <th key={h}>{h}</th>)}
               </tr>
             </thead>
             <tbody>
-              {filtered.map((e, i) => {
-                const rc = RESULT_COLORS[e.result] ?? RESULT_COLORS.denied
+              {filtered.map((e) => {
                 const isExpanded = expandedRows.has(e.id)
                 const missing = getMissingAttrs(e.reason)
                 return (
                   <React.Fragment key={e.id}>
-                    <tr
-                      onClick={() => toggleRow(e.id)}
-                      style={{
-                        borderBottom: '1px solid var(--c-border)',
-                        background: rc.row,
-                        cursor: 'pointer',
-                        transition: 'background 0.1s',
-                      }}
-                    >
-                      <td style={{ padding: '10px 16px', borderLeft: `3px solid ${rc.text}` }}>
-                        <div style={{ fontSize: 11, fontFamily: 'monospace', color: 'var(--c-text-4)', whiteSpace: 'nowrap' }}>{fmtTs(e.ts)}</div>
-                        <div style={{ fontSize: 10, color: 'var(--c-text-6)' }}>{fmtRelative(e.ts)}</div>
+                    <tr onClick={() => toggleRow(e.id)} style={{ cursor: 'pointer' }}>
+                      <td style={{ boxShadow: `inset 3px 0 0 ${EDGE[e.result] ?? EDGE.denied}`, paddingLeft: 16 }}>
+                        <div className="num" style={{ fontSize: 12.5, fontFamily: 'var(--font-mono)', color: 'var(--c-text-3)', whiteSpace: 'nowrap' }}>{fmtTs(e.ts)}</div>
+                        <div className="num" style={{ fontSize: 11.5, color: 'var(--c-text-5)' }}>{fmtRelative(e.ts)}</div>
                       </td>
-                      <td style={{ padding: '10px 16px' }}>
+                      <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ fontSize: 16 }}>{e.persona.avatar}</span>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: e.persona.color }}>{e.persona.name}</span>
+                          <Dot persona={e.persona} />
+                          <span style={{ fontWeight: 600, color: 'var(--c-text-1)' }}>{e.persona.name}</span>
                         </div>
                       </td>
-                      <td style={{ padding: '10px 16px', fontSize: 13, color: 'var(--c-text-2)' }}>{e.document}</td>
-                      <td style={{ padding: '10px 16px' }}>
-                        <span style={{
-                          padding: '3px 10px', borderRadius: 99,
-                          fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
-                          background: rc.bg, color: rc.text, border: `1px solid ${rc.border}`,
-                        }}>
-                          {e.result}
-                        </span>
+                      <td>{e.document}</td>
+                      <td>
+                        <span className={`chip ${CHIP[e.result] ?? 'chip-deny'}`}>{label(e.result)}</span>
                       </td>
-                      <td style={{ padding: '10px 16px', fontSize: 12, color: 'var(--c-text-4)' }}>
+                      <td style={{ fontSize: 12.5, color: 'var(--c-text-4)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                           <span>{e.reason}</span>
-                          <span style={{ fontSize: 10, color: 'var(--c-text-6)', flexShrink: 0 }}>{isExpanded ? '▲' : '▼'}</span>
+                          <UiIcon name="chevron" size={14} style={{ color: 'var(--c-text-6)', transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform .12s' }} />
                         </div>
                       </td>
                     </tr>
 
                     {/* Expanded detail row */}
                     {isExpanded && (
-                      <tr key={`${e.id}-detail`} style={{ background: 'var(--c-surface-2)', borderBottom: '1px solid var(--c-border)' }}>
-                        <td colSpan={5} style={{ padding: '12px 24px' }}>
+                      <tr key={`${e.id}-detail`}>
+                        <td colSpan={5} style={{ padding: '14px 24px', background: 'var(--c-surface-2)' }}>
                           <div style={{ display: 'flex', gap: 32 }}>
                             <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--c-text-5)', marginBottom: 8 }}>
+                              <div style={{ fontSize: 12.5, fontWeight: 650, color: 'var(--c-text-4)', marginBottom: 8 }}>
                                 {e.persona.name}'s attributes at time of access
                               </div>
                               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                                 {(e.persona.fqns?.length > 0 ? e.persona.fqns : ['No attributes recorded']).map((fqn, fi) => (
-                                  <span key={fi} style={{
-                                    padding: '2px 8px', borderRadius: 4, fontSize: 11,
-                                    background: e.persona.color + '18',
-                                    color: e.persona.color,
-                                    border: `1px solid ${e.persona.color}30`,
-                                    fontFamily: 'monospace',
-                                  }}>{fqn}</span>
+                                  <span key={fi} className="chip chip-mono">{fqn}</span>
                                 ))}
                               </div>
                             </div>
                             {missing.length > 0 && (
                               <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: '#dc2626', marginBottom: 8 }}>
-                                  Access denied — missing required attributes
+                                <div style={{ fontSize: 12.5, fontWeight: 650, color: 'var(--c-deny)', marginBottom: 8 }}>
+                                  Access denied: missing required attributes
                                 </div>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
                                   {missing.map((attr, mi) => (
-                                    <span key={mi} style={{
-                                      padding: '2px 8px', borderRadius: 4, fontSize: 11,
-                                      background: '#fee2e2', color: '#dc2626', border: '1px solid #fca5a5',
-                                      fontFamily: 'monospace', fontWeight: 600,
-                                    }}>{attr}</span>
+                                    <span key={mi} className="chip chip-mono chip-deny">{attr}</span>
                                   ))}
                                 </div>
-                                <div style={{ fontSize: 11, color: 'var(--c-text-5)', fontStyle: 'italic' }}>
-                                  KAS returned HTTP 403 — the file was not decrypted.
+                                <div style={{ fontSize: 12, color: 'var(--c-text-5)' }}>
+                                  KAS returned HTTP 403 and the file was not decrypted.
                                 </div>
                               </div>
                             )}
                             {e.result === 'revoked' && (
                               <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: '#d97706', marginBottom: 8 }}>
+                                <div style={{ fontSize: 12.5, fontWeight: 650, color: 'var(--c-warn)', marginBottom: 8 }}>
                                   Policy change recorded
                                 </div>
-                                <div style={{ fontSize: 12, color: 'var(--c-text-4)' }}>{e.reason}</div>
-                                <div style={{ fontSize: 11, color: 'var(--c-text-5)', marginTop: 4, fontStyle: 'italic' }}>
+                                <div style={{ fontSize: 12.5, color: 'var(--c-text-4)' }}>{e.reason}</div>
+                                <div style={{ fontSize: 12, color: 'var(--c-text-5)', marginTop: 4 }}>
                                   All subsequent decrypt attempts will be denied.
                                 </div>
                               </div>
@@ -300,5 +252,27 @@ export default function AuditPage() {
         )}
       </div>
     </div>
+  )
+}
+
+// Persona marker: initials on the persona's own colour, matching the topbar.
+const inkOn = (hex) => {
+  if (!/^#[0-9a-f]{6}$/i.test(hex || '')) return '#fff'
+  const n = parseInt(hex.slice(1), 16)
+  const lum = (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255
+  return lum > 0.62 ? '#0a1a33' : '#ffffff'
+}
+
+function Dot({ persona }) {
+  const generic = persona.id === 'generic'
+  const letters = persona.name.trim().split(/\s+/).slice(-2).map(w => w[0]).join('').toUpperCase()
+  return (
+    <span aria-hidden="true" style={{
+      width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      background: generic ? 'var(--c-surface-3)' : persona.color,
+      color: generic ? 'var(--c-text-4)' : inkOn(persona.color),
+      fontSize: 10, fontWeight: 700,
+    }}>{generic ? <UiIcon name="user" size={13} strokeWidth={1.9} /> : letters}</span>
   )
 }

@@ -1,26 +1,32 @@
 import { useState, useRef, useEffect } from 'react'
 import { Outlet, NavLink, useLocation } from 'react-router-dom'
 import { useDemo } from '../context/DemoContext.jsx'
-import Icon from './Icon.jsx'
+import UiIcon from './UiIcon.jsx'
 
+// Grouped by what you do with them: orient, demo, inspect. A `null` is a divider.
 const NAV_ITEMS = [
-  { to: '/home',         id: 'home',         label: 'Home',              icon: 'globe'   },
-  { to: '/architecture', id: 'architecture', label: 'Architecture',      icon: 'boxes'   },
-  { to: '/cop',          id: 'cop',          label: 'COP',               icon: 'globe'   },
-  { to: '/collaborate',  id: 'collaborate',  label: 'Collaborate',       icon: 'revoke'  },
-  { to: '/gcap',         id: 'gcap',         label: 'GCAP',              icon: 'boxes'   },
-  { to: '/ai-agent',     id: 'ai-agent',     label: 'AI Protection',     icon: 'shield'  },
-  { to: '/tdf-explorer', id: 'tdf-explorer', label: 'TDF Explorer',      icon: 'tdf'     },
-  { to: '/platform',     id: 'platform',     label: 'Platform',          icon: 'globe'   },
-  { to: '/audit',        id: 'audit',        label: 'Audit Log',         icon: 'tdf-doc' },
+  { to: '/home',         id: 'home',         label: 'Home',          icon: 'home'     },
+  { to: '/architecture', id: 'architecture', label: 'Architecture',  icon: 'layers'   },
+  null,
+  { to: '/cop',          id: 'cop',          label: 'COP',           icon: 'pin'      },
+  { to: '/collaborate',  id: 'collaborate',  label: 'Collaborate',   icon: 'people'   },
+  { to: '/gcap',         id: 'gcap',         label: 'GCAP',          icon: 'plane'    },
+  { to: '/ai-agent',     id: 'ai-agent',     label: 'AI Protection', icon: 'shield'   },
+  { to: '/tdf-explorer', id: 'tdf-explorer', label: 'TDF Explorer',  icon: 'fileScan' },
+  null,
+  { to: '/platform',     id: 'platform',     label: 'Platform',      icon: 'server'   },
+  { to: '/audit',        id: 'audit',        label: 'Audit Log',     icon: 'list'     },
 ]
+
+// Pages whose content changes with the active persona. The switcher only shows on these.
+const PERSONA_ROUTES = new Set(['/home', '/architecture', '/cop', '/collaborate', '/audit'])
 
 const PAGE_LABELS = {
   '/home':         'Home',
   '/architecture': 'Architecture',
   '/cop':          'Common Operating Picture',
   '/collaborate':  'Collaborate',
-  '/gcap':         'GCAP · Advanced Collaborative Environment',
+  '/gcap':         'GCAP Advanced Collaborative Environment',
   '/ai-agent':     'AI Protection',
   '/audit':        'Audit Log',
   '/platform':     'Platform',
@@ -28,13 +34,42 @@ const PAGE_LABELS = {
   '/settings':     'Settings',
 }
 
+// Last two words skip rank prefixes ("Maj.", "CW3", "Flt Lt") without a lookup table.
+const initialsOf = (p) => {
+  if (p.id.startsWith('ai-')) return 'AI'
+  const w = p.name.trim().split(/\s+/)
+  return w.slice(-2).map(s => s[0]).join('').toUpperCase()
+}
+
+const inkOn = (hex) => {
+  const n = parseInt(hex.slice(1), 16)
+  const lum = (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255
+  return lum > 0.62 ? '#0a1a33' : '#ffffff'
+}
+
+function PersonaDot({ persona, active, onSelect }) {
+  const generic = persona.id === 'generic'
+  const bg = generic ? 'var(--c-surface-3)' : persona.color
+  return (
+    <button
+      type="button"
+      className="persona-dot"
+      aria-pressed={active}
+      aria-label={`View as ${persona.name}`}
+      title={`${persona.name} — ${persona.title}`}
+      onClick={() => onSelect(persona)}
+      style={{ background: bg, color: generic ? 'var(--c-text-4)' : inkOn(persona.color) }}
+    >
+      {generic ? <UiIcon name="user" size={15} strokeWidth={1.9} /> : initialsOf(persona)}
+    </button>
+  )
+}
+
 export default function Layout() {
   const {
     activePersona, setActivePersona, personas,
     techMode, setTechMode,
-    theme, toggleTheme,
     platformReady, apiLog,
-    sector, setSector,
   } = useDemo()
 
   const [devOpen, setDevOpen]               = useState(false)
@@ -96,6 +131,7 @@ export default function Layout() {
   // and its own chrome rules have to survive a path that is longer than the nav entry.
   const isAiRoute = location.pathname === '/ai-agent' || location.pathname.startsWith('/ai-agent/')
   const pageLabel = PAGE_LABELS[location.pathname] ?? (isAiRoute ? PAGE_LABELS['/ai-agent'] : '')
+  const showPersonas = PERSONA_ROUTES.has(location.pathname)
 
   const visibleNavItems = NAV_ITEMS.map(item => {
     if (item === null) return null
@@ -106,186 +142,109 @@ export default function Layout() {
 
   // Collapse consecutive nulls / leading-trailing nulls
   const cleanedNav = visibleNavItems.filter((item, i, arr) => {
-    if (item !== null) return true
+    if (item !== null) {
+      return true
+    }
     const prev = arr.slice(0, i).findLast(x => x !== null)
     const next = arr.slice(i + 1).find(x => x !== null)
     return prev !== undefined && next !== undefined
   })
 
+  const status = platformReady === true
+    ? { color: '#4ade80', label: 'Platform online' }
+    : platformReady === false
+      ? { color: '#f87171', label: 'Platform offline' }
+      : { color: '#fbbf24', label: 'Platform starting' }
+
+  const firstAiIdx = personas.findIndex(p => p.id.startsWith('ai-'))
+
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)' }}>
 
       {/* ── Sidebar ────────────────────────────────────────────── */}
-      <aside style={{
-        width: 228,
-        flexShrink: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        background: '#0f2340',
-        borderRight: '1px solid rgba(106,170,228,0.15)',
-        overflow: 'hidden',
-      }}>
+      <aside className="sidebar">
 
         {/* Logo — left padding clears macOS traffic light buttons (hiddenInset titlebar) */}
-        <div style={{
-          height: 60,
-          display: 'flex',
-          alignItems: 'center',
-          padding: '0 16px 0 80px',
-          borderBottom: '1px solid rgba(106,170,228,0.1)',
-          flexShrink: 0,
-          WebkitAppRegion: 'drag',
-        }}>
-          <NavLink to="/architecture" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10, WebkitAppRegion: 'no-drag' }}>
-            {/* C1 icon chip — navy gradient bg + logomark */}
-            <div style={{
-              width: 34, height: 34,
-              borderRadius: 8,
-              background: 'linear-gradient(150deg, #1e3a5f 0%, #0a1f3d 100%)',
-              boxShadow: '0 0 12px rgba(106,170,228,0.25), inset 0 1px 0 rgba(106,170,228,0.15)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
-            }}>
-              <img src="./virtru-logomark.svg" alt="Virtru" width={20} height={20} style={{ opacity: 0.95 }} />
+        <div className="sidebar-brand">
+          <NavLink to="/home" className="sidebar-brand-link">
+            <div className="sidebar-mark">
+              <img src="./virtru-logomark.svg" alt="" width={19} height={19} />
             </div>
-            {/* Text stack */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(147,197,253,0.65)', letterSpacing: '0.18em', textTransform: 'uppercase', lineHeight: 1 }}>
-                Virtru
-              </div>
-              <div style={{ width: 24, height: 1, background: 'rgba(106,170,228,0.35)' }} />
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(232,240,254,0.9)', letterSpacing: '0.1em', textTransform: 'uppercase', lineHeight: 1 }}>
-                Demo Center
-              </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <span style={{ fontSize: 11, fontWeight: 550, color: 'rgba(146,192,233,0.75)', lineHeight: 1.1 }}>Virtru</span>
+              <span style={{ fontSize: 15, fontWeight: 680, color: '#fff', letterSpacing: '-0.01em', lineHeight: 1.1 }}>Demo Center</span>
             </div>
-            {platformReady !== null && (
-              <div style={{
-                marginLeft: 2,
-                width: 6, height: 6,
-                borderRadius: '50%',
-                background: platformReady ? '#4ade80' : '#ef4444',
-                boxShadow: platformReady ? '0 0 6px rgba(74,222,128,0.7)' : '0 0 6px rgba(239,68,68,0.7)',
-                animation: platformReady ? 'pulse-ring 2s ease-out infinite' : 'none',
-                flexShrink: 0,
-              }} />
-            )}
           </NavLink>
         </div>
 
         {/* Update banner */}
         {updateInfo && (
           <div style={{
-            padding: '8px 12px',
-            borderBottom: '1px solid rgba(106,170,228,0.1)',
-            background: updateInfo.state === 'ready' ? 'rgba(74,222,128,0.08)' : 'rgba(96,165,250,0.08)',
+            margin: '12px 12px 0',
+            padding: '9px 12px',
+            borderRadius: 8,
+            border: `1px solid ${updateInfo.state === 'ready' ? 'rgba(74,222,128,0.3)' : updateInfo.state === 'error' ? 'rgba(248,113,113,0.35)' : 'rgba(106,170,228,0.3)'}`,
+            background: updateInfo.state === 'ready' ? 'rgba(74,222,128,0.08)' : updateInfo.state === 'error' ? 'rgba(248,113,113,0.08)' : 'rgba(106,170,228,0.08)',
             flexShrink: 0,
+            fontSize: 12,
+            color: 'rgba(232,240,254,0.92)',
           }}>
-            {updateInfo.state === 'available' && (
-              <div style={{ fontSize: 11, color: 'var(--c-text-2)' }}>
-                ↑ v{updateInfo.version} available — downloading…
-              </div>
-            )}
-            {updateInfo.state === 'error' && (
-              <div style={{ fontSize: 11, color: '#b91c1c' }}>
-                ⚠ Update failed — check logs
-              </div>
-            )}
+            {updateInfo.state === 'available' && <div>Version {updateInfo.version} is available. Downloading…</div>}
+            {updateInfo.state === 'error' && <div style={{ color: '#fca5a5' }}>Update failed. Check the logs.</div>}
             {updateInfo.state === 'downloading' && (
-              <div style={{ fontSize: 11, color: 'var(--c-text-2)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <span>↓ Updating… {updateInfo.percent}%</span>
-                  <span style={{ color: 'rgba(96,165,250,0.6)' }}>
-                    {updateInfo.mbps ? `${updateInfo.mbps} MB/s` : ''}
-                  </span>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span>Updating… {updateInfo.percent}%</span>
+                  <span style={{ color: 'rgba(146,192,233,0.7)' }}>{updateInfo.mbps ? `${updateInfo.mbps} MB/s` : ''}</span>
                 </div>
-                <div style={{ height: 3, background: 'rgba(96,165,250,0.15)', borderRadius: 2 }}>
-                  <div style={{ width: `${updateInfo.percent}%`, height: '100%', background: '#60a5fa', borderRadius: 2, transition: 'width 0.3s' }} />
+                <div style={{ height: 3, background: 'rgba(106,170,228,0.2)', borderRadius: 2 }}>
+                  <div style={{ width: `${updateInfo.percent}%`, height: '100%', background: '#6AAAE4', borderRadius: 2, transition: 'width 0.3s' }} />
                 </div>
                 {updateInfo.total && (
-                  <div style={{ marginTop: 3, color: 'rgba(96,165,250,0.5)', fontSize: 10 }}>
+                  <div style={{ marginTop: 5, color: 'rgba(146,192,233,0.6)', fontSize: 11 }}>
                     {updateInfo.transferred} / {updateInfo.total} MB
                   </div>
                 )}
               </div>
             )}
-            {updateInfo.state === 'ready' && (
-              <div style={{ fontSize: 11, color: '#15803d' }}>
-                ✓ v{updateInfo.version} ready — installs on quit
-              </div>
-            )}
+            {updateInfo.state === 'ready' && <div style={{ color: '#86efac' }}>Version {updateInfo.version} is ready. It installs when you quit.</div>}
           </div>
         )}
 
         {/* Nav items */}
-        <nav style={{ flex: 1, overflowY: 'auto', padding: '12px 0' }}>
+        <nav style={{ flex: 1, overflowY: 'auto', padding: '14px 0' }} aria-label="Primary">
           {cleanedNav.map((item, i) => {
-            if (item === null) return (
-              <div key={`div-${i}`} style={{
-                height: 1,
-                background: 'rgba(106,170,228,0.08)',
-                margin: '6px 16px',
-              }} />
-            )
+            if (item === null) return <div key={`div-${i}`} className="nav-divider" />
             return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                style={({ isActive }) => ({
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  padding: '9px 16px 9px 18px',
-                  margin: '1px 8px',
-                  borderRadius: 8,
-                  textDecoration: 'none',
-                  fontSize: 13,
-                  fontWeight: isActive ? 600 : 400,
-                  color: isActive ? '#ffffff' : 'rgba(255,255,255,0.75)',
-                  background: isActive ? 'rgba(106,170,228,0.18)' : 'transparent',
-                  borderLeft: isActive ? '3px solid #6AAAE4' : '3px solid transparent',
-                  transition: 'all 0.15s ease',
-                })}
-              >
-                {({ isActive }) => (
-                  <>
-                    <Icon
-                      name={item.icon}
-                      size={15}
-                      raw={item.icon === 'tdf-doc'}
-                      style={{ color: isActive ? '#6AAAE4' : 'rgba(255,255,255,0.5)', flexShrink: 0 }}
-                    />
-                    {item.label}
-                  </>
-                )}
+              <NavLink key={item.to} to={item.to} className="nav-item">
+                <UiIcon name={item.icon} size={17} />
+                {item.label}
               </NavLink>
             )
           })}
         </nav>
 
-        {/* Version footer */}
-        <div style={{
-          padding: '10px 16px',
-          borderTop: '1px solid rgba(106,170,228,0.08)',
-          flexShrink: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}>
-          <span style={{ fontSize: 10, color: 'rgba(147,197,253,0.35)', fontFamily: 'monospace', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 6 }}>
+        {/* Status + version footer */}
+        <div className="sidebar-foot">
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'rgba(214,226,244,0.8)' }}>
+            <span style={{
+              width: 7, height: 7, borderRadius: '50%', background: status.color, flexShrink: 0,
+              boxShadow: `0 0 0 3px ${status.color}26`,
+            }} />
+            {status.label}
+          </span>
+          <span style={{ fontSize: 11, color: 'rgba(146,192,233,0.55)', display: 'flex', alignItems: 'center', gap: 6, fontVariantNumeric: 'tabular-nums' }}>
             {appVersion ? `v${appVersion}` : 'dev'}
             {/* A prerelease version string is the whole staging channel — electron-updater derives
                 allowPrerelease from it — so it is worth saying out loud. Someone demoing from a
                 beta by accident should be able to see it without opening the logs. */}
             {appVersion?.includes('-') && (
               <span style={{
-                fontSize: 8, letterSpacing: '0.1em', padding: '1px 4px', borderRadius: 3,
+                fontSize: 10.5, fontWeight: 650, padding: '1px 6px', borderRadius: 4,
                 color: '#fbbf24', background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.3)',
-              }}>STAGING</span>
+              }}>Staging</span>
             )}
           </span>
-          {updateInfo?.state === 'ready' && (
-            <span style={{ fontSize: 10, color: '#4ade80' }}>v{updateInfo.version} ready ↑</span>
-          )}
         </div>
 
       </aside>
@@ -294,158 +253,78 @@ export default function Layout() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
 
         {/* Topbar */}
-        <header style={{
-          height: 56,
-          flexShrink: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 24px',
-          background: 'var(--c-surface)',
-          borderBottom: '1px solid var(--c-border)',
-          boxShadow: '0 1px 0 rgba(0,0,0,0.15)',
-        }}>
+        <header className="topbar">
 
-          {/* Page context */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--c-text-1)' }}>
-              {pageLabel}
-            </span>
-          </div>
+          <h1 style={{ margin: 0, fontSize: 17, fontWeight: 660, letterSpacing: '-0.015em', color: 'var(--c-text-1)', whiteSpace: 'nowrap' }}>
+            {pageLabel}
+          </h1>
 
           {/* Controls */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
 
-            {/* Persona switcher — hidden on AI Protection, which selects its own identities.
-                That page holds a persona *and* an agent, drawn from whichever scenario is open,
-                and neither of them is one of these. Two persona controls in view, only one of
-                which changed what you were about to demo, is worse than one. */}
-            {!isAiRoute && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 11, color: 'var(--c-text-6)' }}>As:</span>
-              <div style={{ display: 'flex', gap: 3 }}>
-                {personas.map(p => (
-                  <button
-                    key={p.id}
-                    onClick={() => setActivePersona(p)}
-                    title={`${p.name} — ${p.title}`}
-                    style={{
-                      width: 28, height: 28,
-                      borderRadius: '50%',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 13,
-                      background: activePersona.id === p.id ? 'var(--c-border)' : 'var(--c-surface-2)',
-                      border: `2px solid ${activePersona.id === p.id ? 'var(--c-text-4)' : 'transparent'}`,
-                      transform: activePersona.id === p.id ? 'scale(1.15)' : 'scale(1)',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s',
-                    }}
-                  >
-                    {p.avatar}
-                  </button>
-                ))}
-              </div>
-              <span style={{
-                fontSize: 12, fontWeight: 500,
-                padding: '3px 10px', borderRadius: 6,
-                background: 'var(--c-surface-2)',
-                color: 'var(--c-text-2)',
-                border: '1px solid var(--c-border)',
-              }}>
-                {activePersona.name}
-              </span>
-            </div>
+            {/* Persona switcher — shown only on pages that change with the persona (PERSONA_ROUTES).
+                Elsewhere it would be a control that does nothing. AI Protection and GCAP select
+                their own identities, so they are deliberately not in that list. */}
+            {showPersonas && (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                  <span style={{ fontSize: 12.5, color: 'var(--c-text-5)', whiteSpace: 'nowrap' }}>Viewing as</span>
+                  <div className="persona-strip" role="group" aria-label="Viewing as">
+                    {personas.map((p, i) => (
+                      <span key={p.id} style={{ display: 'contents' }}>
+                        {i === firstAiIdx && firstAiIdx > 0 && <span className="persona-sep" />}
+                        <PersonaDot persona={p} active={activePersona.id === p.id} onSelect={setActivePersona} />
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25, minWidth: 0 }}>
+                  <span style={{ fontSize: 13, fontWeight: 650, color: 'var(--c-text-1)', whiteSpace: 'nowrap' }}>{activePersona.name}</span>
+                  <span style={{ fontSize: 11.5, color: 'var(--c-text-5)', whiteSpace: 'nowrap' }}>{activePersona.title}</span>
+                </div>
+
+                {activePersona.attributes.length > 0 && (
+                  <div className="persona-attrs">
+                    {activePersona.attributes.filter(a => !a.startsWith('relto:')).map(a => (
+                      <span key={a} className="chip chip-mono">{a}</span>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
 
-            {/* Persona attributes */}
-            {!isAiRoute && activePersona.attributes.length > 0 && (
-              <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                {activePersona.attributes.filter(a => !a.startsWith('relto:')).map(a => (
-                  <span key={a} style={{
-                    fontSize: 11, fontWeight: 500,
-                    padding: '2px 8px', borderRadius: 4,
-                    background: 'var(--c-surface-2)',
-                    color: 'var(--c-text-3)',
-                    border: '1px solid var(--c-border)',
-                  }}>
-                    {a}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {/* Divider */}
             {/* Dev tools (Generic only) */}
             {isGeneric && (
               <div style={{ position: 'relative' }} ref={devRef}>
                 <button
                   onClick={() => setDevOpen(o => !o)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 5,
-                    padding: '6px 10px', borderRadius: 8,
-                    fontSize: 12, fontWeight: 500, cursor: 'pointer',
-                    background: devOpen ? '#001E4A' : 'var(--c-surface-2)',
-                    color: devOpen ? '#6AAAE4' : 'var(--c-text-5)',
-                    border: `1px solid ${devOpen ? '#004987' : 'var(--c-border)'}`,
-                    transition: 'all 0.15s',
-                  }}
+                  className="btn btn-sm"
+                  aria-expanded={devOpen}
+                  style={devOpen ? { background: 'var(--c-ink)', color: '#fff', borderColor: 'var(--c-ink)' } : undefined}
                 >
-                  <Icon name="gear" size={13} />
-                  Dev
-                  <span style={{ fontSize: 9, opacity: 0.5 }}>{devOpen ? '▲' : '▼'}</span>
+                  <UiIcon name="sliders" size={14} />
+                  Developer
+                  <UiIcon name="chevron" size={12} style={{ opacity: 0.6, transform: devOpen ? 'rotate(180deg)' : 'none' }} />
                 </button>
 
                 {devOpen && (
-                  <div style={{
-                    position: 'absolute', top: 'calc(100% + 6px)', right: 0,
-                    background: 'var(--c-surface)',
-                    border: '1px solid var(--c-border-2)',
-                    borderRadius: 12,
-                    boxShadow: 'var(--c-shadow-lg)',
-                    minWidth: 200,
-                    zIndex: 50,
-                    padding: '4px 0',
-                  }}>
-                    <button
-                        onClick={() => { setDrawerOpen(o => !o); setDevOpen(false) }}
-                        style={{
-                          width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                          padding: '10px 16px', fontSize: 13, textAlign: 'left',
-                          background: 'transparent', border: 'none', cursor: 'pointer',
-                          color: drawerOpen ? '#6AAAE4' : 'var(--c-text-3)',
-                        }}
-                      >
-                        <span style={{
-                          width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                          background: apiLog.length > 0 ? '#4ade80' : 'var(--c-text-6)',
-                          animation: pulse ? 'pulse-ring 0.5s ease-out' : 'none',
-                        }} />
-                        API Log {apiLog.length > 0 && `(${apiLog.length})`}
-                      </button>
-                    <button
-                        onClick={() => setTechMode(t => !t)}
-                        style={{
-                          width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                          padding: '10px 16px', fontSize: 13, textAlign: 'left',
-                          background: 'transparent', border: 'none', cursor: 'pointer',
-                          color: techMode ? '#6AAAE4' : 'var(--c-text-3)',
-                        }}
-                      >
-                        <Icon name="innovation" size={14} />
-                        {techMode ? 'Tech Mode: On' : 'Tech Mode: Off'}
-                      </button>
+                  <div className="menu" style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, minWidth: 210, zIndex: 50 }}>
+                    <button className="menu-item" onClick={() => { setDrawerOpen(o => !o); setDevOpen(false) }}>
+                      <span style={{
+                        width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                        background: apiLog.length > 0 ? '#22c55e' : 'var(--c-text-6)',
+                        animation: pulse ? 'pulse-ring 0.5s ease-out' : 'none',
+                      }} />
+                      API log{apiLog.length > 0 && <span style={{ color: 'var(--c-text-5)' }}>({apiLog.length})</span>}
+                    </button>
+                    <button className="menu-item" onClick={() => setTechMode(t => !t)}>
+                      <UiIcon name={techMode ? 'check' : 'x'} size={14} style={{ color: techMode ? 'var(--c-grant)' : 'var(--c-text-6)' }} />
+                      Tech mode {techMode ? 'on' : 'off'}
+                    </button>
                     <div style={{ height: 1, background: 'var(--c-border)', margin: '4px 0' }} />
-                    <NavLink
-                      to="/settings"
-                      onClick={() => setDevOpen(false)}
-                      style={({ isActive }) => ({
-                        display: 'flex', alignItems: 'center', gap: 10,
-                        padding: '10px 16px', fontSize: 13, textDecoration: 'none',
-                        color: isActive ? '#6AAAE4' : 'var(--c-text-3)',
-                        background: isActive ? '#001E4A' : 'transparent',
-                      })}
-                    >
-                      <Icon name="gear" size={14} /> Settings
+                    <NavLink to="/settings" onClick={() => setDevOpen(false)} className="menu-item" style={{ textDecoration: 'none' }}>
+                      <UiIcon name="sliders" size={14} /> Settings
                     </NavLink>
                   </div>
                 )}
@@ -463,53 +342,52 @@ export default function Layout() {
         {drawerOpen && (
           <div style={{
             flexShrink: 0,
-            background: 'var(--c-surface)',
-            borderTop: '1px solid #3b82f6',
-            boxShadow: '0 -4px 24px rgba(0,0,0,0.5)',
+            background: 'var(--c-ink)',
+            borderTop: '1px solid rgba(106,170,228,0.35)',
             maxHeight: '14rem',
             display: 'flex',
             flexDirection: 'column',
+            color: 'rgba(214,226,244,0.85)',
           }}>
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               padding: '8px 16px',
-              borderBottom: '1px solid var(--c-border)',
+              borderBottom: '1px solid rgba(255,255,255,0.08)',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--c-text-2)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Icon name="web" size={13} /> LIVE API LOG
-                </span>
-                <span style={{ fontSize: 11, color: 'var(--c-text-5)' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
+                <span style={{ fontSize: 13, fontWeight: 650, color: '#fff' }}>Live API log</span>
+                <span style={{ fontSize: 12, color: 'rgba(146,192,233,0.7)' }}>
                   {apiLog.length === 0 ? 'Waiting for calls…' : `${apiLog.length} total`}
                 </span>
               </div>
               <button
                 onClick={() => setDrawerOpen(false)}
-                style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, cursor: 'pointer', color: 'var(--c-text-5)', background: 'var(--c-border)', border: 'none' }}
+                aria-label="Close API log"
+                style={{ display: 'flex', padding: 4, borderRadius: 6, cursor: 'pointer', color: 'rgba(214,226,244,0.7)', background: 'transparent', border: 'none' }}
               >
-                ✕ Close
+                <UiIcon name="x" size={15} />
               </button>
             </div>
-            <div style={{ overflowY: 'auto', flex: 1, padding: '8px 16px', fontFamily: 'monospace', fontSize: 11, color: 'var(--c-text-4)' }}>
+            <div style={{ overflowY: 'auto', flex: 1, padding: '8px 16px', fontFamily: 'var(--font-mono)', fontSize: 11.5 }}>
               {apiLog.length === 0 ? (
-                <span style={{ color: 'var(--c-text-6)' }}>No API calls yet. Navigate to any page to see live traffic.</span>
+                <span style={{ color: 'rgba(146,192,233,0.55)' }}>No API calls yet. Open any demo to see live traffic.</span>
               ) : (
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
-                    <tr style={{ color: 'var(--c-text-6)', borderBottom: '1px solid var(--c-border)' }}>
-                      <th style={{ textAlign: 'left', padding: '4px 12px 4px 0', fontWeight: 'normal' }}>status</th>
-                      <th style={{ textAlign: 'left', padding: '4px 12px 4px 0', fontWeight: 'normal' }}>method</th>
-                      <th style={{ textAlign: 'left', padding: '4px 0', fontWeight: 'normal' }}>endpoint</th>
-                      <th style={{ textAlign: 'right', padding: '4px 0', fontWeight: 'normal' }}>latency</th>
+                    <tr style={{ color: 'rgba(146,192,233,0.6)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                      <th style={{ textAlign: 'left', padding: '4px 12px 4px 0', fontWeight: 'normal' }}>Status</th>
+                      <th style={{ textAlign: 'left', padding: '4px 12px 4px 0', fontWeight: 'normal' }}>Method</th>
+                      <th style={{ textAlign: 'left', padding: '4px 0', fontWeight: 'normal' }}>Endpoint</th>
+                      <th style={{ textAlign: 'right', padding: '4px 0', fontWeight: 'normal' }}>Latency</th>
                     </tr>
                   </thead>
                   <tbody>
                     {apiLog.slice(0, 30).map(entry => (
-                      <tr key={entry.id} style={{ borderBottom: '1px solid var(--c-border)' }}>
-                        <td style={{ padding: '4px 12px 4px 0', color: entry.ok !== false ? '#15803d' : '#b91c1c' }}>{entry.status ?? '?'}</td>
-                        <td style={{ padding: '4px 12px 4px 0', color: 'var(--c-text-2)' }}>{entry.method}</td>
-                        <td style={{ padding: '4px 0', color: 'var(--c-text-3)', maxWidth: '60vw', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={entry.url}>{entry.url}</td>
-                        <td style={{ padding: '4px 0', textAlign: 'right', color: entry.latency > 300 ? '#b45309' : 'var(--c-text-5)' }}>{entry.latency != null ? `${entry.latency}ms` : '—'}</td>
+                      <tr key={entry.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                        <td style={{ padding: '4px 12px 4px 0', color: entry.ok !== false ? '#4ade80' : '#f87171' }}>{entry.status ?? '?'}</td>
+                        <td style={{ padding: '4px 12px 4px 0' }}>{entry.method}</td>
+                        <td style={{ padding: '4px 0', color: 'rgba(214,226,244,0.7)', maxWidth: '60vw', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={entry.url}>{entry.url}</td>
+                        <td style={{ padding: '4px 0', textAlign: 'right', color: entry.latency > 300 ? '#fbbf24' : 'rgba(146,192,233,0.6)' }}>{entry.latency != null ? `${entry.latency}ms` : '—'}</td>
                       </tr>
                     ))}
                   </tbody>

@@ -9,6 +9,7 @@ import CorpusPage from './pages/CorpusPage.jsx'
 import AuditPage from './pages/AuditPage.jsx'
 import HowItWorksPage from './pages/HowItWorksPage.jsx'
 import ScenarioBuilderPage from './pages/ScenarioBuilderPage.jsx'
+import './secure-ai.css'
 
 /**
  * Syncs the `:modeId` route param into app state.

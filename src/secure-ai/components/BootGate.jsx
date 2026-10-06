@@ -1,3 +1,4 @@
+import UiIcon from '../../components/UiIcon.jsx'
 import { useApp } from '../context/AppContext.jsx'
 
 /**
@@ -25,22 +26,22 @@ export default function BootGate() {
     return (
       <div style={{ height: '100%', display: 'grid', placeItems: 'center', padding: 32 }}>
         <div className="card" style={{ maxWidth: 620, padding: 24, borderColor: 'var(--c-deny-br)' }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--c-deny)', marginBottom: 10 }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--c-deny)', marginBottom: 10 }}>
             {platformPhase === 'error' ? 'The platform did not start' : 'The corpus could not be encrypted'}
           </div>
           <pre style={{
-            fontSize: 11, lineHeight: 1.6, color: 'var(--c-text-3)', margin: 0,
+            fontSize: 12, lineHeight: 1.6, color: 'var(--c-text-3)', margin: 0, fontFamily: 'var(--font-mono)',
             whiteSpace: 'pre-wrap', wordBreak: 'break-word',
             background: 'var(--c-surface-2)', border: '1px solid var(--c-border)',
             borderRadius: 8, padding: 12, maxHeight: 300, overflowY: 'auto',
           }}>{bootError}</pre>
-          <div style={{ fontSize: 11, color: 'var(--c-text-5)', marginTop: 14, lineHeight: 1.7 }}>
+          <div style={{ fontSize: 12.5, color: 'var(--c-text-4)', marginTop: 14, lineHeight: 1.65 }}>
             {platformPhase === 'error'
-              ? <>Common causes: the platform binary is missing (run <code>npm run sync:resources</code>),
+              ? <>Common causes: the platform binary is missing (run <code className="code">npm run sync:resources</code>),
                   or ports 7777/7778 are already taken by another process.</>
               : <>A document policy usually names an attribute value the seed did not create.
-                  Check the FQNs in the mode file against <code>electron/seeder.js</code>, or run{' '}
-                  <code>node scripts/verify-matrix.mjs</code> to find the mismatch.</>}
+                  Check the FQNs in the mode file against <code className="code">electron/seeder.js</code>, or run{' '}
+                  <code className="code">node scripts/verify-matrix.mjs</code> to find the mismatch.</>}
           </div>
         </div>
       </div>
@@ -64,10 +65,10 @@ export default function BootGate() {
   return (
     <div style={{ height: '100%', display: 'grid', placeItems: 'center', padding: 32 }}>
       <div style={{ width: 440, animation: 'fadeIn 0.3s ease-out' }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--c-text-1)', marginBottom: 4 }}>
+        <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--c-text-1)', marginBottom: 6 }}>
           Virtru Secure AI
         </div>
-        <div style={{ fontSize: 12, color: 'var(--c-text-5)', marginBottom: 22, lineHeight: 1.6 }}>
+        <div style={{ fontSize: 13.5, color: 'var(--c-text-4)', marginBottom: 22, lineHeight: 1.6 }}>
           {mode
             ? `Preparing the ${mode.name} scenario. Nothing leaves this machine except the model call itself.`
             : 'Bringing up a local data security platform. Nothing leaves this machine except the model call itself.'}
@@ -80,16 +81,16 @@ export default function BootGate() {
               <div key={step.key} className="card" style={{
                 padding: '12px 14px', display: 'flex', gap: 11, alignItems: 'flex-start',
                 opacity: state === 'pending' ? 0.5 : 1,
-                borderColor: state === 'active' ? 'rgba(37,99,235,0.35)' : 'var(--c-border)',
+                borderColor: state === 'active' ? 'var(--c-focus)' : 'var(--c-border)',
               }}>
-                <div style={{ width: 14, paddingTop: 1, flexShrink: 0, textAlign: 'center' }}>
-                  {state === 'done'   && <span style={{ color: 'var(--c-grant)', fontWeight: 700, fontSize: 12 }}>✓</span>}
+                <div style={{ width: 16, paddingTop: 1, flexShrink: 0, textAlign: 'center' }}>
+                  {state === 'done'   && <span style={{ color: 'var(--c-grant)', display: 'flex' }}><UiIcon name="check" size={14} strokeWidth={2.4} /></span>}
                   {state === 'active' && <Spinner />}
-                  {state === 'pending' && <span style={{ color: 'var(--c-text-6)' }}>·</span>}
+                  {state === 'pending' && <span style={{ display: 'block', width: 6, height: 6, borderRadius: '50%', background: 'var(--c-border-2)', margin: '4px auto 0' }} />}
                 </div>
                 <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--c-text-2)' }}>{step.label}</div>
-                  <div style={{ fontSize: 11, color: 'var(--c-text-5)', marginTop: 2 }}>{step.detail}</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 650, color: 'var(--c-text-1)' }}>{step.label}</div>
+                  <div style={{ fontSize: 12.5, color: 'var(--c-text-5)', marginTop: 2 }}>{step.detail}</div>
 
                   {state === 'active' && step.key === 'encrypting' && total > 0 && (
                     <div style={{ marginTop: 8 }}>
@@ -101,7 +102,7 @@ export default function BootGate() {
                           background: 'var(--c-accent)', transition: 'width 0.2s',
                         }} />
                       </div>
-                      <div className="mono" style={{ fontSize: 10, color: 'var(--c-text-6)', marginTop: 5 }}>
+                      <div className="mono" style={{ fontSize: 11.5, color: 'var(--c-text-5)', marginTop: 5 }}>
                         {done}/{total} — {label}
                       </div>
                     </div>
@@ -112,8 +113,8 @@ export default function BootGate() {
           })}
         </div>
 
-        <div style={{ fontSize: 10, color: 'var(--c-text-6)', marginTop: 18, lineHeight: 1.7 }}>
-          First launch takes longer — the database cluster is initialized and the policy
+        <div style={{ fontSize: 12, color: 'var(--c-text-5)', marginTop: 18, lineHeight: 1.65 }}>
+          First launch takes longer: the database cluster is initialized and the policy
           namespace is seeded once.
         </div>
       </div>

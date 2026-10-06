@@ -21,6 +21,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext.jsx'
+import UiIcon from '../../components/UiIcon.jsx'
 import PersonaIcon, { ICON_KEYS } from '../components/PersonaIcon.jsx'
 import { field, Label, Notice, AttributePicker } from '../components/ui.jsx'
 import { NS } from '../modes/vocab.js'
@@ -72,42 +73,37 @@ const csv = (s) => String(s).split(',').map(x => x.trim()).filter(Boolean)
 
 function Section({ title, hint, children, right }) {
   return (
-    <div className="card" style={{ padding: '15px 18px 18px', marginBottom: 14 }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12 }}>
-        <span className="section-label">{title}</span>
-        {hint && (
-          <span style={{ fontSize: 10.5, color: 'var(--c-text-6)', lineHeight: 1.6, flex: 1 }}>{hint}</span>
-        )}
+    <section style={{ padding: '26px 0 28px', borderTop: '1px solid var(--c-border)' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 14 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h2 className="section-title" style={{ marginBottom: hint ? 3 : 0 }}>{title}</h2>
+          {hint && (
+            <div style={{ fontSize: 13, color: 'var(--c-text-5)', lineHeight: 1.6, maxWidth: '78ch' }}>{hint}</div>
+          )}
+        </div>
         {right}
       </div>
       {children}
-    </div>
+    </section>
   )
 }
 
 function AddButton({ children, onClick }) {
-  return (
-    <button onClick={onClick} style={{
-      fontSize: 11, fontWeight: 600, padding: '5px 11px', borderRadius: 6, cursor: 'pointer',
-      background: 'var(--c-surface-2)', border: '1px solid var(--c-border)', color: 'var(--c-text-3)',
-      flexShrink: 0, whiteSpace: 'nowrap',
-    }}>{children}</button>
-  )
+  return <button className="btn btn-sm" onClick={onClick}>{children}</button>
 }
 
 function RemoveButton({ onClick, title = 'Remove' }) {
   return (
-    <button onClick={onClick} title={title} style={{
-      fontSize: 11, lineHeight: 1, padding: '4px 7px', borderRadius: 5, cursor: 'pointer',
-      background: 'transparent', border: '1px solid var(--c-border)', color: 'var(--c-text-6)',
-      flexShrink: 0,
-    }}>✕</button>
+    <button className="btn btn-sm btn-ghost" onClick={onClick} title={title} aria-label={title}
+      style={{ width: 30, padding: 0, flexShrink: 0, color: 'var(--c-text-5)' }}>
+      <UiIcon name="x" size={14} />
+    </button>
   )
 }
 
 /** A bordered row that a list item lives inside. */
 const rowCard = {
-  border: '1px solid var(--c-border)', borderRadius: 9, padding: '12px 13px',
+  border: '1px solid var(--c-border)', borderRadius: 'var(--c-radius-card)', padding: '14px 16px',
   background: 'var(--c-surface-2)',
 }
 
@@ -115,12 +111,12 @@ function IconPicker({ value, onChange, accent }) {
   return (
     <div style={{
       display: 'flex', flexWrap: 'wrap', gap: 3, maxHeight: 74, overflowY: 'auto',
-      border: '1px solid var(--c-border)', borderRadius: 6, padding: 5, background: 'var(--c-surface-2)',
+      border: '1px solid var(--c-border-2)', borderRadius: 'var(--c-radius-btn)', padding: 5, background: 'var(--c-surface)',
     }}>
       {ICON_KEYS.map(k => (
         <button key={k} onClick={() => onChange(k)} title={k} style={{
           display: 'flex', padding: 4, borderRadius: 5, cursor: 'pointer',
-          background: value === k ? 'var(--c-surface)' : 'transparent',
+          background: value === k ? 'var(--c-surface-2)' : 'transparent',
           border: `1px solid ${value === k ? accent : 'transparent'}`,
           color: value === k ? accent : 'var(--c-text-5)',
         }}>
@@ -148,15 +144,15 @@ function VocabularyRow({ def, onChange, onRemove }) {
         <div style={{ width: 210 }}>
           <Label>Rule</Label>
           <select style={field} value={def.rule} onChange={e => onChange({ ...def, rule: e.target.value })}>
-            <option value={ANY_OF}>ANY_OF — held or not held</option>
-            <option value={HIERARCHY}>HIERARCHY — values rank</option>
+            <option value={ANY_OF}>ANY_OF: held or not held</option>
+            <option value={HIERARCHY}>HIERARCHY: values rank</option>
           </select>
         </div>
         <div style={{ flex: 1 }} />
         <RemoveButton onClick={onRemove} />
       </div>
 
-      <Label hint={hierarchy ? 'highest first — a holder gets this level and everything below it' : 'comma separated'}>
+      <Label hint={hierarchy ? 'highest first; a holder gets this level and everything below it' : 'comma separated'}>
         Values
       </Label>
       <input
@@ -171,7 +167,7 @@ function VocabularyRow({ def, onChange, onRemove }) {
 
       <input
         style={{ ...field, marginTop: 7 }} value={def.detail ?? ''}
-        placeholder="What this attribute means — shown on the How It Works page (optional)"
+        placeholder="What this attribute means, shown on the How It Works page (optional)"
         onChange={e => onChange({ ...def, detail: e.target.value })}
       />
     </div>
@@ -220,7 +216,7 @@ function SubjectRow({ subject, vocab, accent, onChange, onRemove, kind }) {
               <Label>Title</Label>
               <input
                 style={field} value={subject.title ?? ''}
-                placeholder={kind === 'agent' ? 'programme:orion · internal' : 'Programme Lead, Orion'}
+                placeholder={kind === 'agent' ? 'programme:orion, internal' : 'Programme Lead, Orion'}
                 onChange={e => onChange({ ...subject, title: e.target.value })}
               />
             </div>
@@ -254,13 +250,13 @@ function SubjectRow({ subject, vocab, accent, onChange, onRemove, kind }) {
         <Label hint="what the platform will resolve this identity to">Holds</Label>
         <AttributePicker vocab={vocab} selected={selected} onChange={setSelected} footer={false} />
         {selected.length === 0 && (
-          <div style={{ fontSize: 10, color: 'var(--c-warn)', marginTop: 7 }}>
-            Holds nothing. They will authenticate and be refused everything with a real policy —
-            a fine thing to show on purpose, and a mistake otherwise.
+          <div style={{ fontSize: 12, color: 'var(--c-warn)', marginTop: 8 }}>
+            Holds nothing. They will authenticate and be refused everything with a real policy.
+            A fine thing to show on purpose, and a mistake otherwise.
           </div>
         )}
       </div>
-      <div className="mono" style={{ fontSize: 9, color: 'var(--c-text-6)', marginTop: 8 }}>
+      <div className="mono" style={{ fontSize: 11, color: 'var(--c-text-5)', marginTop: 8 }}>
         {subject.id}
       </div>
     </div>
@@ -346,7 +342,7 @@ function DocumentRow({ doc, vocab, onChange, onRemove }) {
         <RemoveButton onClick={onRemove} />
       </div>
 
-      <Label hint="comma separated — this is how a question finds the document">Keywords</Label>
+      <Label hint="comma separated; this is how a question finds the document">Keywords</Label>
       <input
         style={field} value={(doc.keywords ?? []).join(', ')} placeholder="orion, programme review, milestone"
         onChange={e => onChange({ ...doc, keywords: csv(e.target.value) })}
@@ -354,7 +350,7 @@ function DocumentRow({ doc, vocab, onChange, onRemove }) {
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '11px 0 9px' }}>
         <span className="section-label">{tiered ? 'Tiers' : 'Content'}</span>
-        <span style={{ fontSize: 10, color: 'var(--c-text-6)', flex: 1, lineHeight: 1.6 }}>
+        <span style={{ fontSize: 12, color: 'var(--c-text-5)', flex: 1, lineHeight: 1.6 }}>
           {tiered
             ? 'Each tier is its own TDF under its own policy. The same question returns whichever tier the caller can open.'
             : 'One policy, one TDF.'}
@@ -374,7 +370,7 @@ function DocumentRow({ doc, vocab, onChange, onRemove }) {
           <AddButton onClick={() => onChange({
             ...doc,
             tiers: [...doc.tiers, { id: `tier-${doc.tiers.length + 1}`, label: '', classification: '', text: '', policy: [], policyNote: '' }],
-          })}>+ Tier</AddButton>
+          })}>Add tier</AddButton>
         </div>
       ) : (
         <>
@@ -518,27 +514,25 @@ export default function ScenarioBuilderPage() {
 
   return (
     <div style={{ height: '100%', overflowY: 'auto', background: 'var(--c-bg)' }}>
-      <div style={{ maxWidth: 940, margin: '0 auto', padding: '10px 32px 60px' }}>
+      <div className="page" style={{ maxWidth: 960 }}>
 
         {/* ── Header ─────────────────────────────────────────────────────── */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 18 }}>
+        <div className="page-hero" style={{ alignItems: 'flex-start', marginBottom: 20 }}>
           <div style={{ flex: 1 }}>
-            <button onClick={() => navigate(AI_ROOT)} style={{
-              fontSize: 11, fontWeight: 600, padding: 0, marginBottom: 8, cursor: 'pointer',
-              background: 'none', border: 'none', color: 'var(--c-text-5)',
-            }}>← All scenarios</button>
-            <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--c-text-1)', margin: 0 }}>
-              {isSaved ? 'Edit scenario' : 'Build a scenario'}
-            </h1>
-            <p style={{ fontSize: 12.5, lineHeight: 1.7, color: 'var(--c-text-4)', margin: '8px 0 0', maxWidth: 700 }}>
+            <button className="btn btn-sm btn-ghost" onClick={() => navigate(AI_ROOT)}
+              style={{ marginBottom: 10, marginLeft: -10 }}>
+              <UiIcon name="chevron" size={13} style={{ transform: 'rotate(90deg)' }} />All scenarios
+            </button>
+            <h1 className="page-title">{isSaved ? 'Edit scenario' : 'Build a scenario'}</h1>
+            <p className="page-subtitle" style={{ maxWidth: '72ch' }}>
               Attributes in a customer's own vocabulary, the people who hold them, the agents acting
               for those people, and documents to put under policy. Saving seeds the attribute
-              definitions into the running platform and encrypts the corpus — after that it behaves
+              definitions into the running platform and encrypts the corpus. After that it behaves
               exactly like the five scenarios that ship with the app, because it goes through the
               same code.
             </p>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingTop: 26 }}>
+          <div className="page-actions" style={{ paddingTop: 34 }}>
             <AddButton onClick={async () => {
               setError(null)
               try {
@@ -567,8 +561,8 @@ export default function ScenarioBuilderPage() {
         )}
 
         {/* ── Identity ───────────────────────────────────────────────────── */}
-        <Section title="SCENARIO" hint="how it appears on the launcher">
-          <div style={{ display: 'flex', gap: 10, marginBottom: 9 }}>
+        <Section title="Scenario" hint="how it appears on the launcher">
+          <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
             <div style={{ flex: 2 }}>
               <Label>Name</Label>
               <input style={field} value={draft.name} placeholder="Orion Programme (Acme Aerospace)"
@@ -581,7 +575,7 @@ export default function ScenarioBuilderPage() {
             </div>
           </div>
 
-          <div style={{ marginBottom: 9 }}>
+          <div style={{ marginBottom: 12 }}>
             <Label>Tagline</Label>
             <input style={field} value={draft.tagline ?? ''} placeholder="Programme compartments and supplier access"
               onChange={e => set({ tagline: e.target.value })} />
@@ -616,14 +610,14 @@ export default function ScenarioBuilderPage() {
 
         {/* ── Vocabulary ─────────────────────────────────────────────────── */}
         <Section
-          title="VOCABULARY"
+          title="Vocabulary"
           hint="New attribute definitions, created on the platform when you save. Separate definitions AND together; values inside one follow its rule. The shipped attributes stay available, so you only define what is missing."
           right={<AddButton onClick={() => set({
             vocabulary: [...listOf('vocabulary'), { name: '', rule: ANY_OF, values: [], detail: '' }],
-          })}>+ Attribute</AddButton>}
+          })}>Add attribute</AddButton>}
         >
           {listOf('vocabulary').length === 0 ? (
-            <div style={{ fontSize: 11.5, color: 'var(--c-text-6)', lineHeight: 1.65 }}>
+            <div style={{ fontSize: 13, color: 'var(--c-text-5)', lineHeight: 1.65 }}>
               None yet. A scenario can also be built entirely out of the attributes already on the
               platform — clearance, mission, CUI categories, compartments, case access.
             </div>
@@ -642,9 +636,9 @@ export default function ScenarioBuilderPage() {
 
         {/* ── Personas ───────────────────────────────────────────────────── */}
         <Section
-          title="PEOPLE"
+          title="People"
           hint="Each one gets a signed token and subject mappings, exactly like a shipped persona."
-          right={<AddButton onClick={() => addSubject('persona')}>+ Person</AddButton>}
+          right={<AddButton onClick={() => addSubject('persona')}>Add person</AddButton>}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {listOf('personas').map((p, i) => (
@@ -655,8 +649,8 @@ export default function ScenarioBuilderPage() {
               />
             ))}
             {listOf('personas').length === 0 && (
-              <div style={{ fontSize: 11.5, color: 'var(--c-text-6)' }}>
-                At least one person is required — there is nobody to ask a question otherwise.
+              <div style={{ fontSize: 13, color: 'var(--c-text-5)' }}>
+                At least one person is required, as there is nobody to ask a question otherwise.
               </div>
             )}
           </div>
@@ -664,9 +658,9 @@ export default function ScenarioBuilderPage() {
 
         {/* ── Agents ─────────────────────────────────────────────────────── */}
         <Section
-          title="AGENTS"
-          hint="An agent is an identity with attributes, and the KAS cannot tell it from a person. Access needs both the person and the agent to clear, so an agent's grants are a ceiling on what anyone can pull through it — the useful case is an agent held deliberately narrower than the people using it."
-          right={<AddButton onClick={() => addSubject('agent')}>+ Agent</AddButton>}
+          title="Agents"
+          hint="An agent is an identity with attributes, and the KAS cannot tell it from a person. Access needs both the person and the agent to clear, so an agent's grants are a ceiling on what anyone can pull through it. The useful case is an agent held deliberately narrower than the people using it."
+          right={<AddButton onClick={() => addSubject('agent')}>Add agent</AddButton>}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {listOf('agents').map((a, i) => (
@@ -677,9 +671,9 @@ export default function ScenarioBuilderPage() {
               />
             ))}
             {listOf('agents').length === 0 && (
-              <div style={{ fontSize: 11.5, color: 'var(--c-text-6)', lineHeight: 1.65 }}>
-                None yet. With no agent, retrieval falls back to asking as the person alone — which
-                works, and skips the point the app is otherwise making.
+              <div style={{ fontSize: 13, color: 'var(--c-text-5)', lineHeight: 1.65 }}>
+                None yet. With no agent, retrieval falls back to asking as the person alone, which
+                works and skips the point the app is otherwise making.
               </div>
             )}
           </div>
@@ -687,13 +681,13 @@ export default function ScenarioBuilderPage() {
 
         {/* ── Starting state ─────────────────────────────────────────────── */}
         {(listOf('personas').length > 0 || listOf('agents').length > 0) && (
-          <Section title="STARTS AS" hint="who is selected when the scenario opens">
+          <Section title="Starts as" hint="who is selected when the scenario opens">
             <div style={{ display: 'flex', gap: 10 }}>
               <div style={{ flex: 1 }}>
                 <Label>Person</Label>
                 <select style={field} value={draft.defaultPersonaId ?? ''}
                   onChange={e => set({ defaultPersonaId: e.target.value || null })}>
-                  <option value="">— first in the list —</option>
+                  <option value="">First in the list</option>
                   {listOf('personas').map(p => <option key={p.id} value={p.id}>{p.name || p.id}</option>)}
                 </select>
               </div>
@@ -701,7 +695,7 @@ export default function ScenarioBuilderPage() {
                 <Label>Agent</Label>
                 <select style={field} value={draft.defaultAgentId ?? ''}
                   onChange={e => set({ defaultAgentId: e.target.value || null })}>
-                  <option value="">— first in the list —</option>
+                  <option value="">First in the list</option>
                   {listOf('agents').map(a => <option key={a.id} value={a.id}>{a.name || a.id}</option>)}
                 </select>
               </div>
@@ -711,14 +705,14 @@ export default function ScenarioBuilderPage() {
 
         {/* ── Documents ──────────────────────────────────────────────────── */}
         <Section
-          title="DOCUMENTS"
-          hint="Each becomes a real TDF with its policy bound inside it. Text is stored in plain form so the scenario can be exported and re-encrypted on another machine — a TDF's key belongs to the KAS that made it, so ciphertext would not travel."
+          title="Documents"
+          hint="Each becomes a real TDF with its policy bound inside it. Text is stored in plain form so the scenario can be exported and re-encrypted on another machine. A TDF's key belongs to the KAS that made it, so ciphertext would not travel."
           right={<AddButton onClick={() => set({
             documents: [...listOf('documents'), {
               id: docId(`document-${listOf('documents').length + 1}`, takenDocs),
               label: '', classification: '', keywords: [], policy: [], policyNote: '', text: '',
             }],
-          })}>+ Document</AddButton>}
+          })}>Add document</AddButton>}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {listOf('documents').map((d, i) => (
@@ -729,7 +723,7 @@ export default function ScenarioBuilderPage() {
               />
             ))}
             {listOf('documents').length === 0 && (
-              <div style={{ fontSize: 11.5, color: 'var(--c-text-6)' }}>
+              <div style={{ fontSize: 13, color: 'var(--c-text-5)' }}>
                 At least one document is required.
               </div>
             )}
@@ -738,10 +732,10 @@ export default function ScenarioBuilderPage() {
 
         {/* ── Teaching points ────────────────────────────────────────────── */}
         <Section
-          title="WHAT IT TEACHES"
+          title="What it teaches"
           hint="Shown on the launcher card and the How It Works page."
           right={<AddButton onClick={() => set({ teaches: [...listOf('teaches'), { title: '', detail: '' }] })}>
-            + Point
+            Add point
           </AddButton>}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
@@ -763,10 +757,10 @@ export default function ScenarioBuilderPage() {
 
         {/* ── Prompts ────────────────────────────────────────────────────── */}
         <Section
-          title="SUGGESTED QUESTIONS"
+          title="Suggested questions"
           hint="The buttons above the chat box. Each should hit a document's keywords."
           right={<AddButton onClick={() => set({ prompts: [...listOf('prompts'), { label: '', text: '' }] })}>
-            + Question
+            Add question
           </AddButton>}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
@@ -808,37 +802,31 @@ export default function ScenarioBuilderPage() {
         )}
 
         <div style={{ display: 'flex', gap: 9, alignItems: 'center' }}>
-          <button onClick={save} disabled={busy} style={{
-            fontSize: 12.5, fontWeight: 600, padding: '9px 20px', borderRadius: 8,
-            cursor: busy ? 'default' : 'pointer', background: accent, border: 'none', color: '#fff',
-            opacity: busy ? 0.6 : 1,
-          }}>{busy ? 'Saving…' : isSaved ? 'Save changes' : 'Save and seed'}</button>
+          <button className="btn btn-primary" onClick={save} disabled={busy}
+            style={{ height: 40, padding: '0 22px', fontSize: 14 }}>
+            {busy ? 'Saving…' : isSaved ? 'Save changes' : 'Save and seed'}
+          </button>
 
           {isSaved && (
-            <button onClick={() => navigate(aiPath(draft.id, 'chat'))} style={{
-              fontSize: 12.5, fontWeight: 600, padding: '9px 18px', borderRadius: 8, cursor: 'pointer',
-              background: 'var(--c-surface)', border: '1px solid var(--c-border)', color: 'var(--c-text-2)',
-            }}>Launch it →</button>
+            <button className="btn" onClick={() => navigate(aiPath(draft.id, 'chat'))}
+              style={{ height: 40, padding: '0 18px', fontSize: 14 }}>Launch it</button>
           )}
 
           <div style={{ flex: 1 }} />
 
           {isSaved && (
             <button
+              className="btn btn-danger"
               onClick={async () => {
                 setError(null)
                 try { await deleteScenario(draft.id); navigate(AI_ROOT) }
                 catch (err) { setError(err.message) }
               }}
-              style={{
-                fontSize: 11.5, fontWeight: 600, padding: '8px 14px', borderRadius: 7, cursor: 'pointer',
-                background: 'transparent', border: '1px solid var(--c-deny-br)', color: 'var(--c-deny)',
-              }}
             >Delete scenario</button>
           )}
         </div>
 
-        <div style={{ fontSize: 10.5, color: 'var(--c-text-6)', marginTop: 12, lineHeight: 1.7 }}>
+        <div style={{ fontSize: 12.5, color: 'var(--c-text-5)', marginTop: 14, lineHeight: 1.65, maxWidth: '78ch' }}>
           Deleting forgets the scenario and stops its identities being issued. The attribute
           definitions it created stay on the platform — removing one that shares a name with a
           shipped attribute would break the mode that depends on it, and an unused definition is

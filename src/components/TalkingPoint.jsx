@@ -1,18 +1,16 @@
 export default function TalkingPoint({ text }) {
   return (
     <div style={{
-      background: '#fffbeb',
-      border: '1px solid #fde68a',
-      borderRadius: 8,
+      background: 'var(--c-surface-2)',
+      borderLeft: '2px solid var(--c-accent)',
+      borderRadius: '0 8px 8px 0',
       padding: '10px 14px',
       maxWidth: 400,
-      fontSize: 12,
-      color: '#92400e',
-      fontStyle: 'italic',
+      fontSize: 12.5,
+      color: 'var(--c-text-3)',
       lineHeight: 1.5,
       flexShrink: 0,
     }}>
-      <span style={{ fontStyle: 'normal', marginRight: 6 }}>💬</span>
       {text}
     </div>
   )

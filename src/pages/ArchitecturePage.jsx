@@ -1,22 +1,23 @@
 import { useState } from 'react'
 import { useDemo } from '../context/DemoContext.jsx'
 import Icon from '../components/Icon.jsx'
+import UiIcon from '../components/UiIcon.jsx'
 
 // ── Node definitions ───────────────────────────────────────────────────────────
 // Each node: x/y = top-left corner of the 160×88 card
 const NODES = {
-  client:    { id: 'client',    x: 60,  y: 200, label: 'Client App',        subtitle: 'Encrypts at source', icon: 'computer', color: '#3b82f6', desc: 'The application your users work in — browser, desktop, or mobile. This is where data gets encrypted before it ever leaves the device.' },
-  kas:       { id: 'kas',       x: 370, y: 60,  label: 'KAS',               subtitle: 'Key Access Server',  icon: 'key',      color: '#f59e0b', desc: 'Key Access Server — the enforcement point for every decrypt attempt. Supports three key management modes: Software (platform-managed keys), Envelope (HSM/KMS-wrapped keys with in-memory caching), and Delegated (all crypto in HSM/KMS). Compatible with AWS KMS, Thales Luna HSMs, and Entrust HSMs. Validates the user\'s JWT, checks entitlements, and either unwraps the DEK or returns 403.' },
-  platform:  { id: 'platform',  x: 660, y: 200, label: 'Platform',          subtitle: 'Policy engine',      icon: 'gear',     color: '#8b5cf6', desc: 'OpenTDF Policy Engine — stores attribute definitions, subject mappings, and key management configuration. Supports three attribute rule types: HIERARCHY (clearance levels), ALL_OF (compartments), and ANY_OF (coalition groups). KAS calls here on every key request to evaluate entitlements.' },
-  keycloak:  { id: 'keycloak',  x: 370, y: 340, label: 'IdP / Entitlements',subtitle: 'Identity provider',  icon: 'shield',   color: '#ec4899', desc: 'Identity Provider & Entitlement Service — issues signed JWTs and provides entity resolution data. Any OIDC IdP works: Keycloak, Okta, Ping, Entra ID, or ADFS. Subject Mappings link entities to Attribute Values via condition sets.' },
-  datastore: { id: 'datastore', x: 60,  y: 340, label: 'Data Store',        subtitle: 'Any storage',        icon: 'server',   color: '#10b981', desc: 'Where your encrypted TDF files live — S3, SharePoint, email, a database, or any storage. The data is worthless without the key, so the storage layer has zero ability to read content.' },
-  tdf:       { id: 'tdf',       x: 660, y: 340, label: 'TDF Envelope',      subtitle: 'Encrypted container', icon: 'tdf-doc',  color: '#06b6d4', desc: 'Trusted Data Format — a portable, self-describing encrypted container. Bundles the ciphertext, the policy binding, and the wrapped key object in one portable package. The same TDF enforces the same rules in S3, email, SharePoint, or on a USB drive.' },
+  client:    { id: 'client',    x: 60,  y: 200, label: 'Client App',        subtitle: 'Encrypts at source', icon: 'computer', desc: 'The application your users work in — browser, desktop, or mobile. This is where data gets encrypted before it ever leaves the device.' },
+  kas:       { id: 'kas',       x: 370, y: 60,  label: 'KAS',               subtitle: 'Key Access Server',  icon: 'key', desc: 'Key Access Server — the enforcement point for every decrypt attempt. Supports three key management modes: Software (platform-managed keys), Envelope (HSM/KMS-wrapped keys with in-memory caching), and Delegated (all crypto in HSM/KMS). Compatible with AWS KMS, Thales Luna HSMs, and Entrust HSMs. Validates the user\'s JWT, checks entitlements, and either unwraps the DEK or returns 403.' },
+  platform:  { id: 'platform',  x: 660, y: 200, label: 'Platform',          subtitle: 'Policy engine',      icon: 'gear', desc: 'OpenTDF Policy Engine — stores attribute definitions, subject mappings, and key management configuration. Supports three attribute rule types: HIERARCHY (clearance levels), ALL_OF (compartments), and ANY_OF (coalition groups). KAS calls here on every key request to evaluate entitlements.' },
+  keycloak:  { id: 'keycloak',  x: 370, y: 340, label: 'IdP / Entitlements',subtitle: 'Identity provider',  icon: 'shield', desc: 'Identity Provider & Entitlement Service — issues signed JWTs and provides entity resolution data. Any OIDC IdP works: Keycloak, Okta, Ping, Entra ID, or ADFS. Subject Mappings link entities to Attribute Values via condition sets.' },
+  datastore: { id: 'datastore', x: 60,  y: 340, label: 'Data Store',        subtitle: 'Any storage',        icon: 'server', desc: 'Where your encrypted TDF files live — S3, SharePoint, email, a database, or any storage. The data is worthless without the key, so the storage layer has zero ability to read content.' },
+  tdf:       { id: 'tdf',       x: 660, y: 340, label: 'TDF Envelope',      subtitle: 'Encrypted container', icon: 'tdf-doc', desc: 'Trusted Data Format — a portable, self-describing encrypted container. Bundles the ciphertext, the policy binding, and the wrapped key object in one portable package. The same TDF enforces the same rules in S3, email, SharePoint, or on a USB drive.' },
   // Coalition KAS nodes (multi-KAS flow only)
-  kas_usa:   { id: 'kas_usa',   x: 10,  y: 50,  label: '🇺🇸 USA KAS',      subtitle: 'FBI',   icon: 'key', color: '#3b82f6', desc: 'FBI Key Access Server — origin KAS that unwraps the DEK, then provides it to client for rewrapping to coalition partners.' },
-  kas_uk:    { id: 'kas_uk',    x: 190, y: 50,  label: '🇬🇧 UK KAS',       subtitle: 'GCHQ',  icon: 'key', color: '#ef4444', desc: 'GCHQ Key Access Server — DEK wrapped with UK public key for FVEY coalition sharing.' },
-  kas_can:   { id: 'kas_can',   x: 370, y: 50,  label: '🇨🇦 CAN KAS',      subtitle: 'CSE',   icon: 'key', color: '#ec4899', desc: 'CSE Key Access Server — DEK wrapped with Canada public key for FVEY coalition sharing.' },
-  kas_aus:   { id: 'kas_aus',   x: 550, y: 50,  label: '🇦🇺 AUS KAS',      subtitle: 'ASD',   icon: 'key', color: '#f59e0b', desc: 'ASD Key Access Server — DEK wrapped with Australia public key for FVEY coalition sharing.' },
-  kas_nzl:   { id: 'kas_nzl',   x: 730, y: 50,  label: '🇳🇿 NZL KAS',      subtitle: 'GCSB',  icon: 'key', color: '#10b981', desc: 'GCSB Key Access Server — DEK wrapped with New Zealand public key for FVEY coalition sharing.' },
+  kas_usa:   { id: 'kas_usa',   x: 10,  y: 50,  label: 'USA KAS',      subtitle: 'FBI',   icon: 'key', desc: 'FBI Key Access Server — origin KAS that unwraps the DEK, then provides it to client for rewrapping to coalition partners.' },
+  kas_uk:    { id: 'kas_uk',    x: 190, y: 50,  label: 'UK KAS',       subtitle: 'GCHQ',  icon: 'key', desc: 'GCHQ Key Access Server — DEK wrapped with UK public key for FVEY coalition sharing.' },
+  kas_can:   { id: 'kas_can',   x: 370, y: 50,  label: 'CAN KAS',      subtitle: 'CSE',   icon: 'key', desc: 'CSE Key Access Server — DEK wrapped with Canada public key for FVEY coalition sharing.' },
+  kas_aus:   { id: 'kas_aus',   x: 550, y: 50,  label: 'AUS KAS',      subtitle: 'ASD',   icon: 'key', desc: 'ASD Key Access Server — DEK wrapped with Australia public key for FVEY coalition sharing.' },
+  kas_nzl:   { id: 'kas_nzl',   x: 730, y: 50,  label: 'NZL KAS',      subtitle: 'GCSB',  icon: 'key', desc: 'GCSB Key Access Server — DEK wrapped with New Zealand public key for FVEY coalition sharing.' },
 }
 
 // Node card dimensions
@@ -70,11 +71,25 @@ const MULTI_KAS_FLOW = [
 ]
 
 const FLOWS = [
-  { key: 'encrypt',  label: 'Encrypt Flow',   color: 'var(--c-text-2)', bg: 'rgba(29,78,216,0.10)',   border: '#1d4ed8',  data: ENCRYPT_FLOW  },
-  { key: 'decrypt',  label: 'Decrypt Flow',   color: '#15803d', bg: 'rgba(21,128,61,0.10)',   border: '#166534',  data: DECRYPT_FLOW  },
-  { key: 'abac',     label: 'ABAC Flow',      color: 'var(--c-text-2)', bg: 'rgba(109,40,217,0.10)',  border: '#6d28d9',  data: ABAC_FLOW     },
-  { key: 'multikas', label: 'Multi-KAS Flow', color: 'var(--c-text-3)', bg: 'rgba(180,83,9,0.10)',    border: '#b45309',  data: MULTI_KAS_FLOW},
+  { key: 'encrypt',  label: 'Encrypt flow',   color: '#004987', bg: 'rgba(0,73,135,0.08)',    data: ENCRYPT_FLOW  },
+  { key: 'decrypt',  label: 'Decrypt flow',   color: '#0f7a3e', bg: 'rgba(15,122,62,0.08)',   data: DECRYPT_FLOW  },
+  { key: 'abac',     label: 'ABAC flow',      color: '#5b3fb0', bg: 'rgba(91,63,176,0.08)',   data: ABAC_FLOW     },
+  { key: 'multikas', label: 'Multi-KAS flow', color: '#b45309', bg: 'rgba(180,83,9,0.08)',    data: MULTI_KAS_FLOW},
 ]
+
+// Persona chip helpers — same rules as the topbar persona strip.
+const initialsOf = (p) => p.name.trim().split(/\s+/).slice(-2).map(s => s[0]).join('').toUpperCase()
+const inkOn = (hex) => {
+  const n = parseInt(hex.slice(1), 16)
+  const lum = (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255
+  return lum > 0.62 ? '#0a1a33' : '#ffffff'
+}
+
+const techBlock = {
+  marginTop: 12, padding: '8px 10px', borderRadius: 8,
+  background: 'var(--c-surface-2)', color: 'var(--c-text-2)', border: '1px solid var(--c-border)',
+  fontSize: 11, fontFamily: 'var(--font-mono)', lineHeight: 1.7,
+}
 
 function nodeCenter(node) {
   return { x: node.x + NW / 2, y: node.y + NH / 2 }
@@ -123,7 +138,7 @@ export default function ArchitecturePage() {
 
   const flowDef  = FLOWS.find(f => f.key === activeFlow)
   const flow     = flowDef?.data ?? []
-  const dotColor = flowDef?.color ?? '#60a5fa'
+  const dotColor = flowDef?.color ?? 'var(--c-accent)'
 
   // ABAC persona-awareness
   const isCoalitionPersona = sector === 'federal' && activePersona.nationality && activePersona.nationality !== 'USA'
@@ -194,143 +209,73 @@ export default function ArchitecturePage() {
   }
 
   const PRINCIPLE_CARDS = [
-    { icon: 'lock',       title: 'Zero Trust Encryption',  body: 'Data is encrypted at the source before it leaves the client. Even your storage provider and Virtru cannot read it — only KAS can unlock it.' },
-    { icon: 'tdf',        title: 'Policy-Bound Data',       body: 'Policies bind to the data itself using HIERARCHY, ALL_OF, and ANY_OF rules — not to the network perimeter. The same TDF enforces rules in S3, email, or a USB drive.' },
-    { icon: 'shield',     title: 'Persistent Protection',   body: 'The policy travels with the data. KAS validates entitlements on every access attempt — revoking one attribute instantly locks out a user from all copies.' },
+    { title: 'Zero Trust Encryption',  body: 'Data is encrypted at the source before it leaves the client. Even your storage provider and Virtru cannot read it — only KAS can unlock it.' },
+    { title: 'Policy-Bound Data',       body: 'Policies bind to the data itself using HIERARCHY, ALL_OF, and ANY_OF rules — not to the network perimeter. The same TDF enforces rules in S3, email, or a USB drive.' },
+    { title: 'Persistent Protection',   body: 'The policy travels with the data. KAS validates entitlements on every access attempt — revoking one attribute instantly locks out a user from all copies.' },
     sector === 'federal'
-      ? { icon: 'partners',   title: 'Coalition-Aware Sharing', body: 'relto:fvey and relto:nato attributes use ANY_OF rules — any FVEY or NATO member satisfies the policy without listing each nationality individually.' }
-      : { icon: 'compliance', title: 'Compliance Evidence',     body: 'Every access attempt is cryptographically logged — granted, denied, and revoked. Tamper-evident records ready for CMMC, FedRAMP, SOC 2, or HIPAA review.' },
+      ? { title: 'Coalition-Aware Sharing', body: 'relto:fvey and relto:nato attributes use ANY_OF rules — any FVEY or NATO member satisfies the policy without listing each nationality individually.' }
+      : { title: 'Compliance Evidence',     body: 'Every access attempt is cryptographically logged — granted, denied, and revoked. Tamper-evident records ready for CMMC, FedRAMP, SOC 2, or HIPAA review.' },
   ]
 
+  const LEGEND = [
+    { color: 'var(--c-diagram-edge)', dashed: true, label: 'Idle connection' },
+    ...FLOWS.map(f => ({ color: f.color, label: f.label })),
+  ]
+
+  const ringColor = flowDef ? dotColor : 'var(--c-accent)'
+  const svgText = { fontFamily: 'var(--font-ui)' }
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div className="page">
 
       {/* ── Page hero ──────────────────────────────────────────────────── */}
-      <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--c-border)', flexShrink: 0 }}>
-        <div className="page-hero" style={{ marginBottom: 0, paddingBottom: 0, borderBottom: 'none' }}>
+      <div className="page-hero">
+        <div>
+          <h2 className="page-title">Architecture</h2>
           <p className="page-subtitle">
             Six components, one data protection boundary. Click any node to learn its role, or select a flow to watch how data moves through the system.
           </p>
-          <div className="page-actions">
-          </div>
         </div>
-      </div>
-
-      {/* ── Toolbar ─────────────────────────────────────────────────────── */}
-      <div style={{
-        padding: '10px 24px',
-        borderBottom: '1px solid var(--c-border)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        flexShrink: 0,
-        background: 'var(--c-surface)',
-      }}>
-        <p style={{ fontSize: 12, color: 'var(--c-text-5)', margin: 0, marginRight: 8, flexShrink: 0 }}>
-          Select a flow:
-        </p>
-
-        {/* Flow tabs */}
-        {FLOWS.map(f => (
+        <div className="page-actions">
+          <div className="seg" role="group" aria-label="Select a flow">
+            {FLOWS.map(f => (
+              <button
+                key={f.key}
+                type="button"
+                aria-pressed={activeFlow === f.key}
+                onClick={() => startFlow(f.key)}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}
+              >
+                <span aria-hidden="true" style={{ width: 7, height: 7, borderRadius: '50%', background: f.color, opacity: activeFlow === f.key ? 1 : 0.55 }} />
+                {f.label}
+              </button>
+            ))}
+          </div>
           <button
-            key={f.key}
-            onClick={() => startFlow(f.key)}
-            style={{
-              padding: '6px 14px',
-              borderRadius: 8,
-              fontSize: 12,
-              fontWeight: activeFlow === f.key ? 600 : 400,
-              cursor: 'pointer',
-              border: `1px solid ${activeFlow === f.key ? f.border : 'var(--c-border)'}`,
-              background: activeFlow === f.key ? f.bg : 'transparent',
-              color: activeFlow === f.key ? f.color : 'var(--c-text-5)',
-              transition: 'all 0.15s',
-            }}
+            type="button"
+            className="btn btn-ghost"
+            onClick={reset}
+            style={{ visibility: activeFlow || selected ? 'visible' : 'hidden' }}
           >
-            {f.label}
+            Reset
           </button>
-        ))}
-
-        {/* Step nav — only when a flow is active */}
-        {activeFlow && (
-          <>
-            <div style={{ width: 1, height: 20, background: 'var(--c-border)', margin: '0 4px' }} />
-            <button
-              onClick={stepBack}
-              disabled={flowStep <= 0}
-              style={{
-                width: 28, height: 28, borderRadius: 6, border: '1px solid var(--c-border)',
-                background: 'var(--c-surface-2)', color: 'var(--c-text-3)',
-                cursor: flowStep <= 0 ? 'default' : 'pointer', opacity: flowStep <= 0 ? 0.3 : 1,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11,
-              }}
-            >◀</button>
-            <span style={{ fontSize: 12, color: 'var(--c-text-4)', minWidth: 60, textAlign: 'center' }}>
-              {flowStep + 1} / {flow.length}
-            </span>
-            <button
-              onClick={stepForward}
-              disabled={flowStep >= flow.length - 1}
-              style={{
-                width: 28, height: 28, borderRadius: 6, border: '1px solid var(--c-border)',
-                background: 'var(--c-surface-2)', color: 'var(--c-text-3)',
-                cursor: flowStep >= flow.length - 1 ? 'default' : 'pointer', opacity: flowStep >= flow.length - 1 ? 0.3 : 1,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11,
-              }}
-            >▶</button>
-          </>
-        )}
-
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
-          {(activeFlow || selected) && (
-            <button
-              onClick={reset}
-              style={{
-                padding: '5px 12px', borderRadius: 6, fontSize: 12,
-                background: 'transparent', border: '1px solid var(--c-border)',
-                color: 'var(--c-text-5)', cursor: 'pointer',
-              }}
-            >
-              ↺ Reset
-            </button>
-          )}
         </div>
       </div>
 
       {/* ── Main content ────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: 0, flex: 1, minHeight: 0 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 320px', gap: 28, alignItems: 'start' }}>
 
         {/* Left: diagram + step strip */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '16px 0 16px 24px', gap: 12, minHeight: 0 }}>
+        <div style={{ minWidth: 0 }}>
 
           {/* SVG diagram */}
-          <div style={{
-            flex: 1,
-            minHeight: 0,
-            borderRadius: 12,
-            overflow: 'hidden',
-            background: 'var(--c-surface)',
-            border: '1px solid var(--c-border)',
-            boxShadow: 'var(--c-shadow-md)',
-          }}>
-            <svg viewBox="0 0 900 490" style={{ width: '100%', height: '100%', display: 'block' }}>
+          <div className="card" style={{ overflow: 'hidden', borderRadius: 12 }}>
+            <svg viewBox="0 30 900 420" style={{ width: '100%', height: 'auto', display: 'block' }} role="img" aria-label="Architecture diagram">
               <defs>
                 {/* Subtle dot grid */}
                 <pattern id="dotgrid" width="32" height="32" patternUnits="userSpaceOnUse">
-                  <circle cx="16" cy="16" r="1.2" fill="#4a7aaa" opacity="0.4" />
+                  <circle cx="16" cy="16" r="1.2" fill="var(--c-border-2)" opacity="0.6" />
                 </pattern>
-                {/* Radial vignette — darkens edges */}
-                <radialGradient id="vignette" cx="50%" cy="50%" r="70%">
-                  <stop offset="0%" stopColor="transparent" />
-                  <stop offset="100%" stopColor="var(--c-bg)" stopOpacity="0.5" />
-                </radialGradient>
-                {/* Node fill gradients */}
-                {Object.values(NODES).map(n => (
-                  <linearGradient key={n.id} id={`ng-${n.id}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={n.color} stopOpacity="0.18" />
-                    <stop offset="100%" stopColor={n.color} stopOpacity="0.04" />
-                  </linearGradient>
-                ))}
                 {/* Active node glow */}
                 <filter id="node-glow" x="-30%" y="-30%" width="160%" height="160%">
                   <feGaussianBlur stdDeviation="6" result="blur" />
@@ -341,21 +286,13 @@ export default function ArchitecturePage() {
                   <feGaussianBlur stdDeviation="3" result="blur" />
                   <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
                 </filter>
-                {/* Invert black icons to white */}
-                <filter id="icon-white">
-                  <feColorMatrix type="matrix"
-                    values="-1 0 0 0 1
-                             0 -1 0 0 1
-                             0 0 -1 0 1
-                             0 0 0 1 0" />
-                </filter>
                 {/* Arrowhead markers */}
                 {[
-                  { id: 'arr',        color: 'var(--c-border-2)' },
-                  { id: 'arr-blue',   color: '#60a5fa' },
-                  { id: 'arr-green',  color: '#4ade80' },
-                  { id: 'arr-purple', color: '#c084fc' },
-                  { id: 'arr-amber',  color: '#fbbf24' },
+                  { id: 'arr',        color: 'var(--c-diagram-edge)' },
+                  { id: 'arr-blue',   color: FLOWS[0].color },
+                  { id: 'arr-green',  color: FLOWS[1].color },
+                  { id: 'arr-purple', color: FLOWS[2].color },
+                  { id: 'arr-amber',  color: FLOWS[3].color },
                 ].map(({ id, color }) => (
                   <marker key={id} id={id} markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
                     <path d="M0,0.5 L0,6.5 L6,3.5 z" fill={color} />
@@ -364,9 +301,8 @@ export default function ArchitecturePage() {
               </defs>
 
               {/* Background */}
-              <rect width="900" height="490" fill="#1e3a5f" />
+              <rect width="900" height="490" fill="var(--c-diagram-bg)" />
               <rect width="900" height="490" fill="url(#dotgrid)" />
-              <rect width="900" height="490" fill="url(#vignette)" />
 
               {/* ── Edges ── */}
               {EDGES.map(([from, to, label]) => {
@@ -397,10 +333,10 @@ export default function ArchitecturePage() {
                         filter="url(#edge-glow)" />
                     )}
                     <path d={path} fill="none"
-                      stroke={active ? dotColor : 'var(--c-border)'}
+                      stroke={active ? dotColor : 'var(--c-diagram-edge)'}
                       strokeWidth={active ? 2 : 1.5}
                       strokeDasharray={active ? 'none' : '5 4'}
-                      strokeOpacity={active ? 1 : 0.7}
+                      strokeOpacity={active ? 1 : 0.8}
                       markerEnd={arrowId}
                       style={{ transition: 'stroke 0.35s, stroke-width 0.25s' }}
                     />
@@ -416,8 +352,10 @@ export default function ArchitecturePage() {
                       </>
                     )}
                     {techMode && (
-                      <text x={midX} y={midY - 8} textAnchor="middle" fontSize="9"
-                        fill={active ? 'var(--c-text-3)' : 'var(--c-text-6)'} fontFamily="system-ui">
+                      <text x={midX} y={midY - 8} textAnchor="middle" fontSize="10"
+                        fill={active ? 'var(--c-text-2)' : 'var(--c-text-4)'}
+                        stroke="var(--c-diagram-bg)" strokeWidth="3" paintOrder="stroke"
+                        style={svgText}>
                         {label}
                       </text>
                     )}
@@ -433,69 +371,63 @@ export default function ArchitecturePage() {
               }).map(node => {
                 const active = isNodeActive(node.id)
                 const sel    = selected === node.id
-                const { x, y, color } = node
+                const { x, y } = node
+                const hue = active ? ringColor : 'var(--c-accent)'
 
                 return (
                   <g key={node.id} style={{ cursor: 'pointer' }} onClick={() => setSelected(sel ? null : node.id)}>
                     {/* Outer glow when active */}
                     {active && (
                       <rect x={x - 4} y={y - 4} width={NW + 8} height={NH + 8} rx="16"
-                        fill={color} opacity="0.15" filter="url(#node-glow)">
+                        fill={ringColor} opacity="0.15" filter="url(#node-glow)">
                         <animate attributeName="opacity" values="0.1;0.25;0.1" dur="2s" repeatCount="indefinite" />
                       </rect>
                     )}
 
                     {/* Card body */}
-                    <rect x={x} y={y} width={NW} height={NH} rx="12"
-                      fill="#1e3a5f"
-                      stroke={active || sel ? color : '#2d5a8e'}
-                      strokeWidth={active ? 2.5 : sel ? 1.5 : 1}
+                    <rect x={x} y={y} width={NW} height={NH} rx="10"
+                      fill="var(--c-diagram-node)"
+                      stroke={active ? ringColor : sel ? 'var(--c-accent)' : 'var(--c-border-2)'}
+                      strokeWidth={active ? 2.5 : sel ? 1.75 : 1}
                       style={{ transition: 'stroke 0.3s' }}
                     />
 
-                    {/* Color accent bar along top */}
-                    <rect x={x + 1} y={y + 1} width={NW - 2} height={4} rx="11"
-                      fill={color}
-                      opacity={active ? 1 : sel ? 0.7 : 0.4}
-                      style={{ transition: 'opacity 0.3s' }}
-                    />
-
-                    {/* Icon */}
+                    {/* Icon tile */}
+                    <rect x={x + 14} y={y + 12} width="28" height="28" rx="7" fill="var(--c-info-bg)" />
                     <image
                       href={`${import.meta.env.BASE_URL}icons/${node.icon}.svg`}
-                      x={x + 12} y={y + 14} width="22" height="22"
-                      opacity={active ? 1 : 0.75}
-                      filter={node.icon === 'tdf-doc' ? undefined : 'url(#icon-white)'}
+                      x={x + 18} y={y + 16} width="20" height="20"
                     />
 
                     {/* Label */}
-                    <text x={x + 44} y={y + 26}
-                      fontSize="12" fontWeight="700" fontFamily="system-ui"
-                      fill={active ? '#ffffff' : '#e2eaf4'}
-                      style={{ transition: 'fill 0.3s' }}>
-                      {node.label.length > 16 ? node.label.slice(0, 15) + '…' : node.label}
+                    <text x={x + 14} y={y + 60}
+                      fontSize="13" fontWeight="650"
+                      fill="var(--c-text-1)"
+                      style={svgText}>
+                      {node.label.length > 20 ? node.label.slice(0, 19) + '…' : node.label}
                     </text>
 
                     {/* Subtitle */}
-                    <text x={x + 44} y={y + 40}
-                      fontSize="10" fontFamily="system-ui"
-                      fill={active ? color : '#7aaac8'}
-                      style={{ transition: 'fill 0.3s' }}>
+                    <text x={x + 14} y={y + 75}
+                      fontSize="10.5"
+                      fill={active ? hue : 'var(--c-text-5)'}
+                      style={{ ...svgText, transition: 'fill 0.3s' }}>
                       {node.subtitle}
                     </text>
 
                     {/* Tech mode hostname */}
                     {techMode && (
-                      <text x={x + NW / 2} y={y + NH - 8}
-                        textAnchor="middle" fontSize="8" fontFamily="monospace"
-                        fill={color} opacity="0.6">
+                      <text x={x + NW - 14} y={y + 33}
+                        textAnchor="end" fontSize="8.5"
+                        fill="var(--c-text-5)"
+                        style={{ fontFamily: 'var(--font-mono)' }}>
                         {node.id === 'kas' ? 'localhost:7777/kas' : node.id === 'platform' ? 'localhost:7777' : node.id === 'keycloak' ? 'localhost:7779' : ''}
                       </text>
                     )}
 
                     {/* Active pulse dot */}
                     {active && (
-                      <circle cx={x + NW - 10} cy={y + 10} r="5" fill={color}>
+                      <circle cx={x + NW - 12} cy={y + 12} r="5" fill={ringColor}>
                         <animate attributeName="r" values="4;6;4" dur="1.2s" repeatCount="indefinite" />
                         <animate attributeName="opacity" values="1;0.5;1" dur="1.2s" repeatCount="indefinite" />
                       </circle>
@@ -503,8 +435,8 @@ export default function ArchitecturePage() {
 
                     {/* Selected ring */}
                     {sel && !active && (
-                      <rect x={x - 3} y={y - 3} width={NW + 6} height={NH + 6} rx="15"
-                        fill="none" stroke={color} strokeWidth="1.5" strokeDasharray="4 3" opacity="0.5" />
+                      <rect x={x - 3} y={y - 3} width={NW + 6} height={NH + 6} rx="13"
+                        fill="none" stroke="var(--c-accent)" strokeWidth="1.5" strokeDasharray="4 3" opacity="0.5" />
                     )}
                   </g>
                 )
@@ -514,30 +446,54 @@ export default function ArchitecturePage() {
 
           {/* Step strip */}
           {activeFlow && flow.length > 0 && (
-            <div style={{
-              display: 'flex', gap: 6, overflowX: 'auto', paddingTop: 10, paddingBottom: 2,
-              flexShrink: 0,
-            }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflowX: 'auto', marginTop: 14, paddingBottom: 4 }}>
+              <button
+                type="button"
+                className="btn btn-sm"
+                aria-label="Previous step"
+                onClick={stepBack}
+                disabled={flowStep <= 0}
+                style={{ width: 30, padding: 0, flexShrink: 0 }}
+              >
+                <UiIcon name="chevron" size={14} style={{ transform: 'rotate(90deg)' }} />
+              </button>
+              <button
+                type="button"
+                className="btn btn-sm"
+                aria-label="Next step"
+                onClick={stepForward}
+                disabled={flowStep >= flow.length - 1}
+                style={{ width: 30, padding: 0, flexShrink: 0 }}
+              >
+                <UiIcon name="chevron" size={14} style={{ transform: 'rotate(-90deg)' }} />
+              </button>
+              <span className="num" style={{ fontSize: 12, color: 'var(--c-text-4)', minWidth: 44, textAlign: 'center', flexShrink: 0 }}>
+                {flowStep + 1} / {flow.length}
+              </span>
               {flow.map((s, i) => (
                 <button
                   key={i}
+                  type="button"
                   onClick={() => setFlowStep(i)}
+                  aria-current={i === flowStep ? 'step' : undefined}
                   style={{
                     flexShrink: 0,
-                    padding: '5px 12px',
+                    height: 30,
+                    padding: '0 12px',
                     borderRadius: 8,
-                    fontSize: 11,
-                    fontWeight: i === flowStep ? 600 : 400,
+                    fontSize: 12,
+                    fontWeight: i === flowStep ? 650 : 500,
                     cursor: 'pointer',
-                    border: `1px solid ${i === flowStep ? flowDef.border : i < flowStep ? 'var(--c-border-2)' : 'var(--c-border)'}`,
-                    background: i === flowStep ? flowDef.bg : 'transparent',
-                    color: i === flowStep ? flowDef.color : i < flowStep ? 'var(--c-text-5)' : 'var(--c-text-6)',
+                    border: `1px solid ${i === flowStep ? flowDef.color : 'var(--c-border)'}`,
+                    background: i === flowStep ? flowDef.bg : 'var(--c-surface)',
+                    color: i === flowStep ? flowDef.color : i < flowStep ? 'var(--c-text-3)' : 'var(--c-text-5)',
                     display: 'flex', alignItems: 'center', gap: 6,
+                    transition: 'background-color .12s, border-color .12s',
                   }}
                 >
-                  <span style={{ fontWeight: 700, fontSize: 10 }}>{s.step}</span>
+                  <span className="num" style={{ fontWeight: 700, fontSize: 11 }}>{s.step}</span>
                   {s.label}
-                  {i < flowStep && <span style={{ color: '#15803d', fontSize: 10 }}>✓</span>}
+                  {i < flowStep && <UiIcon name="check" size={12} strokeWidth={2.2} style={{ color: 'var(--c-grant)' }} />}
                 </button>
               ))}
             </div>
@@ -545,74 +501,60 @@ export default function ArchitecturePage() {
         </div>
 
         {/* Right: unified context panel */}
-        <div style={{
-          width: 300,
-          flexShrink: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          padding: '16px 24px 16px 16px',
-          gap: 12,
-          overflowY: 'auto',
-        }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
 
-          {/* Context card */}
-          <div style={{
-            flex: currentStep ? 0 : 1,
-            borderRadius: 12,
-            padding: 20,
-            background: 'var(--c-surface)',
-            border: '1px solid var(--c-border)',
-            boxShadow: 'var(--c-shadow-md)',
-          }}>
-            {selectedNode && !currentStep ? (
-              <div className="step-in">
-                <div style={{ marginBottom: 10 }}><Icon name={selectedNode.icon} size={36} raw={selectedNode.icon === 'tdf-doc'} style={{ color: selectedNode.color }} /></div>
-                <div style={{ fontWeight: 700, fontSize: 15, color: selectedNode.color, marginBottom: 8 }}>
+          {/* Selected node */}
+          {selectedNode && !currentStep && (
+            <div className="card step-in" style={{ padding: 18 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+                <span className="demo-icon" style={{ width: 40, height: 40 }}>
+                  <Icon name={selectedNode.icon} size={26} raw />
+                </span>
+                <div style={{ fontWeight: 650, fontSize: 15, color: 'var(--c-text-1)', letterSpacing: '-0.01em' }}>
                   {selectedNode.label.replace('\n', ' / ')}
                 </div>
-                <p style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--c-text-3)', margin: 0 }}>
-                  {selectedNode.desc}
-                </p>
-                {techMode && selectedNode.id === 'kas' && (
-                  <div style={{ marginTop: 12, padding: '8px 12px', borderRadius: 8, background: 'var(--c-bg)', color: '#4ade80', border: '1px solid var(--c-border)', fontSize: 11, fontFamily: 'monospace', lineHeight: 1.8 }}>
-                    GET /kas/v2/kas_public_key<br />POST /kas/v2/rewrap
-                  </div>
-                )}
-                {techMode && selectedNode.id === 'platform' && (
-                  <div style={{ marginTop: 12, padding: '8px 12px', borderRadius: 8, background: 'var(--c-bg)', color: '#4ade80', border: '1px solid var(--c-border)', fontSize: 11, fontFamily: 'monospace', lineHeight: 1.8 }}>
-                    authorization.AuthorizationService<br />/GetEntitlements<br />policy.attributes.AttributesService<br />/ListAttributes
-                  </div>
-                )}
-                {techMode && selectedNode.id === 'tdf' && (
-                  <div style={{ marginTop: 12, padding: '8px 12px', borderRadius: 8, background: 'var(--c-bg)', color: '#06b6d4', border: '1px solid var(--c-border)', fontSize: 10, fontFamily: 'monospace', lineHeight: 1.8 }}>
-                    {`{\n  "payload": { "type": "reference" },\n  "encryptionInformation": {\n    "keyAccess": [...],\n    "policy": "...(base64)"\n  }\n}`}
-                  </div>
-                )}
               </div>
-            ) : null}
-          </div>
+              <p style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--c-text-3)', margin: 0 }}>
+                {selectedNode.desc}
+              </p>
+              {techMode && selectedNode.id === 'kas' && (
+                <div style={techBlock}>
+                  GET /kas/v2/kas_public_key<br />POST /kas/v2/rewrap
+                </div>
+              )}
+              {techMode && selectedNode.id === 'platform' && (
+                <div style={techBlock}>
+                  authorization.AuthorizationService<br />/GetEntitlements<br />policy.attributes.AttributesService<br />/ListAttributes
+                </div>
+              )}
+              {techMode && selectedNode.id === 'tdf' && (
+                <div style={{ ...techBlock, fontSize: 10.5, whiteSpace: 'pre-wrap' }}>
+                  {`{\n  "payload": { "type": "reference" },\n  "encryptionInformation": {\n    "keyAccess": [...],\n    "policy": "...(base64)"\n  }\n}`}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* ABAC active persona callout */}
           {activeFlow === 'abac' && (
-            <div style={{
-              borderRadius: 10, padding: '10px 14px',
-              background: activePersona.color + '12',
-              border: `1.5px solid ${activePersona.color}`,
-              display: 'flex', alignItems: 'center', gap: 10,
-            }}>
-              <span style={{ fontSize: 20 }}>{activePersona.avatar}</span>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 12, color: activePersona.color }}>{activePersona.name}</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+            <div className="card" style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span aria-hidden="true" style={{
+                width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 11, fontWeight: 700,
+                background: activePersona.id === 'generic' ? 'var(--c-surface-3)' : activePersona.color,
+                color: activePersona.id === 'generic' ? 'var(--c-text-4)' : inkOn(activePersona.color),
+              }}>
+                {activePersona.id === 'generic' ? <UiIcon name="user" size={15} strokeWidth={1.9} /> : initialsOf(activePersona)}
+              </span>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 650, fontSize: 13, color: 'var(--c-text-1)' }}>{activePersona.name}</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 5 }}>
                   {activePersona.fqns.slice(0, 4).map(fqn => (
-                    <span key={fqn} style={{
-                      padding: '1px 6px', borderRadius: 4, fontSize: 10, fontFamily: 'monospace',
-                      background: activePersona.color + '22', color: activePersona.color,
-                      border: `1px solid ${activePersona.color}44`,
-                    }}>{fqn.split('/value/')[1]}</span>
+                    <span key={fqn} className="chip chip-mono">{fqn.split('/value/')[1]}</span>
                   ))}
                   {activePersona.fqns.length === 0 && (
-                    <span style={{ fontSize: 10, color: 'var(--c-text-5)', fontStyle: 'italic' }}>No attributes</span>
+                    <span style={{ fontSize: 12, color: 'var(--c-text-5)' }}>No attributes</span>
                   )}
                 </div>
               </div>
@@ -621,50 +563,42 @@ export default function ArchitecturePage() {
 
           {/* Step detail card */}
           {currentStep && (
-            <div
-              key={`${activeFlow}-${flowStep}`}
-              className="step-in"
-              style={{
-                borderRadius: 12,
-                padding: 18,
-                background: 'var(--c-surface)',
-                border: `1px solid ${flowDef?.border ?? 'var(--c-border)'}`,
-                boxShadow: 'var(--c-shadow-md)',
-              }}
-            >
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.5px', color: flowDef?.color, marginBottom: 6 }}>
-                STEP {currentStep.step} OF {flow.length} — {flowDef?.label.toUpperCase()}
+            <div key={`${activeFlow}-${flowStep}`} className="card step-in" style={{ padding: 18 }}>
+              <div className="num" style={{ fontSize: 12, fontWeight: 650, color: flowDef?.color, marginBottom: 6 }}>
+                Step {currentStep.step} of {flow.length}
               </div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-text-1)', marginBottom: 8 }}>
+              <div style={{ fontSize: 15, fontWeight: 650, letterSpacing: '-0.01em', color: 'var(--c-text-1)', marginBottom: 8 }}>
                 {currentStep.label}
               </div>
-              <p style={{ fontSize: 12, lineHeight: 1.6, color: 'var(--c-text-3)', margin: 0 }}>
+              <p style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--c-text-3)', margin: 0 }}>
                 {techMode ? currentStep.technical : (activeFlow === 'abac' ? getAbacDetail(currentStep.step) : currentStep.detail)}
               </p>
               {techMode && (
-                <div style={{ marginTop: 8, fontSize: 11, fontFamily: 'monospace', padding: '4px 8px', borderRadius: 6, background: 'var(--c-bg)', color: 'var(--c-text-5)' }}>
+                <div style={{ ...techBlock, marginTop: 10 }}>
                   {currentStep.edge[0]} → {currentStep.edge[1]}
                 </div>
               )}
               {/* ABAC result banner */}
               {activeFlow === 'abac' && flowStep === ABAC_FLOW.length - 1 && (
-                <div style={{
-                  marginTop: 12, borderRadius: 8, padding: '10px 14px',
-                  background: isAbacGranted ? '#061a0e' : '#1a0505',
-                  border: `2px solid ${isAbacGranted ? '#22c55e' : '#dc2626'}`,
+                <div role="status" style={{
+                  marginTop: 14, borderRadius: 8, padding: '10px 12px',
+                  background: isAbacGranted ? 'var(--c-grant-bg)' : 'var(--c-deny-bg)',
+                  border: `1px solid ${isAbacGranted ? 'var(--c-grant-br)' : 'var(--c-deny-br)'}`,
+                  color: isAbacGranted ? 'var(--c-grant)' : 'var(--c-deny)',
                 }}>
-                  <div style={{ fontWeight: 700, fontSize: 13, color: isAbacGranted ? '#4ade80' : '#f87171', marginBottom: 4 }}>
-                    {isAbacGranted ? '✓ ACCESS GRANTED' : '✗ ACCESS DENIED'}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 650, fontSize: 13, marginBottom: 6 }}>
+                    <UiIcon name={isAbacGranted ? 'check' : 'x'} size={14} strokeWidth={2.2} />
+                    {isAbacGranted ? 'Access granted' : 'Access denied'}
                   </div>
-                  <div style={{ fontSize: 11, color: isAbacGranted ? '#86efac' : '#fca5a5', lineHeight: 1.5 }}>
+                  <div style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--c-text-2)' }}>
                     <span style={{ color: 'var(--c-text-5)' }}>User: </span>
                     {activePersona.id === 'generic' ? 'Generic (no attributes)' : `${activePersona.name} — ${activePersona.attributes.join(', ') || 'no attributes'}`}
                   </div>
-                  <div style={{ fontSize: 11, color: isAbacGranted ? '#86efac' : '#fca5a5' }}>
+                  <div style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--c-text-2)' }}>
                     <span style={{ color: 'var(--c-text-5)' }}>Required: </span>{REQUIRED_ATTRS.join(' AND ')}
                   </div>
                   {!isAbacGranted && (
-                    <div style={{ fontSize: 11, color: '#f87171' }}>
+                    <div style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--c-deny)' }}>
                       <span style={{ color: 'var(--c-text-5)' }}>Missing: </span>{missingAttrs.join(', ')}
                     </div>
                   )}
@@ -673,48 +607,29 @@ export default function ArchitecturePage() {
             </div>
           )}
 
-          {/* Principle cards — shown when no flow active */}
+          {/* Principles — shown when no flow active; dividers, not cards */}
           {!activeFlow && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {PRINCIPLE_CARDS.map(c => (
-                <div key={c.title} style={{
-                  padding: '10px 12px', borderRadius: 8,
-                  background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-                  borderLeft: '3px solid var(--c-accent)',
-                }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--c-text-2)', marginBottom: 4 }}>{c.title}</div>
-                  <div style={{ fontSize: 11, color: 'var(--c-text-4)', lineHeight: 1.5 }}>{c.body}</div>
+            <div style={{ borderTop: '1px solid var(--c-border-2)' }}>
+              {PRINCIPLE_CARDS.map((c, i) => (
+                <div key={c.title} style={{ padding: '14px 0', borderTop: i ? '1px solid var(--c-border)' : 'none' }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 650, color: 'var(--c-text-1)', marginBottom: 4 }}>{c.title}</div>
+                  <div style={{ fontSize: 12.5, color: 'var(--c-text-4)', lineHeight: 1.55 }}>{c.body}</div>
                 </div>
               ))}
             </div>
           )}
 
           {/* Legend */}
-          <div style={{
-            borderRadius: 10,
-            padding: '12px 16px',
-            background: 'var(--c-surface)',
-            border: '1px solid var(--c-border)',
-            flexShrink: 0,
-          }}>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.5px', color: 'var(--c-text-6)', marginBottom: 8 }}>LEGEND</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {[
-                { color: 'var(--c-border)', dashed: true, label: 'Idle connection' },
-                { color: '#3b82f6',  label: 'Encrypt flow' },
-                { color: '#4ade80',  label: 'Decrypt flow' },
-                { color: '#a855f7',  label: 'ABAC flow' },
-                { color: '#f59e0b',  label: 'Multi-KAS flow' },
-              ].map(({ color, dashed, label }) => (
-                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--c-text-4)' }}>
-                  <svg width="20" height="6" viewBox="0 0 20 6">
-                    <line x1="0" y1="3" x2="20" y2="3" stroke={color} strokeWidth="2"
-                      strokeDasharray={dashed ? '4,3' : '0'} />
-                  </svg>
-                  {label}
-                </div>
-              ))}
-            </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px' }}>
+            {LEGEND.map(({ color, dashed, label }) => (
+              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: 'var(--c-text-4)' }}>
+                <svg width="20" height="6" viewBox="0 0 20 6" aria-hidden="true">
+                  <line x1="0" y1="3" x2="20" y2="3" stroke={color} strokeWidth="2"
+                    strokeDasharray={dashed ? '4,3' : '0'} />
+                </svg>
+                {label}
+              </div>
+            ))}
           </div>
         </div>
       </div>

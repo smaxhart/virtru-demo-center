@@ -7,6 +7,7 @@ import { retrieve, probeAccess } from '../ai/corpusVault.js'
 import { streamChat } from '../ai/gatewayClient.js'
 import { saveTdf } from '../api/download.js'
 import DerivedBanner from '../components/DerivedBanner.jsx'
+import UiIcon from '../../components/UiIcon.jsx'
 
 /** Tier units are labelled "Document — Tier"; show just the tier half. */
 const tierName = (unit) => unit.label.split(' — ')[1] ?? unit.label
@@ -83,17 +84,15 @@ Ask me anything.`,
 /** Attribute chips, tinted to whoever holds them. */
 function AttrChips({ fqns, color, emptyNote }) {
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
       {fqns.length === 0 && (
-        <span style={{ fontSize: 10, color: 'var(--c-text-5)', fontStyle: 'italic' }}>
+        <span style={{ fontSize: 12, color: 'var(--c-text-5)', fontStyle: 'italic' }}>
           {emptyNote}
         </span>
       )}
       {fqns.map(fqn => (
-        <span key={fqn} className="mono" style={{
-          fontSize: 9.5, padding: '2px 6px', borderRadius: 4,
-          background: color + '15', color,
-          border: `1px solid ${color}30`,
+        <span key={fqn} className="chip chip-mono" style={{
+          background: color + '15', color, borderColor: color + '30',
         }}>{shortFqn(fqn)}</span>
       ))}
     </div>
@@ -112,65 +111,47 @@ function AgentPanel() {
   if (agents.length === 0) return null
 
   return (
-    <>
-      <div className="section-label" style={{ padding: '8px 2px 2px' }}>
-        ACTING AGENT
-      </div>
-      <div style={{ fontSize: 10, color: 'var(--c-text-6)', lineHeight: 1.55, padding: '0 3px 3px' }}>
+    <div className="sai-group">
+      <h3>Acting agent</h3>
+      <p className="sai-rail-note">
         Entitled in its own right. A document is released only if the platform grants it to
         both of you.
-      </div>
+      </p>
 
-      {agents.map(a => {
-        const active = a.id === agentId
-        return (
+      <div className="sai-roster">
+        {agents.map(a => (
           <button
             key={a.id}
             onClick={() => setAgentId(a.id)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: '8px 11px',
-              borderRadius: 8, cursor: 'pointer', width: '100%', textAlign: 'left',
-              background: active ? a.color + '18' : 'var(--c-surface)',
-              border: `1.5px solid ${active ? a.color : 'var(--c-border)'}`,
-            }}
+            aria-pressed={a.id === agentId}
+            className="sai-subject"
+            style={{ '--sub': a.color }}
           >
-            <span style={{ color: active ? a.color : 'var(--c-text-5)', display: 'flex' }}>
-              <PersonaIcon icon={a.icon} size={18} />
-            </span>
+            <span className="sai-subject-ico"><PersonaIcon icon={a.icon} size={18} /></span>
             <div style={{ minWidth: 0 }}>
-              <div style={{
-                fontSize: 11.5, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden',
-                textOverflow: 'ellipsis', color: active ? a.color : 'var(--c-text-2)',
-              }}>{a.name}</div>
-              <div className="mono" style={{
-                fontSize: 9, color: 'var(--c-text-5)', marginTop: 1,
-                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-              }}>{a.title}</div>
+              <div className="sai-subject-name">{a.name}</div>
+              <div className="sai-subject-title mono">{a.title}</div>
             </div>
           </button>
-        )
-      })}
+        ))}
+      </div>
 
       {agent && (
-        <div className="card" style={{ padding: '10px 12px', marginTop: 4 }}>
-          <div className="section-label" style={{ marginBottom: 7 }}>AGENT ATTRIBUTES</div>
+        <>
+          <h3 style={{ marginTop: 4 }}>Agent attributes</h3>
           <AttrChips
             fqns={agentFqns}
             color={agent.color}
-            emptyNote="None — the agent holds no entitlements"
+            emptyNote="None. The agent holds no entitlements"
           />
-          <div style={{ fontSize: 10, color: 'var(--c-text-6)', marginTop: 8, lineHeight: 1.6 }}>
+          <p className="sai-rail-note">
             From the agent's own signed token. The KAS cannot tell it apart from a person.
-          </div>
-        </div>
+          </p>
+        </>
       )}
 
-      {agent?.note && (
-        <div style={{ fontSize: 10.5, color: 'var(--c-text-5)', lineHeight: 1.65, padding: '0 3px' }}>
-          {agent.note}
-        </div>
-      )}
-    </>
+      {agent?.note && <p className="sai-rail-note">{agent.note}</p>}
+    </div>
   )
 }
 
@@ -178,59 +159,51 @@ function IdentityPanel() {
   const { personas, persona, personaId, setPersonaId, entityFqns } = useApp()
 
   return (
-    <div style={{ width: 224, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 8, overflowY: 'auto' }}>
-      <div className="section-label" style={{ padding: '2px 2px' }}>IDENTITY</div>
+    <aside className="sai-rail sai-rail-l" aria-label="Identity">
+      <div className="sai-group">
+        <h3 className="sai-roster-h">Identity</h3>
 
-      {personas.map(p => {
-        const active = p.id === personaId
-        return (
-          <button
-            key={p.id}
-            onClick={() => setPersonaId(p.id)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: '9px 11px',
-              borderRadius: 8, cursor: 'pointer', width: '100%', textAlign: 'left',
-              background: active ? p.color + '18' : 'var(--c-surface)',
-              border: `1.5px solid ${active ? p.color : 'var(--c-border)'}`,
-            }}
-          >
-            <span style={{ color: active ? p.color : 'var(--c-text-5)', display: 'flex' }}>
-              <PersonaIcon icon={p.icon} badge={p.badge} size={20} />
-            </span>
-            <div style={{ minWidth: 0 }}>
-              <div style={{
-                fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden',
-                textOverflow: 'ellipsis', color: active ? p.color : 'var(--c-text-2)',
-              }}>{p.name}</div>
-              <div style={{
-                fontSize: 10, color: 'var(--c-text-5)', marginTop: 1,
-                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-              }}>{p.title}</div>
-            </div>
-          </button>
-        )
-      })}
+        <div className="sai-roster">
+          {personas.map(p => (
+            <button
+              key={p.id}
+              onClick={() => setPersonaId(p.id)}
+              aria-pressed={p.id === personaId}
+              className="sai-subject"
+              style={{ '--sub': p.color }}
+            >
+              <span className="sai-subject-ico"><PersonaIcon icon={p.icon} badge={p.badge} size={20} /></span>
+              <div style={{ minWidth: 0 }}>
+                <div className="sai-subject-name">{p.name}</div>
+                <div className="sai-subject-title">{p.title}</div>
+              </div>
+            </button>
+          ))}
+        </div>
 
-      <div className="card" style={{ padding: '10px 12px', marginTop: 4 }}>
-        <div className="section-label" style={{ marginBottom: 7 }}>RESOLVED ATTRIBUTES</div>
+        <h3 style={{ marginTop: 4 }}>Resolved attributes</h3>
         <AttrChips
           fqns={entityFqns}
           color={persona.color}
-          emptyNote="None — holds no entitlements"
+          emptyNote="None. Holds no entitlements"
         />
-        <div style={{ fontSize: 10, color: 'var(--c-text-6)', marginTop: 8, lineHeight: 1.6 }}>
-          Read from the signed token the KAS receives — not a UI-side copy.
-        </div>
+        <p className="sai-rail-note">
+          Read from the signed token the KAS receives, not a UI-side copy.
+        </p>
+        {persona.note && <p className="sai-rail-note">{persona.note}</p>}
       </div>
 
-      {persona.note && (
-        <div style={{ fontSize: 10.5, color: 'var(--c-text-5)', lineHeight: 1.65, padding: '0 3px' }}>
-          {persona.note}
-        </div>
-      )}
-
       <AgentPanel />
-    </div>
+    </aside>
+  )
+}
+
+function DownIcon({ size = 12 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 4v11M7 11l5 5 5-5M5 20h14" />
+    </svg>
   )
 }
 
@@ -269,37 +242,37 @@ function TdfDownload({ entry, compact = false }) {
       <button
         onClick={click}
         disabled={state === 'saving'}
-        title={`Download ${entry.unit.label} as .tdf (${fmtBytes(entry.bytes)}) — still encrypted, still policy-bound`}
+        title={`Download ${entry.unit.label} as .tdf (${fmtBytes(entry.bytes)}), still encrypted, still policy-bound`}
+        aria-label="Download source as .tdf"
+        className="btn btn-sm btn-ghost"
         style={{
-          flexShrink: 0, fontSize: 10, lineHeight: 1.2, padding: '1px 5px', borderRadius: 4,
-          cursor: state === 'saving' ? 'wait' : 'pointer', background: 'transparent',
-          border: '1px solid var(--c-border)', color: tint ?? 'var(--c-text-5)',
+          flexShrink: 0, width: 24, height: 24, minHeight: 0, padding: 0, justifyContent: 'center',
+          cursor: state === 'saving' ? 'wait' : 'pointer', color: tint ?? 'var(--c-text-5)',
         }}
-      >{state === 'saved' ? '✓' : '↓'}</button>
+      >{state === 'saved' ? <UiIcon name="check" size={12} strokeWidth={2.4} /> : <DownIcon size={12} />}</button>
     )
   }
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingLeft: 4, flexWrap: 'wrap' }}>
+    <div className="sai-source">
       <button
         onClick={click}
         disabled={state === 'saving'}
+        className="btn btn-sm"
         style={{
-          display: 'flex', alignItems: 'center', gap: 5,
-          fontSize: 10.5, fontWeight: 600, padding: '4px 9px', borderRadius: 6,
-          cursor: state === 'saving' ? 'wait' : 'pointer', background: 'var(--c-surface)',
-          border: `1px solid ${state === 'error' ? 'var(--c-deny-br)' : 'var(--c-border)'}`,
-          color: tint ?? 'var(--c-text-4)',
+          cursor: state === 'saving' ? 'wait' : 'pointer',
+          borderColor: state === 'error' ? 'var(--c-deny-br)' : undefined,
+          color: tint ?? undefined,
         }}
       >
-        <span style={{ fontSize: 11 }}>{state === 'saved' ? '✓' : '↓'}</span>
+        {state === 'saved' ? <UiIcon name="check" size={13} strokeWidth={2.4} /> : <DownIcon size={13} />}
         {state === 'saving' ? 'Choose a location…'
           : state === 'saved' ? 'Saved as .tdf'
           : state === 'error' ? 'Save failed'
           : 'Download source as .tdf'}
       </button>
-      <span className="mono" style={{ fontSize: 9.5, color: 'var(--c-text-6)' }}>
-        {entry.unit.label} · {fmtBytes(entry.bytes)} · policy travels inside the file
+      <span className="sai-source-text">
+        {entry.unit.label}, {fmtBytes(entry.bytes)}, policy travels inside the file
       </span>
     </div>
   )
@@ -317,35 +290,35 @@ function SubjectRows({ label, name, color, verdict, policy }) {
 
   return (
     <div style={{ marginTop: 6 }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <span style={{
-          fontWeight: 700, fontSize: 10, flexShrink: 0,
+          display: 'flex', flexShrink: 0,
           color: verdict.granted ? 'var(--c-grant)' : 'var(--c-deny)',
-        }}>{verdict.granted ? '✓' : '✗'}</span>
-        <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0.4, color: 'var(--c-text-5)', flexShrink: 0 }}>
+        }}><UiIcon name={verdict.granted ? 'check' : 'x'} size={12} strokeWidth={2.6} /></span>
+        <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--c-text-5)', flexShrink: 0 }}>
           {label}
         </span>
         <span style={{
-          fontSize: 9.5, color, minWidth: 0,
+          fontSize: 12, color, minWidth: 0,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>{name}</span>
       </div>
 
-      <div style={{ paddingLeft: 15, marginTop: 2 }}>
+      <div style={{ paddingLeft: 18, marginTop: 3 }}>
         {/* An empty policy has no rows to show, and its absence is the interesting fact */}
         {rows.length === 0 && (
-          <div style={{ fontSize: 9.5, color: 'var(--c-text-5)', lineHeight: 1.5, fontStyle: 'italic' }}>
-            No attributes in the policy — released to any authenticated caller.
+          <div style={{ fontSize: 11.5, color: 'var(--c-text-5)', lineHeight: 1.5, fontStyle: 'italic' }}>
+            No attributes in the policy: released to any authenticated caller.
           </div>
         )}
         {rows.map(r => (
-          <div key={r.attribute} style={{ display: 'flex', gap: 5, marginBottom: 2, alignItems: 'baseline' }}>
+          <div key={r.attribute} style={{ display: 'flex', gap: 6, marginBottom: 3, alignItems: 'flex-start' }}>
             <span style={{
-              fontSize: 10, flexShrink: 0, fontWeight: 700,
+              display: 'flex', flexShrink: 0, marginTop: 2,
               color: r.satisfied ? 'var(--c-grant)' : 'var(--c-deny)',
-            }}>{r.satisfied ? '✓' : '✗'}</span>
+            }}><UiIcon name={r.satisfied ? 'check' : 'x'} size={11} strokeWidth={2.6} /></span>
             <span className="mono" style={{
-              fontSize: 9.5, lineHeight: 1.5,
+              fontSize: 11.5, lineHeight: 1.5,
               color: r.satisfied ? 'var(--c-text-4)' : 'var(--c-deny)',
             }}>
               {r.attribute}:{r.required.length > 3 ? ` any of ${r.required.length}` : ' ' + r.required.join(' | ')}
@@ -353,7 +326,7 @@ function SubjectRows({ label, name, color, verdict, policy }) {
           </div>
         ))}
         {!verdict.granted && verdict.reason && (
-          <div style={{ fontSize: 9.5, color: 'var(--c-text-6)', marginTop: 3, lineHeight: 1.5 }}>
+          <div style={{ fontSize: 11.5, color: 'var(--c-text-5)', marginTop: 3, lineHeight: 1.5 }}>
             {verdict.reason}
           </div>
         )}
@@ -368,32 +341,26 @@ function RewrapAttempt({ attempt }) {
   const policy = entry.unit.policy
 
   return (
-    <div style={{
-      padding: '8px 10px', borderRadius: 7, marginBottom: 5,
-      background: granted ? 'var(--c-grant-bg)' : 'transparent',
-      border: `1px solid ${granted ? 'var(--c-grant-br)' : 'var(--c-border)'}`,
-    }}>
+    <div className={`sai-attempt${granted ? ' is-grant' : ''}`}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <span style={{
-          fontWeight: 700, fontSize: 11, flexShrink: 0,
+          display: 'flex', flexShrink: 0,
           color: granted ? 'var(--c-grant)' : 'var(--c-deny)',
-        }}>{granted ? '✓' : '✗'}</span>
+        }}><UiIcon name={granted ? 'check' : 'x'} size={13} strokeWidth={2.6} /></span>
         <span style={{
-          fontSize: 10.5, fontWeight: 600, flex: 1, minWidth: 0,
+          fontSize: 12.5, fontWeight: 600, flex: 1, minWidth: 0,
           color: granted ? 'var(--c-grant)' : 'var(--c-text-4)',
         }}>
           {entry.unit.tierId ? tierName(entry.unit) : 'Rewrap'}
         </span>
         {/* Attribution up here, where the eye lands before it reads the two blocks below */}
         {blockedBy === 'agent' && (
-          <span style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: 0.4, color: 'var(--c-warn)' }}>
-            AGENT BLOCKED
-          </span>
+          <span className="chip chip-warn" style={{ height: 20 }}>Agent blocked</span>
         )}
       </div>
 
       <SubjectRows
-        label="YOU"
+        label="You"
         name={persona.name}
         color={persona.color}
         verdict={{ ...user, fqns: entityFqns }}
@@ -403,7 +370,7 @@ function RewrapAttempt({ attempt }) {
       {/* `absent` means no agent was in play, so there is no second verdict to report */}
       {!agentVerdict.absent && agent && (
         <SubjectRows
-          label="AGENT"
+          label="Agent"
           name={agent.name}
           color={agent.color}
           verdict={{ ...agentVerdict, fqns: agentFqns }}
@@ -427,26 +394,30 @@ function SubjectGlyph({ ok, emphasizeMiss = false, title }) {
     <span
       title={`${title}: ${ok ? 'granted' : 'refused'}`}
       style={{
-        fontSize: 10.5, flexShrink: 0, width: 11, textAlign: 'center',
-        fontWeight: emphasizeMiss && !ok ? 700 : 400,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0, width: 14, height: 16,
         color: ok ? 'var(--c-grant)' : emphasizeMiss ? 'var(--c-warn)' : 'var(--c-text-6)',
       }}
-    >{ok ? '✓' : emphasizeMiss ? '✗' : '·'}</span>
+    >
+      {ok ? <UiIcon name="check" size={12} strokeWidth={2.6} />
+        : emphasizeMiss ? <UiIcon name="x" size={12} strokeWidth={2.8} />
+        : <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'currentColor' }} />}
+    </span>
   )
 }
 
 /** How the summary card names the outcome. Attribution is the whole point of a refusal. */
 function verdictLabel(trace) {
-  if (trace.granted) return '✓ KEY RELEASED'
-  if (trace.blockedBy === 'agent') return '✗ REFUSED TO THE AGENT'
-  if (trace.blockedBy === 'both') return '✗ REFUSED TO BOTH'
-  return '✗ REWRAP REFUSED'
+  if (trace.granted) return 'Key released'
+  if (trace.blockedBy === 'agent') return 'Refused to the agent'
+  if (trace.blockedBy === 'both') return 'Refused to both'
+  return 'Rewrap refused'
 }
 
 function blockerNote(trace, persona, agent) {
   if (trace.granted || !trace.blockedBy) return null
   if (trace.blockedBy === 'agent') {
-    return `${persona.name} was granted. ${agent?.name ?? 'The agent'} was not — and both are required.`
+    return `${persona.name} was granted. ${agent?.name ?? 'The agent'} was not, and both are required.`
   }
   if (trace.blockedBy === 'both') {
     return 'Neither subject satisfied the policy.'
@@ -454,112 +425,118 @@ function blockerNote(trace, persona, agent) {
   return `${persona.name} did not satisfy the policy.`
 }
 
+/**
+ * A fresh key per trace, so the verdict's wipe replays on every query — including the same
+ * question asked twice, which no field of the trace itself would distinguish.
+ */
+const traceIds = new WeakMap()
+let traceSeq = 0
+const traceKey = (t) => {
+  if (!traceIds.has(t)) traceIds.set(t, ++traceSeq)
+  return traceIds.get(t)
+}
+
 function DecisionPanel({ trace, accessMap }) {
-  const { mode, documents, persona, agent, entityFqns, agentFqns } = useApp()
+  const { documents, persona, agent, entityFqns, agentFqns } = useApp()
 
   const unit  = decidedUnit(trace)
   const scope = retrievalScope(accessMap, documents, entityFqns, agentFqns)
+  const tone  = !trace ? null : !trace.doc ? 'none' : trace.granted ? 'grant' : 'deny'
 
   return (
-    <div style={{ width: 236, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 8, overflowY: 'auto' }}>
-      <div className="section-label" style={{ padding: '2px 2px' }}>KAS DECISION</div>
+    <aside className="sai-rail sai-rail-r" aria-label="KAS decision">
+      <div className="sai-group">
+        <h3>KAS decision</h3>
 
-      {!trace ? (
-        <div className="card" style={{ padding: '12px 14px' }}>
-          <div style={{ fontSize: 11, color: 'var(--c-text-6)', fontStyle: 'italic', lineHeight: 1.6 }}>
+        {!trace ? (
+          <p className="sai-rail-note" style={{ fontStyle: 'italic' }}>
             Updates after each query. Every verdict here is a real rewrap response from
             the local KAS.
-          </div>
-        </div>
-      ) : (
-        <>
-          <div style={{
-            padding: '10px 12px', borderRadius: 8,
-            background: trace.granted ? 'var(--c-grant-bg)' : 'var(--c-deny-bg)',
-            border: `1px solid ${trace.granted ? 'var(--c-grant-br)' : 'var(--c-deny-br)'}`,
-          }}>
-            <div style={{
-              fontSize: 11, fontWeight: 700, marginBottom: 3,
-              color: trace.granted ? 'var(--c-grant)' : 'var(--c-deny)',
-            }}>
-              {verdictLabel(trace)}
-            </div>
-            {/* Which subject failed, before anything about the document. A refusal nobody can
-                attribute is indistinguishable from a bug. */}
-            {blockerNote(trace, persona, agent) && (
-              <div style={{ fontSize: 10, color: 'var(--c-text-4)', lineHeight: 1.55, marginBottom: 5 }}>
-                {blockerNote(trace, persona, agent)}
+          </p>
+        ) : (
+          <>
+            {/* The moment: the verdict is a strip of colour, and the document it was about is
+                either unsealed (wiped into view) or left as an ink bar. */}
+            <div key={traceKey(trace)} className={`sai-verdict is-${tone}`}>
+              <div className="sai-verdict-head">
+                <UiIcon name={tone === 'deny' ? 'x' : 'check'} size={14} strokeWidth={2.6} />
+                {tone === 'none' ? 'No document needed' : verdictLabel(trace)}
               </div>
-            )}
-            {trace.doc ? (
-              <div style={{ fontSize: 10, color: 'var(--c-text-5)', lineHeight: 1.55 }}>
-                <div>{trace.doc.label}</div>
-                {trace.entry?.unit.tierId && (
-                  <div style={{ marginTop: 1, color: 'var(--c-warn)', fontWeight: 600 }}>
-                    {tierName(trace.entry.unit)}
-                  </div>
+              <div className="sai-verdict-body">
+                {/* Which subject failed, before anything about the document. A refusal nobody can
+                    attribute is indistinguishable from a bug. */}
+                {blockerNote(trace, persona, agent) && (
+                  <p className="sai-verdict-why">{blockerNote(trace, persona, agent)}</p>
                 )}
-                <div className="mono" style={{
-                  marginTop: 3, fontSize: 9.5, fontWeight: 600,
-                  color: trace.granted ? 'var(--c-grant)' : 'var(--c-deny)',
-                }}>
-                  {unit?.classification ?? trace.doc.classification}
-                </div>
+                {trace.doc ? (
+                  <>
+                    <div className="sai-verdict-doc">
+                      {trace.granted
+                        ? <span className="sai-unseal">{trace.doc.label}</span>
+                        : <span className="sai-sealed">{trace.doc.label}</span>}
+                    </div>
+                    {trace.entry?.unit.tierId && (
+                      <div className="sai-verdict-tier">{tierName(trace.entry.unit)}</div>
+                    )}
+                    <div className="sai-verdict-mark">
+                      {unit?.classification ?? trace.doc.classification}
+                    </div>
+                  </>
+                ) : (
+                  <div className="sai-verdict-sub">General question, no document retrieved</div>
+                )}
               </div>
-            ) : (
-              <div style={{ fontSize: 10, color: 'var(--c-text-5)' }}>
-                General question — no document retrieved
+            </div>
+
+            {/* Directly under the verdict, because on a CUI document the banner in the card above is
+                this derivation's output and the two belong together. */}
+            {unit && <DerivedBanner policy={unit.policy} compact />}
+
+            {trace.attempts?.length > 0 && (
+              <div>
+                <h3 style={{ marginBottom: 7 }}>
+                  {trace.attempts.length > 1 ? `Rewrap attempts (${trace.attempts.length})` : 'Rewrap attempt'}
+                </h3>
+                {trace.attempts.map((a, i) => (
+                  <RewrapAttempt key={i} attempt={a} />
+                ))}
+                {trace.attempts.length > 1 && (
+                  <p className="sai-rail-note" style={{ marginTop: 2 }}>
+                    Tiers are tried most-privileged first; the first tier <em>both</em> subjects can
+                    open wins.
+                  </p>
+                )}
               </div>
             )}
-          </div>
+          </>
+        )}
+      </div>
 
-          {/* Directly under the verdict, because on a CUI document the banner in the card above is
-              this derivation's output and the two belong together. */}
-          {unit && <DerivedBanner policy={unit.policy} compact />}
-
-          {trace.attempts?.length > 0 && (
-            <div className="card" style={{ padding: '10px 12px' }}>
-              <div className="section-label" style={{ marginBottom: 7 }}>
-                REWRAP {trace.attempts.length > 1 ? `ATTEMPTS (${trace.attempts.length})` : 'ATTEMPT'}
-              </div>
-              {trace.attempts.map((a, i) => (
-                <RewrapAttempt key={i} attempt={a} />
-              ))}
-              {trace.attempts.length > 1 && (
-                <div style={{ fontSize: 9.5, color: 'var(--c-text-6)', lineHeight: 1.55, marginTop: 2 }}>
-                  Tiers are tried most-privileged first; the first tier <em>both</em> subjects can
-                  open wins.
-                </div>
-              )}
-            </div>
-          )}
-        </>
-      )}
-
-      <div className="card" style={{ padding: '10px 12px' }}>
-        <div className="section-label" style={{ marginBottom: 7 }}>CORPUS ACCESS</div>
+      <div className="sai-group">
+        <h3>Corpus access</h3>
 
         {/* The retrieval filter, stated as a number rather than left to be inferred from the rows.
             This is the answer to "what did the assistant have to work with" — the question a
             compliance reviewer asks about a RAG system, and the one a chat transcript cannot
-            answer, because a withheld document leaves no trace in the conversation. */}
+            answer, because a withheld document leaves no trace in the conversation. One segment
+            per document; ink is what the KAS withheld. */}
         {scope && (
-          <div style={{
-            marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid var(--c-border)',
-          }}>
-            <div style={{ fontSize: 10.5, color: 'var(--c-text-4)', lineHeight: 1.55 }}>
-              <strong style={{ color: 'var(--c-text-2)' }}>{scope.admitted} of {scope.total}</strong>
+          <div>
+            <div className="sai-meter" aria-hidden="true">
+              {documents.map(doc => {
+                const r = accessMap.get(doc.id)
+                return <i key={doc.id} className={r?.granted ? '' : r?.blockedBy === 'agent' ? 'is-agent' : 'is-shut'} />
+              })}
+            </div>
+            <div className="sai-scope">
+              <strong>{scope.admitted} of {scope.total}</strong>
               {' '}admitted to retrieval
-              {scope.withheld > 0 && <> · {scope.withheld} withheld</>}
+              {scope.withheld > 0 && <>, {scope.withheld} withheld</>}
             </div>
             {scope.by.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 5 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 7 }}>
                 {scope.by.map(([attr, n]) => (
-                  <span key={attr} className="mono" title={`Withheld ${n} document(s)`} style={{
-                    fontSize: 9, padding: '2px 5px', borderRadius: 4,
-                    background: 'var(--c-deny-bg)', color: 'var(--c-deny)',
-                    border: '1px solid var(--c-deny-br)',
-                  }}>{n}× {attr}</span>
+                  <span key={attr} className="sai-shut-chip" title={`Withheld ${n} document(s)`}>{n}× {attr}</span>
                 ))}
               </div>
             )}
@@ -568,59 +545,50 @@ function DecisionPanel({ trace, accessMap }) {
 
         {/* A legend rather than aligned column headers — "AGENT" is wider than the glyph column
             it would label, and a header that does not line up reads as a mistake. */}
-        {agent && (
-          <div className="mono" style={{
-            fontSize: 8.5, color: 'var(--c-text-6)', letterSpacing: 0.3, marginBottom: 5,
-          }}>
-            COLUMNS: YOU · AGENT
-          </div>
-        )}
-        {!accessMap ? (
-          <div style={{ fontSize: 10, color: 'var(--c-text-6)', fontStyle: 'italic' }}>Probing…</div>
-        ) : documents.map(doc => {
-          const r = accessMap.get(doc.id)
-          const ok = r?.granted
-          return (
-            <div key={doc.id} style={{ display: 'flex', gap: 5, marginBottom: 4, alignItems: 'baseline' }}>
-              {/* Two verdicts, never collapsed into one. A row where you cleared and the agent
-                  did not is the case this whole feature exists to make visible, and a single
-                  glyph would render it identical to a row you were never entitled to. */}
-              <SubjectGlyph ok={r?.userGranted} title="Released to you" />
-              {agent && (
-                <SubjectGlyph
-                  ok={r?.agentGranted}
-                  emphasizeMiss={r?.userGranted}
-                  title={`Released to ${agent.name}`}
-                />
-              )}
-              <span style={{
-                fontSize: 10, lineHeight: 1.45, flex: 1, minWidth: 0,
-                color: ok ? 'var(--c-text-4)' : 'var(--c-text-6)',
-              }}>
-                {doc.label}
-                {/* Marked so it is obvious which rows came from a file you added, and which
-                    shipped with the scenario. The access decision is identical either way. */}
-                {doc.upload && <span style={{ color: 'var(--c-text-6)' }}> · yours</span>}
-                {ok && r.tierId && (
-                  <span style={{ color: 'var(--c-warn)' }}> · {r.tierId}</span>
+        {agent && <p className="sai-rail-note">Columns: you, then agent</p>}
+        <div>
+          {!accessMap ? (
+            <p className="sai-rail-note" style={{ fontStyle: 'italic' }}>Probing…</p>
+          ) : documents.map((doc, i) => {
+            const r = accessMap.get(doc.id)
+            const ok = r?.granted
+            return (
+              <div key={doc.id} className={`sai-doc ${ok ? 'is-open' : 'is-shut'}`}>
+                {/* Two verdicts, never collapsed into one. A row where you cleared and the agent
+                    did not is the case this whole feature exists to make visible, and a single
+                    glyph would render it identical to a row you were never entitled to. */}
+                <SubjectGlyph ok={r?.userGranted} title="Released to you" />
+                {agent && (
+                  <SubjectGlyph
+                    ok={r?.agentGranted}
+                    emphasizeMiss={r?.userGranted}
+                    title={`Released to ${agent.name}`}
+                  />
                 )}
-                {!ok && r?.blockedBy === 'agent' && (
-                  <span style={{ color: 'var(--c-warn)' }}> · agent blocked</span>
-                )}
-              </span>
-              {/* Reachable means exportable. Nothing is offered on a row the KAS refused. */}
-              {ok && r.entry && <TdfDownload entry={r.entry} compact />}
-            </div>
-          )
-        })}
-        <div style={{ fontSize: 9.5, color: 'var(--c-text-6)', marginTop: 7, lineHeight: 1.55 }}>
+                <span className="sai-doc-label">
+                  {ok
+                    ? <span className="sai-unseal" style={{ '--i': i }}>{doc.label}</span>
+                    : <span className="sai-sealed">{doc.label}</span>}
+                  {/* Marked so it is obvious which rows came from a file you added, and which
+                      shipped with the scenario. The access decision is identical either way. */}
+                  {doc.upload && <span className="sai-doc-sfx is-quiet">, yours</span>}
+                  {ok && r.tierId && <span className="sai-doc-sfx">, {r.tierId}</span>}
+                  {!ok && r?.blockedBy === 'agent' && <span className="sai-doc-sfx">, agent blocked</span>}
+                </span>
+                {/* Reachable means exportable. Nothing is offered on a row the KAS refused. */}
+                {ok && r.entry && <TdfDownload entry={r.entry} compact />}
+              </div>
+            )
+          })}
+        </div>
+        <p className="sai-rail-note">
           Measured by actually attempting each rewrap, not predicted.
           {agent && ' A document is reachable only where both columns clear.'}
-          {' '}↓ saves the released TDF — it stays encrypted, and its policy is still enforced
-          by this KAS.
-        </div>
+          {' '}The download button saves the released TDF; it stays encrypted, and its policy is
+          still enforced by this KAS.
+        </p>
       </div>
-    </div>
+    </aside>
   )
 }
 
@@ -629,20 +597,11 @@ function DecisionPanel({ trace, accessMap }) {
 function Message({ msg, persona }) {
   const isUser = msg.role === 'user'
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: isUser ? 'flex-end' : 'flex-start', gap: 4 }}>
-      <div style={{ fontSize: 10, color: 'var(--c-text-5)', padding: isUser ? '0 4px 0 0' : '0 0 0 4px' }}>
-        {isUser ? persona.name : 'Virtru Secure AI'}
-      </div>
-      <div style={{
-        maxWidth: '76%', padding: '11px 14px', fontSize: 13, lineHeight: 1.65,
-        borderRadius: isUser ? '14px 14px 4px 14px' : '4px 14px 14px 14px',
-        background: isUser ? '#1e3a5f' : msg.denied ? 'var(--c-deny-bg)' : 'var(--c-surface)',
-        border: isUser ? 'none' : `1px solid ${msg.denied ? 'var(--c-deny-br)' : 'var(--c-border)'}`,
-        color: isUser ? '#e2e8f0' : 'var(--c-text-2)',
-        whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-      }}>
+    <div className={`sai-msg${isUser ? ' is-user' : ''}`}>
+      <div className="sai-msg-who">{isUser ? persona.name : 'Virtru Secure AI'}</div>
+      <div className={`sai-msg-body${msg.denied ? ' is-denied' : ''}${msg.welcome ? ' is-welcome' : ''}`}>
         {msg.content}
-        {msg.streaming && <span style={{ opacity: 0.4 }}>▋</span>}
+        {msg.streaming && <span aria-hidden="true" className="sai-cursor" />}
       </div>
 
       {/* Only once the answer has finished — a button appearing mid-stream pulls the eye
@@ -652,24 +611,13 @@ function Message({ msg, persona }) {
   )
 }
 
+/** Lines of text being resolved: the same ink bars the sealed documents use, before the wipe. */
 function TypingIndicator({ note }) {
   return (
-    <div style={{ alignSelf: 'flex-start', display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <div style={{ fontSize: 10, color: 'var(--c-text-5)', paddingLeft: 4 }}>
-        {note ?? 'Virtru Secure AI'}
-      </div>
-      <div style={{
-        padding: '12px 16px', borderRadius: '4px 14px 14px 14px',
-        background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-        display: 'flex', gap: 4, alignItems: 'center',
-      }}>
-        {[0, 0.2, 0.4].map(d => (
-          <span key={d} style={{
-            width: 6, height: 6, borderRadius: '50%', background: 'var(--c-text-5)',
-            display: 'inline-block', animation: `bounce 1.2s ease-in-out ${d}s infinite`,
-          }} />
-        ))}
-      </div>
+    <div className="sai-msg" role="status">
+      <div className="sai-msg-who">Virtru Secure AI</div>
+      {note && <div className="sai-resolving-note">{note}</div>}
+      <div className="sai-resolving" aria-hidden="true"><span /><span /><span /></div>
     </div>
   )
 }
@@ -881,75 +829,71 @@ export default function ChatPage() {
   const lastIsUser = messages[messages.length - 1]?.role === 'user'
 
   return (
-    <div style={{ height: '100%', display: 'flex', overflow: 'hidden', gap: 14, padding: 14 }}>
-      <IdentityPanel />
+    <div className="sai-chat-wrap">
+      <div className="sai-chat">
+        <IdentityPanel />
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 15, paddingBottom: 10 }}>
-          {messages.map((msg, i) => <Message key={i} msg={msg} persona={persona} />)}
-          {busy && lastIsUser && (
-            <TypingIndicator note={stage === 'retrieving'
-              ? (agent ? 'Asking the KAS to unwrap — for you and for me…' : 'Asking the KAS to unwrap…')
-              : undefined} />
-          )}
-          <div ref={bottomRef} />
+        <div className="sai-conv">
+          <div className="sai-scroll">
+            <div className="sai-thread">
+              {messages.map((msg, i) => <Message key={i} msg={msg} persona={persona} />)}
+              {busy && lastIsUser && (
+                <TypingIndicator note={stage === 'retrieving'
+                  ? (agent ? 'Asking the KAS to unwrap, for you and for me…' : 'Asking the KAS to unwrap…')
+                  : undefined} />
+              )}
+              <div ref={bottomRef} />
+            </div>
+          </div>
+
+          <div className="sai-foot-bar">
+            <div className="sai-foot-in">
+              <div className="sai-prompts">
+                {mode.prompts.map(p => (
+                  <button
+                    key={p.label}
+                    onClick={() => submitQuery(p.text)}
+                    disabled={busy}
+                    className="sai-prompt"
+                  >{p.label}</button>
+                ))}
+              </div>
+
+              <div className="sai-composer">
+                <textarea
+                  ref={textareaRef}
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit() }
+                  }}
+                  disabled={busy}
+                  placeholder="Message Virtru Secure AI…"
+                  aria-label="Message"
+                  rows={1}
+                />
+                <button
+                  onClick={submit}
+                  disabled={busy || !input.trim()}
+                  className="btn btn-primary"
+                  aria-label="Send"
+                  style={{ flexShrink: 0, width: 34, height: 34, padding: 0, justifyContent: 'center' }}
+                >
+                  <span style={{ display: 'flex', transform: 'rotate(-90deg)' }}>
+                    <UiIcon name="arrowRight" size={16} strokeWidth={2.2} />
+                  </span>
+                </button>
+              </div>
+
+              <div className="sai-note">
+                Documents held as TDF, {agent ? 'every answer gated by two live KAS rewraps' : 'every answer gated by a live KAS rewrap'}, model via Virtru AI Gateway
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div style={{ flexShrink: 0, display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 6 }}>
-          {mode.prompts.map(p => (
-            <button
-              key={p.label}
-              onClick={() => submitQuery(p.text)}
-              disabled={busy}
-              style={{
-                fontSize: 11, padding: '5px 10px', borderRadius: 20, whiteSpace: 'nowrap',
-                background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-                color: 'var(--c-text-3)', cursor: busy ? 'not-allowed' : 'pointer',
-                opacity: busy ? 0.5 : 1,
-              }}
-            >{p.label}</button>
-          ))}
-        </div>
-
-        <div className="card" style={{
-          flexShrink: 0, display: 'flex', alignItems: 'flex-end', gap: 10,
-          padding: '10px 12px', marginTop: 7,
-        }}>
-          <textarea
-            ref={textareaRef}
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit() }
-            }}
-            disabled={busy}
-            placeholder="Message Virtru Secure AI…"
-            rows={1}
-            style={{
-              flex: 1, resize: 'none', border: 'none', outline: 'none', background: 'transparent',
-              color: 'var(--c-text-1)', fontSize: 14, lineHeight: 1.5, fontFamily: 'inherit',
-              maxHeight: 160, overflow: 'auto',
-            }}
-          />
-          <button
-            onClick={submit}
-            disabled={busy || !input.trim()}
-            style={{
-              flexShrink: 0, width: 34, height: 34, borderRadius: 8, fontSize: 16,
-              background: busy || !input.trim() ? 'var(--c-surface-2)' : '#1e40af',
-              border: '1px solid var(--c-border)',
-              color: busy || !input.trim() ? 'var(--c-text-5)' : '#fff',
-              cursor: busy || !input.trim() ? 'not-allowed' : 'pointer',
-            }}
-          >↑</button>
-        </div>
-
-        <div style={{ marginTop: 5, textAlign: 'center', fontSize: 10, color: 'var(--c-text-6)' }}>
-          Documents held as TDF · {agent ? 'every answer gated by two live KAS rewraps' : 'every answer gated by a live KAS rewrap'} · model via Virtru AI Gateway
-        </div>
+        <DecisionPanel trace={trace} accessMap={accessMap} />
       </div>
-
-      <DecisionPanel trace={trace} accessMap={accessMap} />
     </div>
   )
 }

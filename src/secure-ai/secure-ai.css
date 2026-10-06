@@ -1,0 +1,362 @@
+/*
+ * AI Protection (Virtru Secure AI).
+ *
+ * Everything is scoped under `.secure-ai`, the wrapper mounted in App.jsx, so nothing here can leak
+ * into a page that shipped before this one.
+ *
+ * One idea runs through it, borrowed from the Home briefing sheet: a document is either SEALED (an
+ * ink redaction bar) or UNSEALED (the same line, revealed by a left-to-right wipe). It shows up
+ * where the product makes its claim: the KAS verdict and the source ledger beside the chat, the
+ * source line under an answer, and the thinking state. The rest of the app stays quiet so that
+ * one motif carries the meaning.
+ */
+
+.secure-ai {
+  --sai-shut: var(--c-ink);
+  --sai-shut-text: rgba(214, 226, 244, 0.82);
+  --sai-on-ink: rgba(214, 226, 244, 0.72);
+  --sai-on-ink-line: rgba(146, 192, 233, 0.32);
+  --sai-sky: #92c0e9;
+}
+
+/* ── Motion ───────────────────────────────────────────────── */
+@keyframes sai-unseal { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes sai-rise   { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes sai-resolve { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.9; } }
+
+.secure-ai .sai-unseal { display: inline-block; animation: sai-unseal 0.4s ease-out both; animation-delay: calc(var(--i, 0) * 45ms); }
+
+/* A sealed line: the label is still readable (a document's title is metadata, not content),
+   but it is drawn the way the Home briefing draws a passage the viewer may not read. */
+.secure-ai .sai-sealed {
+  display: inline;
+  padding: 1px 6px;
+  border-radius: 2px;
+  background: var(--sai-shut);
+  color: var(--sai-shut-text);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.secure-ai .sai-on-ink :focus-visible,
+.secure-ai .sai-bar :focus-visible,
+.secure-ai .sai-hero :focus-visible { outline-color: var(--sai-sky); }
+
+/* ── Launcher ─────────────────────────────────────────────── */
+.secure-ai .sai-hero { background: var(--c-ink); color: #fff; }
+.secure-ai .sai-hero-in {
+  max-width: 1040px; margin: 0 auto; padding: 34px 40px 30px;
+  display: flex; gap: 32px; align-items: flex-end; justify-content: space-between;
+}
+.secure-ai .sai-hero h1 {
+  margin: 0 0 12px; font-size: 32px; font-weight: 720; line-height: 1.1; letter-spacing: -0.03em; color: #fff;
+}
+.secure-ai .sai-hero p { margin: 0; max-width: 74ch; font-size: 15px; line-height: 1.6; color: rgba(214, 226, 244, 0.8); }
+.secure-ai .sai-hero .sai-ver {
+  flex-shrink: 0; font-family: var(--font-mono); font-size: 11.5px; color: var(--sai-sky);
+  border: 1px solid var(--sai-on-ink-line); border-radius: 6px; padding: 2px 8px;
+}
+
+.secure-ai .sai-launch { max-width: 1040px; margin: 0 auto; padding: 28px 40px 64px; }
+
+.secure-ai .sai-modes {
+  list-style: none; margin: 0; padding: 0;
+  background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--c-radius-card); overflow: hidden;
+}
+.secure-ai .sai-modes li + li { border-top: 1px solid var(--c-border); }
+.secure-ai .sai-mode {
+  display: grid; grid-template-columns: minmax(200px, 270px) minmax(0, 1fr) auto; gap: 8px 28px; align-items: start;
+  width: 100%; padding: 16px 22px 16px 22px; text-align: left; cursor: pointer;
+  background: transparent; border: 0; color: inherit; font: inherit;
+  box-shadow: inset 3px 0 0 var(--accent, var(--c-accent));
+  transition: background-color 0.12s;
+}
+.secure-ai .sai-mode:hover { background: var(--c-surface-2); }
+.secure-ai .sai-mode:focus-visible { outline-offset: -2px; }
+.secure-ai .sai-mode-head { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
+.secure-ai .sai-mode-icon { color: var(--accent); display: flex; margin-top: 2px; }
+.secure-ai .sai-mode-name { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; color: var(--c-text-1); line-height: 1.25; }
+.secure-ai .sai-mode-tag { margin-top: 3px; font-size: 12.5px; line-height: 1.45; color: var(--c-text-4); }
+.secure-ai .sai-mode-premise {
+  margin: 0; font-size: 13px; line-height: 1.6; color: var(--c-text-3);
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.secure-ai .sai-mode-teaches {
+  list-style: none; margin: 9px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 2px 20px; line-height: 1.6;
+  font-size: 12.5px; font-weight: 550; color: var(--c-text-3);
+}
+.secure-ai .sai-mode-teaches li::before { content: ''; display: inline-block; width: 5px; height: 5px; margin-right: 7px; border-radius: 1px; background: var(--accent); vertical-align: 1px; }
+.secure-ai .sai-mode-counts { display: flex; flex-wrap: wrap; gap: 0 10px; margin-top: 8px; font-family: var(--font-mono); font-size: 11px; color: var(--c-text-5); }
+.secure-ai .sai-mode-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; min-width: 70px; }
+.secure-ai .sai-mode-go { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-family: var(--font-ui); font-size: 13px; font-weight: 650; color: var(--c-text-3); }
+.secure-ai .sai-mode-go svg { transition: transform 0.12s; }
+.secure-ai .sai-mode:hover .sai-mode-go { color: var(--c-accent); }
+.secure-ai .sai-mode:hover .sai-mode-go svg { transform: translateX(3px); }
+.secure-ai .sai-mode-edit {
+  font-family: var(--font-ui); font-size: 12px; font-weight: 600; color: var(--c-text-3); cursor: pointer;
+  padding: 2px 9px; border-radius: 6px; border: 1px solid var(--c-border-2); background: var(--c-surface);
+}
+.secure-ai .sai-mode-edit:hover { border-color: var(--c-text-5); color: var(--c-text-1); }
+.secure-ai .sai-mode-yours {
+  margin-left: 8px; padding: 1px 7px; border-radius: 5px; vertical-align: 2px;
+  font-size: 11px; font-weight: 650; color: var(--c-text-3); background: var(--c-surface-3); border: 1px solid var(--c-border);
+}
+
+.secure-ai .sai-build {
+  display: flex; align-items: flex-start; gap: 14px; width: 100%; margin-top: 14px; padding: 16px 22px; text-align: left; cursor: pointer;
+  background: transparent; border: 1px dashed var(--c-border-2); border-radius: var(--c-radius-card); color: inherit; font: inherit;
+  transition: background-color 0.12s, border-color 0.12s;
+}
+.secure-ai .sai-build:hover { background: var(--c-surface); border-color: var(--c-text-5); }
+.secure-ai .sai-build-title { font-size: 14.5px; font-weight: 700; color: var(--c-text-1); }
+.secure-ai .sai-build-body { margin-top: 3px; font-size: 13px; line-height: 1.6; color: var(--c-text-4); max-width: 86ch; }
+
+.secure-ai .sai-foot { margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--c-border); font-size: 13px; line-height: 1.65; color: var(--c-text-4); max-width: 84ch; }
+.secure-ai .sai-foot strong { color: var(--c-text-1); }
+
+@media (max-width: 1000px) {
+  .secure-ai .sai-mode { grid-template-columns: minmax(0, 1fr) auto; }
+  .secure-ai .sai-mode-body { grid-column: 1 / -1; grid-row: 2; }
+}
+
+/* ── Mode bar ─────────────────────────────────────────────── */
+.secure-ai .sai-shell { height: 100%; display: flex; flex-direction: column; background: var(--c-bg); }
+.secure-ai .sai-bar {
+  flex-shrink: 0; height: 52px; display: flex; align-items: center; gap: 12px; padding: 0 16px;
+  background: var(--c-ink); color: #fff; border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+}
+.secure-ai .sai-back {
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0; height: 32px; padding: 0 12px 0 9px;
+  color: #fff; text-decoration: none; font-size: 13px; font-weight: 650;
+  border: 1px solid var(--sai-on-ink-line); border-radius: 8px;
+  transition: background-color 0.12s, border-color 0.12s;
+}
+.secure-ai .sai-back:hover { background: rgba(255, 255, 255, 0.08); border-color: rgba(146, 192, 233, 0.7); }
+.secure-ai .sai-back svg { color: var(--sai-on-ink); }
+.secure-ai .sai-back-ico { display: flex; color: var(--accent, #fff); }
+.secure-ai .sai-tabs { display: flex; align-self: stretch; gap: 2px; }
+.secure-ai .sai-tab {
+  position: relative; display: flex; align-items: center; padding: 0 10px; white-space: nowrap;
+  font-size: 13px; font-weight: 550; color: var(--sai-on-ink); text-decoration: none; transition: color 0.12s;
+}
+.secure-ai .sai-tab:hover { color: #fff; }
+.secure-ai .sai-tab[aria-current="page"] { color: #fff; font-weight: 650; }
+.secure-ai .sai-tab[aria-current="page"]::after { content: ''; position: absolute; left: 10px; right: 10px; bottom: 0; height: 2px; background: var(--sai-sky); border-radius: 2px 2px 0 0; }
+.secure-ai .sai-tab:focus-visible { outline-offset: -3px; }
+.secure-ai .sai-who { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 12px; color: var(--sai-on-ink); white-space: nowrap; }
+.secure-ai .sai-who > div { min-width: 0; }
+.secure-ai .sai-switch {
+  display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 9px 0 5px; max-width: 230px; min-width: 0;
+  background: transparent; color: #fff; font-size: 13px; font-weight: 600;
+  border: 1px solid var(--sai-on-ink-line); border-radius: 8px; cursor: pointer;
+  transition: background-color 0.12s, border-color 0.12s;
+}
+.secure-ai .sai-switch:hover:not(:disabled) { background: rgba(255, 255, 255, 0.08); border-color: rgba(146, 192, 233, 0.7); }
+.secure-ai .sai-switch:disabled { opacity: 0.55; cursor: not-allowed; }
+.secure-ai .sai-switch > span.sai-switch-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.secure-ai .sai-switch svg { color: var(--sai-on-ink); flex-shrink: 0; }
+/* The persona icon is coloured for a light ground; a pale tile keeps every persona legible on ink. */
+.secure-ai .sai-chip-ico { display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 5px; background: #fff; flex-shrink: 0; }
+.secure-ai .sai-status { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-left: 2px; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.15); }
+.secure-ai .sai-opt {
+  display: flex; align-items: center; gap: 9px; width: 100%; padding: 8px 10px; text-align: left; cursor: pointer;
+  background: transparent; border: 1px solid transparent; border-radius: 6px; font: inherit;
+}
+.secure-ai .sai-opt:hover { background: var(--c-surface-3); }
+.secure-ai .sai-opt[aria-selected="true"] { background: var(--c-info-bg); }
+
+/* ── Chat ─────────────────────────────────────────────────── */
+.secure-ai .sai-chat-wrap { height: 100%; container-type: inline-size; }
+.secure-ai .sai-chat { height: 100%; display: grid; grid-template-columns: 232px minmax(0, 1fr) 276px; overflow: hidden; }
+
+.secure-ai .sai-rail { min-height: 0; overflow-y: auto; background: var(--c-surface); padding: 16px 14px 20px; display: flex; flex-direction: column; gap: 14px; }
+.secure-ai .sai-rail-l { border-right: 1px solid var(--c-border); }
+.secure-ai .sai-rail-r { border-left: 1px solid var(--c-border); }
+.secure-ai .sai-rail h3 { margin: 0; font-size: 12px; font-weight: 650; letter-spacing: 0; color: var(--c-text-4); }
+.secure-ai .sai-rail-note { margin: 0; font-size: 12px; line-height: 1.6; color: var(--c-text-5); }
+.secure-ai .sai-group { display: flex; flex-direction: column; gap: 6px; }
+.secure-ai .sai-group + .sai-group { padding-top: 14px; border-top: 1px solid var(--c-border); }
+
+.secure-ai .sai-roster { display: flex; flex-direction: column; margin: 0 -14px; }
+.secure-ai .sai-subject {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 14px 8px 11px; text-align: left; cursor: pointer;
+  background: transparent; border: 0; border-left: 3px solid transparent; font: inherit; color: var(--c-text-2);
+  transition: background-color 0.12s;
+}
+.secure-ai .sai-subject:hover { background: var(--c-surface-2); }
+.secure-ai .sai-subject:focus-visible { outline-offset: -2px; }
+.secure-ai .sai-subject[aria-pressed="true"] { background: var(--c-surface-2); border-left-color: var(--sub); }
+.secure-ai .sai-subject-ico { display: flex; color: var(--c-text-5); flex-shrink: 0; }
+.secure-ai .sai-subject[aria-pressed="true"] .sai-subject-ico { color: var(--sub); }
+.secure-ai .sai-subject-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.secure-ai .sai-subject[aria-pressed="true"] .sai-subject-name { font-weight: 700; color: var(--c-text-1); }
+.secure-ai .sai-subject-title { margin-top: 1px; font-size: 11.5px; color: var(--c-text-5); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.secure-ai .sai-attrs { display: flex; flex-wrap: wrap; gap: 5px; }
+
+/* The conversation column */
+.secure-ai .sai-conv { min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--c-bg); }
+.secure-ai .sai-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 22px 28px 10px; }
+.secure-ai .sai-thread { max-width: 740px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.secure-ai .sai-msg { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; animation: sai-rise 0.2s ease-out; }
+.secure-ai .sai-msg.is-user { align-items: flex-end; }
+.secure-ai .sai-msg-who { font-size: 12px; color: var(--c-text-5); }
+.secure-ai .sai-msg-body { max-width: 68ch; font-size: 14.5px; line-height: 1.68; color: var(--c-text-2); white-space: pre-wrap; word-break: break-word; }
+.secure-ai .sai-msg.is-user .sai-msg-body {
+  max-width: 76%; padding: 10px 15px; background: var(--c-ink); color: #fff; font-size: 14px; line-height: 1.6;
+  border-radius: 12px 12px 3px 12px;
+}
+.secure-ai .sai-msg-body.is-denied {
+  padding: 12px 16px; background: var(--c-deny-bg); border: 1px solid var(--c-deny-br); border-left: 3px solid var(--c-deny);
+  border-radius: 3px 10px 10px 3px; font-size: 14px;
+}
+.secure-ai .sai-msg-body.is-welcome { color: var(--c-text-3); font-size: 14px; }
+.secure-ai .sai-cursor { display: inline-block; width: 7px; height: 14px; margin-left: 2px; vertical-align: -2px; background: currentColor; opacity: 0.4; }
+
+/* Under an answer: the unsealed source it was built from */
+.secure-ai .sai-source {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; margin-top: 2px; padding: 6px 10px 6px 12px;
+  background: var(--c-surface); border: 1px solid var(--c-border); border-left: 3px solid var(--c-grant); border-radius: 3px 8px 8px 3px;
+  animation: sai-unseal 0.45s ease-out both;
+}
+.secure-ai .sai-source-text { font-family: var(--font-mono); font-size: 11.5px; color: var(--c-text-4); }
+
+/* The thinking state: lines of text being resolved */
+.secure-ai .sai-resolving { display: flex; flex-direction: column; gap: 5px; }
+.secure-ai .sai-resolving span { height: 9px; border-radius: 2px; background: var(--sai-shut); animation: sai-resolve 1.5s ease-in-out infinite; }
+.secure-ai .sai-resolving span:nth-child(1) { width: 220px; }
+.secure-ai .sai-resolving span:nth-child(2) { width: 150px; animation-delay: 0.2s; }
+.secure-ai .sai-resolving span:nth-child(3) { width: 90px; animation-delay: 0.4s; }
+.secure-ai .sai-resolving-note { font-size: 12.5px; color: var(--c-text-4); margin-bottom: 2px; }
+
+/* Composer */
+.secure-ai .sai-foot-bar { flex-shrink: 0; padding: 8px 28px 12px; }
+.secure-ai .sai-foot-in { max-width: 740px; margin: 0 auto; }
+.secure-ai .sai-prompts { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.secure-ai .sai-prompt {
+  display: inline-flex; align-items: center; height: 28px; padding: 0 11px; font: inherit; font-size: 12.5px; font-weight: 550;
+  color: var(--c-text-3); background: transparent; border: 1px solid var(--c-border-2); border-radius: 14px; cursor: pointer; white-space: nowrap;
+  transition: background-color 0.12s, border-color 0.12s, color 0.12s;
+}
+.secure-ai .sai-prompt:hover:not(:disabled) { background: var(--c-surface); border-color: var(--c-text-5); color: var(--c-text-1); }
+.secure-ai .sai-prompt:disabled { opacity: 0.5; cursor: not-allowed; }
+.secure-ai .sai-composer {
+  display: flex; align-items: flex-end; gap: 10px; padding: 8px 8px 8px 14px;
+  background: var(--c-surface); border: 1px solid var(--c-border-2); border-radius: 10px;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+.secure-ai .sai-composer:focus-within { border-color: var(--c-focus); box-shadow: 0 0 0 3px rgba(47, 127, 209, 0.2); }
+.secure-ai .sai-composer textarea {
+  flex: 1; resize: none; border: 0; outline: 0; background: transparent; padding: 6px 0;
+  color: var(--c-text-1); font: inherit; font-size: 14px; line-height: 1.5; max-height: 160px; overflow: auto;
+}
+.secure-ai .sai-composer textarea::placeholder { color: var(--c-text-5); }
+.secure-ai .sai-note { margin-top: 7px; text-align: center; font-size: 11.5px; color: var(--c-text-5); }
+
+/* The KAS verdict: a strip of colour, then what it was about. The document line is the moment. */
+.secure-ai .sai-verdict { border: 1px solid var(--vb); border-radius: 8px; overflow: hidden; background: var(--c-surface); animation: sai-rise 0.2s ease-out; }
+.secure-ai .sai-verdict.is-grant { --vb: var(--c-grant-br); --vc: var(--c-grant); }
+.secure-ai .sai-verdict.is-deny  { --vb: var(--c-deny-br);  --vc: var(--c-deny); }
+.secure-ai .sai-verdict.is-none  { --vb: var(--c-border-2); --vc: var(--c-text-4); }
+.secure-ai .sai-verdict-head { display: flex; align-items: center; gap: 7px; padding: 6px 12px; background: var(--vc); color: #fff; font-size: 13px; font-weight: 700; }
+.secure-ai .sai-verdict-body { padding: 11px 12px 12px; display: flex; flex-direction: column; gap: 6px; }
+.secure-ai .sai-verdict-why { margin: 0; font-size: 12px; line-height: 1.55; color: var(--c-text-4); }
+.secure-ai .sai-verdict-doc { font-size: 13.5px; font-weight: 650; line-height: 1.5; color: var(--c-text-1); }
+.secure-ai .sai-verdict-tier { font-size: 12px; font-weight: 650; color: var(--c-warn); }
+.secure-ai .sai-verdict-mark { font-family: var(--font-mono); font-size: 11.5px; font-weight: 600; color: var(--vc); }
+.secure-ai .sai-verdict-sub { font-size: 12px; color: var(--c-text-5); }
+
+/* Meter: one segment per document, ink where the KAS withheld it */
+.secure-ai .sai-meter { display: flex; gap: 2px; height: 8px; margin: 7px 0 8px; }
+.secure-ai .sai-meter i { flex: 1; min-width: 3px; border-radius: 1px; background: var(--c-grant); }
+.secure-ai .sai-meter i.is-shut { background: var(--sai-shut); }
+.secure-ai .sai-meter i.is-agent { background: var(--c-warn); }
+.secure-ai .sai-scope { font-size: 12px; line-height: 1.55; color: var(--c-text-4); }
+.secure-ai .sai-scope strong { color: var(--c-text-1); }
+
+/* The ledger of sources */
+.secure-ai .sai-doc { display: flex; gap: 5px; align-items: flex-start; padding: 4px 0; border-top: 1px solid var(--c-border); }
+.secure-ai .sai-doc:first-of-type { border-top: 0; }
+.secure-ai .sai-doc-label { flex: 1; min-width: 0; font-size: 12px; line-height: 1.75; color: var(--c-text-3); }
+.secure-ai .sai-doc.is-shut .sai-doc-label { color: var(--c-text-5); }
+.secure-ai .sai-doc-sfx { color: var(--c-warn); }
+.secure-ai .sai-doc-sfx.is-quiet { color: var(--c-text-5); }
+
+.secure-ai .sai-attempt { padding: 9px 11px; border-radius: 6px; margin-bottom: 6px; border: 1px solid var(--c-border); }
+.secure-ai .sai-attempt.is-grant { background: var(--c-grant-bg); border-color: var(--c-grant-br); }
+
+/* Narrow: the header switchers already pick the persona, so drop the duplicate roster */
+@container (max-width: 960px) {
+  .secure-ai .sai-chat { grid-template-columns: 200px minmax(0, 1fr) 248px; }
+  .secure-ai .sai-roster, .secure-ai .sai-roster-h { display: none; }
+  .secure-ai .sai-scroll { padding: 18px 18px 8px; }
+  .secure-ai .sai-foot-bar { padding: 8px 18px 12px; }
+}
+
+/* Narrower still (window near 900px once the app sidebar is counted): conversation first and
+   full width, the two rails stacked beneath it instead of squeezing the thread to a sliver */
+@container (max-width: 720px) {
+  .secure-ai .sai-chat { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(500px, 1fr) auto auto; overflow-y: auto; }
+  .secure-ai .sai-conv { order: 1; }
+  .secure-ai .sai-rail-r { order: 2; border-left: 0; border-top: 1px solid var(--c-border); overflow: visible; }
+  .secure-ai .sai-rail-l { order: 3; border-right: 0; border-top: 1px solid var(--c-border); overflow: visible; }
+}
+
+/* The bar outgrows one row below ~1100px of viewport: persona and agent drop to a second row */
+@media (max-width: 1100px) {
+  .secure-ai .sai-bar { height: auto; min-height: 52px; flex-wrap: wrap; row-gap: 0; }
+  .secure-ai .sai-back { margin: 10px 0; }
+  .secure-ai .sai-tabs { min-height: 52px; }
+  .secure-ai .sai-who { flex: 1 1 100%; justify-content: flex-end; padding: 0 0 10px; order: 5; }
+}
+
+/* ── Inner pages (Corpus, Audit, How it works) ───────────── */
+.secure-ai .sai-page-mode { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; color: var(--c-text-3); margin-left: 12px; vertical-align: 4px; }
+.secure-ai .sai-page-mode i { width: 9px; height: 9px; border-radius: 2px; background: var(--accent); }
+
+/* Corpus */
+.secure-ai .sai-who-card { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--c-radius-card); padding: 12px 16px; margin: 0 0 22px; }
+.secure-ai .sai-unit { position: relative; padding: 16px 18px 16px 21px; background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--c-radius-card); overflow: hidden; }
+.secure-ai .sai-unit::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--c-border-2); }
+.secure-ai .sai-unit.is-grant::before { background: var(--c-grant); }
+.secure-ai .sai-unit.is-deny::before { background: var(--c-deny); }
+.secure-ai .sai-unit[style*='--edge']::before { background: var(--edge); }
+.secure-ai .sai-unit-cols { margin-top: 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 0; }
+.secure-ai .sai-unit-cols > div { padding: 0 22px 0 0; }
+.secure-ai .sai-unit-cols > div + div { padding-left: 22px; border-left: 1px solid var(--c-border); }
+.secure-ai .sai-unit-title { font-size: 15px; font-weight: 650; color: var(--c-text-1); }
+.secure-ai .sai-unit-meta { margin-top: 4px; font-family: var(--font-mono); font-size: 11.5px; color: var(--c-text-5); }
+.secure-ai .sai-unit-note { margin-top: 8px; font-size: 12px; line-height: 1.6; color: var(--c-text-5); max-width: 340px; }
+.secure-ai .sai-result { margin-top: 14px; border: 1px solid var(--vb); border-radius: 8px; overflow: hidden; animation: sai-rise 0.2s ease-out; }
+.secure-ai .sai-result.is-grant { --vb: var(--c-grant-br); --vc: var(--c-grant); }
+.secure-ai .sai-result.is-deny  { --vb: var(--c-deny-br);  --vc: var(--c-deny); }
+.secure-ai .sai-result-head { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--vc); color: #fff; font-size: 13px; font-weight: 700; }
+.secure-ai .sai-result-head .btn { margin-left: auto; height: 24px; font-size: 11.5px; background: rgba(255, 255, 255, 0.14); border-color: rgba(255, 255, 255, 0.5); color: #fff; }
+.secure-ai .sai-result-head .btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.26); border-color: #fff; }
+.secure-ai .sai-result-body { padding: 10px 12px 12px; font-size: 12.5px; line-height: 1.55; color: var(--c-text-3); background: var(--c-surface); }
+.secure-ai .sai-result-body pre { margin: 0; font-size: 12px; line-height: 1.6; color: var(--c-text-2); white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow-y: auto; animation: sai-unseal 0.45s ease-out both; }
+
+/* Audit */
+.secure-ai .sai-stats { width: fit-content; max-width: 100%; display: flex; flex-wrap: wrap; margin-bottom: 22px; background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--c-radius-card); }
+.secure-ai .sai-stat { padding: 12px 26px 12px 18px; }
+.secure-ai .sai-stat + .sai-stat { border-left: 1px solid var(--c-border); }
+.secure-ai .sai-stat b { display: block; font-size: 26px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.secure-ai .sai-stat span { display: block; margin-top: 3px; font-size: 12.5px; color: var(--c-text-5); }
+.secure-ai .sai-log { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--c-radius-card); overflow: hidden; margin-bottom: 24px; }
+.secure-ai .sai-entry { display: flex; gap: 14px; align-items: flex-start; padding: 12px 16px 12px 13px; border-top: 1px solid var(--c-border); border-left: 3px solid var(--c-grant); }
+.secure-ai .sai-entry:first-child { border-top: 0; }
+.secure-ai .sai-entry.is-deny { border-left-color: var(--c-deny); }
+.secure-ai .sai-withheld { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; align-items: center; font-size: 12px; color: var(--c-text-5); }
+.secure-ai .sai-shut-chip { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 2px; background: var(--sai-shut); color: var(--sai-shut-text); font-family: var(--font-mono); font-size: 11px; font-weight: 500; }
+
+/* How it works: an editorial two-column rhythm */
+.secure-ai .sai-sec { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 8px 36px; padding: 26px 0; border-top: 1px solid var(--c-border); }
+.secure-ai .sai-sec > h2 { margin: 0; font-size: 15px; font-weight: 700; line-height: 1.35; color: var(--c-text-1); }
+.secure-ai .sai-sec > div { font-size: 14px; line-height: 1.7; color: var(--c-text-3); min-width: 0; }
+.secure-ai .sai-sec ul { margin: 8px 0 0; padding-left: 20px; }
+@media (max-width: 1000px) { .secure-ai .sai-sec { grid-template-columns: minmax(0, 1fr); } }
+
+.secure-ai .sai-entry > .num { width: 62px; }
+.secure-ai .sai-entry > .chip { justify-content: center; }
+.secure-ai .sai-entry > .chip:nth-child(2) { min-width: 62px; }
+.secure-ai .sai-entry > .chip:nth-child(3) { min-width: 70px; }
+.secure-ai .page-hero + .sai-sec { border-top: 0; }

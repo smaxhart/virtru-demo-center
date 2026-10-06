@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { useApp } from '../context/AppContext.jsx'
 import PersonaIcon from '../components/PersonaIcon.jsx'
+import UiIcon from '../../components/UiIcon.jsx'
 import { shortFqn, fmtBytes } from '../ai/corpus.js'
 import { explainPolicy, missingAttributes } from '../ai/policyEngine.js'
 import { unitsForDocument } from '../ai/corpusVault.js'
@@ -12,22 +13,16 @@ import DerivedBanner from '../components/DerivedBanner.jsx'
 /** Policy requirements measured against one subject's attributes. */
 function PolicyChips({ policy, fqns }) {
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
       {policy.length === 0 && (
-        <span className="mono" style={{
-          fontSize: 9.5, padding: '2px 6px', borderRadius: 4,
-          background: 'var(--c-grant-bg)', color: 'var(--c-grant)',
-          border: '1px solid var(--c-grant-br)',
-        }}>✓ no attributes — public</span>
+        <span className="chip chip-mono chip-grant">
+          <UiIcon name="check" size={11} strokeWidth={2.4} />no attributes, public
+        </span>
       )}
       {explainPolicy(policy, fqns).map(r => (
-        <span key={r.attribute} className="mono" style={{
-          fontSize: 9.5, padding: '2px 6px', borderRadius: 4,
-          background: r.satisfied ? 'var(--c-grant-bg)' : 'var(--c-surface-2)',
-          color: r.satisfied ? 'var(--c-grant)' : 'var(--c-text-5)',
-          border: `1px solid ${r.satisfied ? 'var(--c-grant-br)' : 'var(--c-border)'}`,
-        }}>
-          {r.satisfied ? '✓ ' : '✗ '}
+        <span key={r.attribute} className={`chip chip-mono${r.satisfied ? ' chip-grant' : ''}`}
+          style={r.satisfied ? undefined : { color: 'var(--c-text-4)' }}>
+          <UiIcon name={r.satisfied ? 'check' : 'x'} size={11} strokeWidth={2.4} />
           {r.attribute}: {r.required.length > 3 ? `any of ${r.required.length}` : r.required.join(' | ')}
         </span>
       ))}
@@ -95,79 +90,62 @@ function UnitCard({ entry }) {
   }, [unit, tdfBytes])
 
   return (
-    <div className="card" style={{
-      padding: '13px 15px',
-      borderColor: result ? (result.granted ? 'var(--c-grant-br)' : 'var(--c-deny-br)') : 'var(--c-border)',
-    }}>
+    <div className={`sai-unit${result ? (result.granted ? ' is-grant' : ' is-deny') : ''}`}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text-1)' }}>
+          <div className="sai-unit-title">
             {unit.label}
             {unit.upload && (
-              <span className="mono" style={{
-                marginLeft: 7, fontSize: 9, padding: '1px 5px', borderRadius: 4,
-                fontWeight: 500, verticalAlign: 'middle',
-                background: 'var(--c-surface-2)', color: 'var(--c-text-5)',
-                border: '1px solid var(--c-border)',
-              }}>{unit.upload.kind === 'plaintext' ? 'yours · encrypted here' : 'yours · already a TDF'}</span>
+              <span className="chip" style={{ marginLeft: 8, height: 20, fontWeight: 550, verticalAlign: 'middle' }}>
+                {unit.upload.kind === 'plaintext' ? 'Yours, encrypted here' : 'Yours, already a TDF'}
+              </span>
             )}
           </div>
-          <div className="mono" style={{ fontSize: 10, color: 'var(--c-text-5)', marginTop: 3 }}>
+          <div className="sai-unit-meta">
             {unit.classification}
             {/* Flagged inline as well as itemised below, because the interesting claim is about
                 this specific string: it is a reading of the policy, not a label on the file. */}
             {unit.derivedMarking && (
-              <span style={{ color: 'var(--c-text-6)' }}> · derived from policy</span>
+              <span style={{ color: 'var(--c-text-5)' }}>, derived from policy</span>
             )}
-            {' · '}{fmtBytes(bytes)} TDF
-            {unit.upload && ` · ${unit.upload.filename}`}
+            {', '}{fmtBytes(bytes)} TDF
+            {unit.upload && `, ${unit.upload.filename}`}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignSelf: 'flex-start' }}>
           {unit.upload && (
-            <button onClick={() => removeDocument(unit.upload.id)}
-              title="Remove from the corpus and delete it from this app's data directory"
-              style={{
-                fontSize: 11, padding: '5px 10px', borderRadius: 7, cursor: 'pointer',
-                background: 'var(--c-surface-2)', border: '1px solid var(--c-border)',
-                color: 'var(--c-text-5)',
-              }}>Remove</button>
+            <button className="btn btn-sm btn-ghost" onClick={() => removeDocument(unit.upload.id)}
+              title="Remove from the corpus and delete it from this app's data directory">Remove</button>
           )}
-          <button onClick={save} title="Export the ciphertext — the policy is inside the file" style={{
-            fontSize: 11, padding: '5px 10px', borderRadius: 7, cursor: 'pointer',
-            background: 'var(--c-surface-2)',
-            border: `1px solid ${saved === 'error' ? 'var(--c-deny-br)' : 'var(--c-border)'}`,
-            color: saved === 'ok' ? 'var(--c-grant)' : saved === 'error' ? 'var(--c-deny)' : 'var(--c-text-4)',
-          }}>{saved === 'ok' ? '✓ Saved .tdf' : saved === 'error' ? 'Save failed' : 'Save .tdf'}</button>
-          <button onClick={attempt} disabled={busy} style={{
-            fontSize: 11, fontWeight: 600, padding: '5px 12px', borderRadius: 7,
-            cursor: busy ? 'wait' : 'pointer',
-            background: busy ? 'var(--c-surface-2)' : '#1e40af',
-            border: '1px solid var(--c-border)',
-            color: busy ? 'var(--c-text-5)' : '#fff',
-          }}>{busy ? 'Asking KAS…' : 'Try decrypt'}</button>
+          <button className="btn btn-sm" onClick={save} title="Export the ciphertext — the policy is inside the file"
+            style={saved === 'error' ? { borderColor: 'var(--c-deny-br)', color: 'var(--c-deny)' }
+              : saved === 'ok' ? { color: 'var(--c-grant)' } : undefined}>
+            {saved === 'ok' && <UiIcon name="check" size={13} strokeWidth={2.4} />}
+            {saved === 'ok' ? 'Saved .tdf' : saved === 'error' ? 'Save failed' : 'Save .tdf'}
+          </button>
+          <button className="btn btn-sm btn-primary" onClick={attempt} disabled={busy}
+            style={busy ? { cursor: 'wait' } : undefined}>{busy ? 'Asking KAS…' : 'Try decrypt'}</button>
         </div>
       </div>
 
-      <div style={{ marginTop: 11, display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-        <div style={{ minWidth: 210 }}>
-          <div className="section-label" style={{ marginBottom: 5 }}>
-            POLICY VS YOUR ATTRIBUTES
+      <div className="sai-unit-cols">
+        <div>
+          <div className="section-label" style={{ marginBottom: 6 }}>
+            Policy vs your attributes
           </div>
           <PolicyChips policy={unit.policy} fqns={entityFqns} />
-          <div style={{ fontSize: 10, color: 'var(--c-text-6)', marginTop: 7, lineHeight: 1.6, maxWidth: 340 }}>
+          <div className="sai-unit-note">
             {unit.policyNote}
           </div>
         </div>
 
         {agent && (
-          <div style={{ minWidth: 210 }}>
-            <div className="section-label" style={{ marginBottom: 5 }}>
-              POLICY VS {agent.name.toUpperCase()}
+          <div>
+            <div className="section-label" style={{ marginBottom: 6 }}>
+              Policy vs {agent.name}
             </div>
             <PolicyChips policy={unit.policy} fqns={agentFqns} />
-            <div style={{ fontSize: 10, marginTop: 7, lineHeight: 1.6, maxWidth: 340,
-              color: agentSatisfied ? 'var(--c-text-6)' : 'var(--c-warn)' }}>
+            <div className="sai-unit-note" style={agentSatisfied ? undefined : { color: 'var(--c-warn)' }}>
               {agentSatisfied
                 ? 'The assistant can retrieve this for you in chat.'
                 : 'The assistant cannot retrieve this in chat, even for someone entitled to it. "Try decrypt" below is you, directly — not through the agent.'}
@@ -175,11 +153,11 @@ function UnitCard({ entry }) {
           </div>
         )}
 
-        <div style={{ minWidth: 190 }}>
-          <div className="section-label" style={{ marginBottom: 5 }}>
-            BOUND ATTRIBUTES ({boundAttributes.length})
+        <div>
+          <div className="section-label" style={{ marginBottom: 6 }}>
+            Bound attributes ({boundAttributes.length})
           </div>
-          <div style={{ fontSize: 10, color: 'var(--c-text-6)', lineHeight: 1.6, maxWidth: 300 }}>
+          <div className="sai-unit-note" style={{ marginTop: 0 }}>
             Read back out of the TDF manifest after encryption — this is the literal list
             the KAS evaluates, not a UI copy of the intent.
           </div>
@@ -188,37 +166,24 @@ function UnitCard({ entry }) {
 
       {/* Reads `boundAttributes` rather than `unit.policy` on purpose: the banner is then derived
           from what the manifest actually carries, which is the same list the KAS is handed. */}
-      <DerivedBanner policy={boundAttributes} style={{ marginTop: 11 }} />
+      <DerivedBanner policy={boundAttributes} style={{ marginTop: 14 }} />
 
       {result && (
-        <div style={{
-          marginTop: 11, padding: '9px 11px', borderRadius: 7,
-          background: result.granted ? 'var(--c-grant-bg)' : 'var(--c-deny-bg)',
-          border: `1px solid ${result.granted ? 'var(--c-grant-br)' : 'var(--c-deny-br)'}`,
-        }}>
-          <div style={{
-            fontSize: 11, fontWeight: 700,
-            color: result.granted ? 'var(--c-grant)' : 'var(--c-deny)',
-          }}>
-            {result.granted ? '✓ Key released' : '✗ Rewrap refused'}
+        <div className={`sai-result ${result.granted ? 'is-grant' : 'is-deny'}`}>
+          <div className="sai-result-head">
+            <UiIcon name={result.granted ? 'check' : 'x'} size={15} strokeWidth={2.4} />
+            {result.granted ? 'Key released' : 'Rewrap refused'}
             {result.granted && (
-              <button onClick={() => setOpen(o => !o)} style={{
-                marginLeft: 10, fontSize: 10, fontWeight: 500, padding: '2px 8px',
-                borderRadius: 5, cursor: 'pointer', background: 'transparent',
-                border: '1px solid var(--c-grant-br)', color: 'var(--c-grant)',
-              }}>{open ? 'hide plaintext' : 'show plaintext'}</button>
+              <button className="btn btn-sm" onClick={() => setOpen(o => !o)}>
+                {open ? 'Hide plaintext' : 'Show plaintext'}
+              </button>
             )}
           </div>
-          {!result.granted && (
-            <div style={{ fontSize: 10.5, color: 'var(--c-text-4)', marginTop: 4, lineHeight: 1.55 }}>
-              {result.reason}
-            </div>
-          )}
+          {!result.granted && <div className="sai-result-body">{result.reason}</div>}
           {result.granted && open && (
-            <pre className="mono" style={{
-              margin: '9px 0 0', fontSize: 10.5, lineHeight: 1.6, color: 'var(--c-text-3)',
-              whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 260, overflowY: 'auto',
-            }}>{result.text}</pre>
+            <div className="sai-result-body">
+              <pre className="mono">{result.text}</pre>
+            </div>
           )}
         </div>
       )}
@@ -239,51 +204,44 @@ function ForeignCard({ record }) {
   const f = record.foreign ?? {}
 
   return (
-    <div className="card" style={{ padding: '13px 15px', borderColor: 'var(--c-warn-br)' }}>
+    <div className="sai-unit" style={{ '--edge': 'var(--c-warn)' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text-1)' }}>{record.label}</div>
-          <div className="mono" style={{ fontSize: 10, color: 'var(--c-text-5)', marginTop: 3 }}>
-            {record.filename} · {fmtBytes(record.bytes)} · spec {f.specVersion ?? 'unversioned'}
-            {f.mimeType && ` · ${f.mimeType}`}
+          <div className="sai-unit-title">{record.label}</div>
+          <div className="sai-unit-meta">
+            {record.filename}, {fmtBytes(record.bytes)}, spec {f.specVersion ?? 'unversioned'}
+            {f.mimeType && `, ${f.mimeType}`}
           </div>
         </div>
-        <button onClick={() => removeDocument(record.id)} style={{
-          fontSize: 11, padding: '5px 10px', borderRadius: 7, cursor: 'pointer',
-          background: 'var(--c-surface-2)', border: '1px solid var(--c-border)',
-          color: 'var(--c-text-5)', flexShrink: 0,
-        }}>Remove</button>
+        <button className="btn btn-sm btn-ghost" onClick={() => removeDocument(record.id)}
+          style={{ flexShrink: 0, alignSelf: 'flex-start' }}>Remove</button>
       </div>
 
-      <div style={{ marginTop: 11, display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-        <div style={{ minWidth: 210 }}>
-          <div className="section-label" style={{ marginBottom: 5 }}>
-            POLICY IN THE MANIFEST ({(f.attributes ?? []).length})
+      <div className="sai-unit-cols">
+        <div>
+          <div className="section-label" style={{ marginBottom: 6 }}>
+            Policy in the manifest ({(f.attributes ?? []).length})
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
             {(f.attributes ?? []).length === 0
-              ? <span className="mono" style={{ fontSize: 9.5, color: 'var(--c-text-5)' }}>
+              ? <span className="mono" style={{ fontSize: 11.5, color: 'var(--c-text-5)' }}>
                   no attributes
                 </span>
               : f.attributes.map(a => (
-                  <span key={a} className="mono" title={a} style={{
-                    fontSize: 9.5, padding: '2px 6px', borderRadius: 4,
-                    background: 'var(--c-surface-2)', color: 'var(--c-text-4)',
-                    border: '1px solid var(--c-border)',
-                  }}>{shortFqn(a)}</span>
+                  <span key={a} className="chip chip-mono" title={a}>{shortFqn(a)}</span>
                 ))}
           </div>
           {(f.namespaces ?? []).length > 0 && (
-            <div style={{ fontSize: 10, color: 'var(--c-text-6)', marginTop: 7, lineHeight: 1.6 }}>
-              Namespace {f.namespaces.join(', ')} — not one this platform knows, so even the
+            <div style={{ fontSize: 12, color: 'var(--c-text-5)', marginTop: 8, lineHeight: 1.6 }}>
+              Namespace {f.namespaces.join(', ')}: not one this platform knows, so even the
               policy could not be evaluated here.
             </div>
           )}
         </div>
 
-        <div style={{ minWidth: 210, maxWidth: 340 }}>
-          <div className="section-label" style={{ marginBottom: 5 }}>WHY IT CANNOT BE OPENED</div>
-          <div style={{ fontSize: 10, color: 'var(--c-text-6)', lineHeight: 1.6 }}>
+        <div>
+          <div className="section-label" style={{ marginBottom: 6 }}>Why it cannot be opened</div>
+          <div style={{ fontSize: 12, color: 'var(--c-text-5)', lineHeight: 1.6 }}>
             Its payload key is wrapped to{' '}
             <span className="mono">{(f.kasUrls ?? []).join(', ') || 'a KAS the manifest does not name'}</span>.
             The private half lives there, not here. Everything above was read straight out of the
@@ -302,16 +260,14 @@ function SubjectBar({ icon, badge, color, name, title, fqns }) {
       <span style={{ color, display: 'flex' }}>
         <PersonaIcon icon={icon} badge={badge} size={19} title={name} />
       </span>
-      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--c-text-2)' }}>{name}</span>
-      <span style={{ fontSize: 11, color: 'var(--c-text-5)' }}>{title}</span>
+      <span style={{ fontSize: 13.5, fontWeight: 650, color: 'var(--c-text-1)' }}>{name}</span>
+      <span style={{ fontSize: 12.5, color: 'var(--c-text-5)' }}>{title}</span>
       <span style={{ flex: 1 }} />
       {fqns.length === 0
-        ? <span style={{ fontSize: 11, color: 'var(--c-text-6)', fontStyle: 'italic' }}>no entitlements</span>
+        ? <span style={{ fontSize: 12.5, color: 'var(--c-text-5)', fontStyle: 'italic' }}>no entitlements</span>
         : fqns.map(f => (
-            <span key={f} className="mono" style={{
-              fontSize: 9.5, padding: '2px 6px', borderRadius: 4,
-              background: color + '15', color,
-              border: `1px solid ${color}30`,
+            <span key={f} className="chip chip-mono" style={{
+              background: color + '15', color, borderColor: color + '30',
             }}>{shortFqn(f)}</span>
           ))}
     </div>
@@ -329,30 +285,28 @@ export default function CorpusPage() {
   const yours = documents.filter(d => d.upload).length
 
   return (
-    <div style={{ height: '100%', overflowY: 'auto', padding: 20 }}>
-      <div style={{ maxWidth: 940, margin: '0 auto' }}>
+    <div style={{ height: '100%', overflowY: 'auto' }}>
+      <div className="page" style={{ maxWidth: 1040 }}>
 
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 6 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--c-text-1)' }}>
-              Corpus <span style={{ color: mode.accent }}>· {mode.short}</span>
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--c-text-5)', marginTop: 4, lineHeight: 1.65, maxWidth: 660 }}>
-              {mode.name} — {vault.size} TDFs, {fmtBytes(totalBytes)} total, encrypted on this
+        <div className="page-hero">
+          <div style={{ minWidth: 0 }}>
+            <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              Corpus
+              <span className="sai-page-mode" style={{ '--accent': mode.accent }}><i />{mode.short}</span>
+            </h1>
+            <p className="page-subtitle" style={{ maxWidth: '72ch' }}>
+              {mode.name}: {vault.size} TDFs, {fmtBytes(totalBytes)} total, encrypted on this
               machine when you launched the mode. The plaintext is not held anywhere the app can
               read it; each card below asks the local KAS to unwrap for whoever you are acting as
-              right now — as you, directly, not through the assistant.
+              right now, as you directly and not through the assistant.
               {agent && ' The agent\'s own verdict is shown beside yours, because in chat both have to clear.'}
               {yours > 0 && ` ${yours} of them you added yourself.`}
-            </div>
+            </p>
           </div>
           {!adding && (
-            <button onClick={() => setAdding(true)} style={{
-              fontSize: 12, fontWeight: 600, padding: '7px 13px', borderRadius: 7,
-              cursor: 'pointer', flexShrink: 0, marginTop: 2,
-              background: 'var(--c-surface)', border: `1px solid ${mode.accent}66`,
-              color: mode.accent,
-            }}>+ Add a document</button>
+            <div className="page-actions">
+              <button className="btn" onClick={() => setAdding(true)}>Add a document</button>
+            </div>
           )}
         </div>
 
@@ -364,15 +318,15 @@ export default function CorpusPage() {
 
         {uploadWarnings.length > 0 && (
           <div className="card" style={{
-            padding: '10px 13px', marginTop: 14,
+            padding: '12px 16px', marginTop: 14,
             background: 'var(--c-deny-bg)', borderColor: 'var(--c-deny-br)',
           }}>
-            <div className="section-label" style={{ marginBottom: 4, color: 'var(--c-deny)' }}>
-              {uploadWarnings.length} OF YOUR DOCUMENTS COULD NOT BE LOADED
+            <div style={{ fontSize: 13, fontWeight: 650, marginBottom: 4, color: 'var(--c-deny)' }}>
+              {uploadWarnings.length} of your documents could not be loaded
             </div>
             {uploadWarnings.map(w => (
-              <div key={w.record.id} style={{ fontSize: 10.5, color: 'var(--c-text-4)', lineHeight: 1.6 }}>
-                <strong>{w.record.label}</strong> — {w.error}
+              <div key={w.record.id} style={{ fontSize: 12.5, color: 'var(--c-text-3)', lineHeight: 1.6 }}>
+                <strong>{w.record.label}</strong>: {w.error}
               </div>
             ))}
           </div>
@@ -380,7 +334,7 @@ export default function CorpusPage() {
 
         {/* Both subjects, one above the other — the agent's row is not decoration here, it is
             what decides whether the assistant can fetch any of these cards for you. */}
-        <div className="card" style={{ padding: '11px 14px', margin: '14px 0 16px' }}>
+        <div className="sai-who-card">
           <SubjectBar
             icon={persona.icon}
             badge={persona.badge}
@@ -390,7 +344,7 @@ export default function CorpusPage() {
             fqns={entityFqns}
           />
           {agent && (
-            <div style={{ marginTop: 9, paddingTop: 9, borderTop: '1px solid var(--c-border)' }}>
+            <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--c-border)' }}>
               <SubjectBar
                 icon={agent.icon}
                 color={agent.color}
@@ -402,7 +356,7 @@ export default function CorpusPage() {
           )}
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 11, paddingBottom: 24 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingBottom: 24 }}>
           {documents.map(doc => {
             const entries = unitsForDocument(vault, doc)
             if (entries.length === 1 && !doc.tiers) {
@@ -410,9 +364,9 @@ export default function CorpusPage() {
             }
             return (
               <div key={doc.id} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ fontSize: 11, color: 'var(--c-text-5)', paddingLeft: 2 }}>
-                  <strong style={{ color: 'var(--c-text-3)' }}>{doc.label}</strong>
-                  {' '}— {entries.length} independently encrypted tiers over the same record
+                <div style={{ fontSize: 13, color: 'var(--c-text-5)', paddingLeft: 2 }}>
+                  <strong style={{ color: 'var(--c-text-1)' }}>{doc.label}</strong>
+                  {', '}{entries.length} independently encrypted tiers over the same record
                 </div>
                 {entries.map(e => <UnitCard key={e.unit.key} entry={e} />)}
               </div>
@@ -421,11 +375,11 @@ export default function CorpusPage() {
         </div>
 
         {foreignUploads.length > 0 && (
-          <div style={{ paddingBottom: 28 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--c-text-2)' }}>
-              From another platform — inspect only
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--c-text-5)', margin: '4px 0 11px', lineHeight: 1.65, maxWidth: 660 }}>
+          <div style={{ paddingBottom: 28, paddingTop: 12 }}>
+            <h2 className="section-title" style={{ marginBottom: 0 }}>
+              From another platform, inspect only
+            </h2>
+            <div style={{ fontSize: 13, color: 'var(--c-text-4)', margin: '4px 0 12px', lineHeight: 1.6, maxWidth: '72ch' }}>
               These are outside the corpus and outside the access matrix. A TDF binds its payload
               key to one KAS, so a file encrypted elsewhere is not something this platform can be
               entitled to open — which is the guarantee working, not a limitation of the demo.

@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import Icon from '../components/Icon.jsx'
-import ClassificationBanner from '../components/ClassificationBanner.jsx'
+import UiIcon from '../components/UiIcon.jsx'
 import { useDemo } from '../context/DemoContext.jsx'
 import { FEDERAL_PERSONAS } from '../data/sectors.js'
 import { FEDERAL_DOCS, federalDoc, docBytes, formatSize } from '../data/federalDocs.js'
@@ -8,6 +7,7 @@ import { encryptText, decryptTdf } from '../api/tdf.js'
 import { parseMarkingToFqns, fqnsToShortLabels } from '../ai/markingParser.js'
 import { coalitionFqns } from '../data/coalitions.js'
 import { evaluatePolicy, groupPolicy, groupLabel, fqnLabel } from '../data/policyMatch.js'
+import './tdf-explorer.css'
 
 /**
  * TDF Explorer — three steps: pick a document, encrypt it, try to open it.
@@ -112,41 +112,120 @@ function parseManifestFromZip(bytes) {
 
 // ── Small presentational pieces ──────────────────────────────────────────────
 
-function StepBar({ current }) {
+const MONO = 'var(--font-mono)'
+
+/**
+ * Classification colour is carried by `data-lv` and the `--band-bg` / `--band-fg` tokens in
+ * tdf-explorer.css, so the sample list, the paper sheets and the uploaded-file card all read the
+ * same level from one place. `levelKey` only decides which level a banner string belongs to.
+ */
+function levelKey(text) {
+  const t = String(text ?? '').trim().toUpperCase()
+  if (!t) return 'none'
+  if (t.startsWith('TOP SECRET')) return 'ts'
+  if (t.startsWith('SECRET')) return 's'
+  if (t.startsWith('CONFIDENTIAL')) return 'c'
+  if (t.startsWith('CUI')) return 'cui'
+  if (t.startsWith('UNCLASS')) return 'u'
+  return 'none'
+}
+
+/** A banner for an archive whose source we never saw, read off its clearance attribute. */
+function markingFromPolicy(policy) {
+  const fqn = policy.find(f => f.includes('/clearance/value/'))
+  const v = fqn?.split('/value/')[1]
+  return {
+    'ts-sci': 'TOP SECRET//SCI', topsecret: 'TOP SECRET', secret: 'SECRET',
+    confidential: 'CONFIDENTIAL', cui: 'CUI', unclassified: 'UNCLASSIFIED',
+  }[v] ?? null
+}
+
+/** Lengths (in characters) for redaction bars that follow the rhythm of the real text. */
+const FALLBACK_BARS = [62, 44, 66, 38, 56, 30, 60]
+function barsFromText(text, max = 7) {
+  if (!text) return FALLBACK_BARS.slice(0, max).map(n => ({ n, indent: 0 }))
+  const bars = text.split('\n').slice(1)
+    .filter(l => l.trim())
+    .slice(0, max)
+    .map(l => ({ n: Math.max(6, Math.min(l.trim().length, 68)), indent: Math.min(l.length - l.trimStart().length, 6) }))
+  return bars.length ? bars : FALLBACK_BARS.slice(0, max).map(n => ({ n, indent: 0 }))
+}
+
+function ZipGlyph() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5z" /><path d="M4 7.5 12 12l8-4.5M12 12v9" />
+    </svg>
+  )
+}
+
+function PlugOffGlyph() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M9 3v4M15 3v4M6 7h12v3a6 6 0 0 1-12 0zM12 16v5" /><path d="M3.5 3.5l17 17" />
+    </svg>
+  )
+}
+
+/**
+ * A sheet of paper with a classification band top and bottom: the same object as the briefing on
+ * Home. It is the page's one recurring figure. The source document is a sheet, a GRANT is a sheet
+ * that unseals, a DENY is the same sheet under ink.
+ */
+function Sheet({ marking, title, sub, compact, children }) {
+  const band = marking ? <div className="brief-banner tx-banner">{marking}</div> : null
+  return (
+    <div className={`tx-sheet tx-lv${compact ? ' is-compact' : ''}`} data-lv={levelKey(marking)}>
+      {band}
+      {title && (
+        <div className="tx-sheet-head">
+          <h3 className="tx-sheet-title">{title}</h3>
+          {sub && <p className="tx-sheet-sub">{sub}</p>}
+        </div>
+      )}
+      {children}
+      {band}
+    </div>
+  )
+}
+
+/** Ink bars where text would be. Width only, so there is no text in the DOM to copy out. */
+function InkBars({ text, label, sealing, lines = 7 }) {
+  const bars = barsFromText(text, lines)
+  return (
+    <div className={`tx-bars${sealing ? ' tx-seal' : ''}`} role="img" aria-label={label}>
+      {bars.map((b, i) => (
+        <span key={i} className="brief-shut" style={{ width: `${b.n}ch`, marginLeft: `${b.indent}ch`, '--i': i }} />
+      ))}
+    </div>
+  )
+}
+
+function StepBar({ current, busy, notes }) {
   const steps = ['Pick a document', 'Encrypt to a TDF', 'Try to open it']
   return (
-    <div className="flex items-center gap-2">
+    <ol className="tx-steps">
       {steps.map((label, i) => {
         const n = i + 1
         const done = n < current
         const active = n === current
         return (
-          <div key={label} className="flex items-center gap-2" style={{ flex: i === steps.length - 1 ? '0 0 auto' : 1 }}>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <span className="flex items-center justify-center rounded-full font-bold"
-                style={{
-                  width: 20, height: 20, fontSize: 11,
-                  background: done ? 'var(--c-grant)' : active ? 'var(--c-accent)' : 'var(--c-surface)',
-                  color: done || active ? '#fff' : 'var(--c-text-6)',
-                  border: `1px solid ${done ? 'var(--c-grant)' : active ? 'var(--c-accent)' : 'var(--c-border-2)'}`,
-                }}>
-                {done ? '✓' : n}
+          <li key={label} data-state={done ? 'done' : active ? 'active' : 'todo'}
+            aria-current={active ? 'step' : undefined}>
+            <span className={`tx-step-rule${busy && n === 2 ? ' is-busy' : ''}`}><i /></span>
+            <span className="tx-step-top">
+              <span className="tx-step-n num">
+                {done ? <UiIcon name="check" size={11} strokeWidth={2.8} /> : n}
               </span>
-              <span style={{
-                fontSize: 12,
-                fontWeight: active ? 700 : 500,
-                color: active ? 'var(--c-text-1)' : done ? 'var(--c-text-4)' : 'var(--c-text-6)',
-              }}>
-                {label}
-              </span>
-            </div>
-            {i < steps.length - 1 && (
-              <span style={{ flex: 1, height: 1, background: done ? 'var(--c-grant)' : 'var(--c-border)' }} />
-            )}
-          </div>
+              <span className="tx-step-label">{label}</span>
+            </span>
+            <span className="tx-step-note">{notes[i]}</span>
+          </li>
         )
       })}
-    </div>
+    </ol>
   )
 }
 
@@ -154,17 +233,13 @@ function StepBar({ current }) {
  * One definition's worth of policy, as a single chip.
  *
  * A roster is one decision, so it gets one chip rather than thirteen. Where the group is satisfied
- * the chip names the value that carried it — `✓ nationality:gbr (1 of 5)` — because "granted by
+ * the chip names the value that carried it (nationality:gbr, 1 of 5) because "granted by
  * being British" is the sentence this page exists to produce, and thirteen green chips for a NATO
  * policy would say nothing at all. `evaluated` is omitted for the unevaluated policy view.
  */
 function GroupChip({ group, evaluated }) {
   const state = !evaluated ? 'neutral' : evaluated.satisfied ? 'held' : 'missing'
-  const palette = {
-    neutral: { bg: 'var(--c-surface-2)', fg: 'var(--c-text-3)', br: 'var(--c-border)' },
-    held:    { bg: 'var(--c-grant-bg)',  fg: 'var(--c-grant)',  br: 'var(--c-grant-br)' },
-    missing: { bg: 'var(--c-deny-bg)',   fg: 'var(--c-deny)',   br: 'var(--c-deny-br)' },
-  }[state]
+  const tone = { neutral: '', held: 'chip-grant', missing: 'chip-deny' }[state]
 
   const full = groupLabel(group)
   const roster = group.values.length > 1
@@ -181,26 +256,26 @@ function GroupChip({ group, evaluated }) {
       : full
   }
 
-  const heldNote = evaluated?.held?.length ? `  ·  holds ${evaluated.held.join(', ')}` : ''
+  const heldNote = evaluated?.held?.length ? `. Holds ${evaluated.held.join(', ')}` : ''
   return (
-    <span title={`${full}${heldNote}`} className="px-2 py-0.5 rounded font-mono"
-      style={{ fontSize: 11, background: palette.bg, color: palette.fg, border: `1px solid ${palette.br}`, whiteSpace: 'nowrap' }}>
-      {state === 'held' ? '✓ ' : state === 'missing' ? '✗ ' : ''}{text}
+    <span title={`${full}${heldNote}`} className={`chip chip-mono ${tone}`}>
+      {state === 'held' && <UiIcon name="check" size={11} strokeWidth={2.6} />}
+      {state === 'missing' && <UiIcon name="x" size={11} strokeWidth={2.6} />}
+      {text}
     </span>
   )
 }
 
 /** One `"key": value` line in the manifest view. */
 function Field({ name, value, note, tone = 'string' }) {
-  const valueColor = { string: 'var(--c-grant)', hash: '#7c3aed', bool: 'var(--c-warn)' }[tone]
+  const valueColor = { string: 'var(--c-grant)', hash: 'var(--c-text-4)', bool: 'var(--c-warn)' }[tone]
   return (
     <div className="flex items-baseline gap-2 flex-wrap" style={{ lineHeight: 1.9 }}>
       <span style={{ color: 'var(--c-accent)' }}>"{name}"</span>
-      <span style={{ color: 'var(--c-text-6)' }}>:</span>
+      <span style={{ color: 'var(--c-text-5)' }}>:</span>
       <span style={{ color: valueColor, wordBreak: 'break-all' }}>{value}</span>
       {note && (
-        <span className="px-1.5 py-0.5 rounded font-sans"
-          style={{ fontSize: 10, background: 'var(--c-surface-2)', color: 'var(--c-text-5)', border: '1px solid var(--c-border)' }}>
+        <span className="chip" style={{ height: 'auto', padding: '0 6px', fontSize: 10.5, fontWeight: 500, fontFamily: 'var(--font-ui)' }}>
           {note}
         </span>
       )}
@@ -210,15 +285,14 @@ function Field({ name, value, note, tone = 'string' }) {
 
 function Collapsible({ open, onToggle, name, blurb, children }) {
   return (
-    <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--c-border)' }}>
-      <button onClick={onToggle}
-        className="w-full flex items-center gap-2 px-3 py-2 text-left cursor-pointer"
-        style={{ background: 'var(--c-surface-2)' }}>
-        <span style={{ fontSize: 10, color: 'var(--c-text-5)' }}>{open ? '▼' : '▶'}</span>
-        <span className="font-mono font-bold" style={{ fontSize: 12, color: 'var(--c-text-1)' }}>"{name}"</span>
-        <span style={{ fontSize: 11, color: 'var(--c-text-5)' }}>— {blurb}</span>
+    <div className="tx-sec">
+      <button onClick={onToggle} aria-expanded={open} className="tx-sec-btn">
+        <UiIcon name="chevron" size={13} strokeWidth={2.2}
+          style={{ color: 'var(--c-text-5)', transform: open ? 'none' : 'rotate(-90deg)', transition: 'transform .12s' }} />
+        <span style={{ fontFamily: MONO, fontSize: 12, fontWeight: 700, color: 'var(--c-text-1)' }}>"{name}"</span>
+        <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--c-text-5)' }}>{blurb}</span>
       </button>
-      {open && <div className="px-3 py-2 font-mono" style={{ fontSize: 11, background: 'var(--c-surface)' }}>{children}</div>}
+      {open && <div style={{ padding: '0 0 12px 21px', fontSize: 11.5 }}>{children}</div>}
     </div>
   )
 }
@@ -464,54 +538,75 @@ export default function TdfExplorerPage() {
     { id: 'payload',  label: '0.payload',     enabled: !!payloadBytes },
   ]
 
+  // Display-only derivations. None of these feed back into state or a handler.
+  const marking = doc?.banner ?? detectedMarking ?? manualMarking ?? markingFromPolicy(effectivePolicy)
+  let manifestEntry = null
+  let payloadEntry = null
+  try {
+    if (tdfBytes) {
+      manifestEntry = findZipEntry(tdfBytes, ['manifest.json', '0.manifest.json'])
+      payloadEntry = findZipEntry(tdfBytes, ['0.payload'])
+    }
+  } catch { /* a malformed archive just shows no per-file sizes */ }
+  const fileCount = (manifestEntry ? 1 : 0) + (payloadEntry ? 1 : 0)
+  const archiveName = importedFilename ?? `${sourceName}.tdf`
+  const triedCount = Object.keys(decryptResults).length
+  const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`
+
+  const stepNotes = [
+    hasSource ? sourceName : 'Nothing picked yet',
+    encrypting
+      ? 'Waiting on the KAS'
+      : tdfBytes
+        ? `TDF, ${formatSize(tdfBytes.length)}`
+        : hasSource ? `${plural(policyGroups.length, 'policy definition')} to bind` : 'Needs a document',
+    tdfBytes ? `${triedCount} of ${DECRYPT_PERSONAS.length} personas tried` : 'Needs a TDF',
+  ]
+
   return (
-    <div className="p-6 flex flex-col gap-5 max-w-6xl mx-auto">
+    <div className="page tx">
       <div className="page-hero">
         <p className="page-subtitle">
-          Encrypt a real document into a TDF with your live KAS, open the archive it produced —
-          manifest, wrapped key, ciphertext — then ask the KAS to release it to each persona in turn.
+          Encrypt a real document into a TDF with your live KAS, open the archive it produced
+          (manifest, wrapped key, ciphertext), then ask the KAS to release it to each persona in turn.
         </p>
       </div>
 
-      <StepBar current={step} />
+      <div style={{ marginBottom: 28 }}>
+        <StepBar current={step} busy={encrypting} notes={stepNotes} />
+      </div>
 
       {platformReady === false && (
-        <div className="rounded-xl p-4" style={{ fontSize: 13, background: 'var(--c-error-bg)', border: '1px solid var(--c-deny-br)', color: 'var(--c-deny)' }}>
-          Platform not reachable — KAS is offline. Nothing on this page can be encrypted or opened until it comes back.
+        <div className="tx-offline" role="alert">
+          <PlugOffGlyph />
+          <div>
+            <div className="tx-offline-title">Platform not reachable</div>
+            <div>The KAS is offline. Nothing on this page can be encrypted or opened until it comes back.</div>
+          </div>
         </div>
       )}
 
       <input ref={nativeFileInputRef} type="file" style={{ display: 'none' }} onChange={handleNativeFileChange} />
       <input ref={tdfFileInputRef} type="file" accept=".tdf,.zip" style={{ display: 'none' }} onChange={handleTdfFileChange} />
 
-      <div className="flex gap-5 items-start">
+      <div className="tx-cols">
 
         {/* ── Left rail: source ─────────────────────────────────────────── */}
-        <div style={{ width: 248, flexShrink: 0 }} className="flex flex-col gap-3">
+        <div className="tx-rail">
 
           <div>
-            <div className="font-bold mb-2" style={{ fontSize: 11, letterSpacing: '0.06em', color: 'var(--c-text-5)' }}>
-              SAMPLE DOCUMENTS
-            </div>
-            <div className="flex flex-col gap-1.5">
+            <h2 className="section-title">Sample documents</h2>
+            <div className="card overflow-hidden">
               {FEDERAL_DOCS.map(d => {
                 const on = d.id === selectedId
                 return (
-                  <button key={d.id} onClick={() => selectDoc(d.id)}
-                    className="text-left p-2.5 rounded-lg cursor-pointer transition-all"
-                    style={{
-                      background: on ? 'var(--c-surface)' : 'transparent',
-                      border: `1px solid ${on ? 'var(--c-accent)' : 'var(--c-border)'}`,
-                      boxShadow: on ? 'var(--c-shadow-sm)' : 'none',
-                    }}>
-                    <div className="font-mono truncate mb-1.5"
-                      style={{ fontSize: 11, fontWeight: on ? 700 : 500, color: on ? 'var(--c-text-1)' : 'var(--c-text-4)' }}>
-                      {d.name}
-                    </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <ClassificationBanner level={d.classification} size="sm" />
-                      <span style={{ fontSize: 11, color: 'var(--c-text-6)' }}>{formatSize(docBytes(d))}</span>
-                    </div>
+                  <button key={d.id} onClick={() => selectDoc(d.id)} className="tx-doc tx-lv"
+                    data-lv={levelKey(d.classification)} aria-pressed={on}>
+                    <span className="truncate tx-doc-name">{d.name}</span>
+                    <span className="tx-doc-meta">
+                      <span className="truncate" title={d.classification}>{d.banner ?? d.classification}</span>
+                      <span className="num">{formatSize(docBytes(d))}</span>
+                    </span>
                   </button>
                 )
               })}
@@ -520,54 +615,43 @@ export default function TdfExplorerPage() {
 
           <div className="flex items-center gap-2">
             <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
-            <span style={{ fontSize: 10, color: 'var(--c-text-6)' }}>OR</span>
+            <span style={{ fontSize: 11.5, color: 'var(--c-text-5)' }}>or</span>
             <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
           </div>
 
-          <button onClick={() => nativeFileInputRef.current?.click()}
-            className="w-full py-2 rounded-lg font-semibold cursor-pointer transition-all"
-            style={{ fontSize: 12, background: 'var(--c-surface-2)', color: 'var(--c-text-3)', border: '1px dashed var(--c-border-2)' }}>
-            ↑ Upload your own file
+          <button onClick={() => nativeFileInputRef.current?.click()} className="btn w-full">
+            Upload your own file
           </button>
 
           {uploadedFile && (
-            <div className="p-2.5 rounded-lg"
-              style={{
-                fontSize: 11,
-                background: 'var(--c-surface)',
-                border: `1px solid ${detectedMarking || manualMarking ? 'var(--c-grant-br)' : 'var(--c-warn-br)'}`,
-              }}>
-              <div className="font-mono font-medium truncate" style={{ color: 'var(--c-text-1)' }}>{uploadedFile.name}</div>
-              <div style={{ color: 'var(--c-text-5)', marginTop: 2 }}>{formatSize(uploadedFile.size)}</div>
+            <div className="tx-upload tx-lv" data-lv={levelKey(detectedMarking ?? manualMarking)}>
+              <div className="truncate" style={{ fontFamily: MONO, fontSize: 11.5, fontWeight: 600, color: 'var(--c-text-1)' }}>{uploadedFile.name}</div>
+              <div className="num" style={{ color: 'var(--c-text-5)', marginTop: 2 }}>{formatSize(uploadedFile.size)}</div>
 
               {detectedMarking ? (
                 <>
-                  <div style={{ color: 'var(--c-grant)', marginTop: 6, fontWeight: 700, fontSize: 10, letterSpacing: '0.06em' }}>
-                    MARKING DETECTED
+                  <div style={{ color: 'var(--c-grant)', marginTop: 10, fontWeight: 650, fontSize: 12 }}>
+                    Marking detected
                   </div>
-                  <div className="font-mono" style={{ color: 'var(--c-text-2)', marginTop: 2, wordBreak: 'break-all' }}>
+                  <div style={{ fontFamily: MONO, fontSize: 11.5, color: 'var(--c-text-2)', marginTop: 2, wordBreak: 'break-all' }}>
                     {detectedMarking}
                   </div>
                 </>
               ) : (
                 <>
-                  <div style={{ color: 'var(--c-warn)', marginTop: 6, fontWeight: 700, fontSize: 10, letterSpacing: '0.06em' }}>
-                    NO MARKING FOUND — PICK ONE
+                  <div style={{ color: 'var(--c-warn)', marginTop: 10, fontWeight: 650, fontSize: 12 }}>
+                    No marking found, pick one
                   </div>
-                  <div className="flex flex-col gap-1" style={{ marginTop: 6 }}>
+                  <div className="flex flex-col gap-1" style={{ marginTop: 8 }}>
                     {MARKING_PRESETS.map(p => {
                       const on = manualMarking === p.marking
                       return (
                         <button key={p.label} onClick={() => { setManualMarking(p.marking); setManualFqns(p.fqns) }}
-                          className="text-left px-2 py-1 rounded font-mono cursor-pointer transition-all"
-                          style={{
-                            fontSize: 10,
-                            background: on ? 'var(--c-grant-bg)' : 'var(--c-surface-2)',
-                            color: on ? 'var(--c-grant)' : 'var(--c-text-3)',
-                            border: `1px solid ${on ? 'var(--c-grant-br)' : 'var(--c-border)'}`,
-                            fontWeight: on ? 700 : 400,
-                          }}>
-                          {on ? '✓ ' : ''}{p.label}
+                          className={`chip chip-mono ${on ? 'chip-grant' : ''}`}
+                          aria-pressed={on}
+                          style={{ height: 26, justifyContent: 'flex-start', cursor: 'pointer', fontWeight: on ? 700 : 500 }}>
+                          {on && <UiIcon name="check" size={11} strokeWidth={2.6} />}
+                          {p.label}
                         </button>
                       )
                     })}
@@ -580,152 +664,151 @@ export default function TdfExplorerPage() {
           <button onClick={handleEncrypt}
             disabled={encrypting || platformReady === false || needsMarking || !hasSource}
             title={needsMarking ? 'Pick a classification marking first' : undefined}
-            className="w-full py-2.5 rounded-lg font-semibold cursor-pointer disabled:opacity-40 transition-all"
-            style={{ fontSize: 13, background: 'var(--c-accent)', color: '#fff', border: '1px solid var(--c-accent)' }}>
-            {encrypting ? 'Encrypting…' : tdfBytes ? '↺ Re-encrypt' : '🔒 Encrypt with KAS'}
+            className="btn btn-primary w-full" style={{ height: 40, fontSize: 14 }}>
+            {!encrypting && !tdfBytes && <UiIcon name="lock" size={15} />}
+            {encrypting ? 'Encrypting…' : tdfBytes ? 'Re-encrypt' : 'Encrypt with KAS'}
           </button>
 
           {encryptError && (
-            <div className="p-2.5 rounded-lg" style={{ fontSize: 11, background: 'var(--c-error-bg)', border: '1px solid var(--c-deny-br)', color: 'var(--c-deny)' }}>
-              {encryptError}
-            </div>
+            <div className="tx-note tx-note-deny" role="alert">{encryptError}</div>
           )}
 
           {tdfBytes && (
-            <div className="p-2.5 rounded-lg" style={{ fontSize: 11, background: 'var(--c-grant-bg)', border: '1px solid var(--c-grant-br)', color: 'var(--c-grant)' }}>
-              <div style={{ fontWeight: 700 }}>✓ Real TDF created</div>
-              <div style={{ color: 'var(--c-text-4)', marginTop: 2 }}>{formatSize(tdfBytes.length)} · ZIP archive</div>
+            <div className="tx-note tx-note-grant">
+              <div className="flex items-center gap-1.5" style={{ fontWeight: 650, color: 'var(--c-grant)' }}>
+                <UiIcon name="check" size={14} strokeWidth={2.4} /> Real TDF created
+              </div>
+              <div className="num" style={{ color: 'var(--c-text-4)', marginTop: 2 }}>ZIP archive, {formatSize(tdfBytes.length)}</div>
             </div>
           )}
 
           {tdfBytes && window.electronAPI && (
-            <button onClick={handleSave}
-              className="w-full py-2 rounded-lg font-semibold cursor-pointer transition-all"
-              style={{ fontSize: 12, background: 'var(--c-surface)', color: 'var(--c-text-3)', border: '1px solid var(--c-border-2)' }}>
-              ↓ Save .tdf to disk
+            <button onClick={handleSave} className="btn w-full">
+              Save .tdf to disk
             </button>
           )}
 
-          <button onClick={handleImport}
-            className="w-full py-2 rounded-lg font-semibold cursor-pointer transition-all"
-            style={{ fontSize: 12, background: 'transparent', color: 'var(--c-text-4)', border: '1px solid var(--c-border)' }}>
-            ↑ Import .tdf from disk
+          <button onClick={handleImport} className="btn btn-ghost w-full">
+            Import .tdf from disk
           </button>
         </div>
 
         {/* ── Right: the three views of the same thing ──────────────────── */}
-        <div className="flex-1 flex flex-col gap-3 min-w-0">
+        <div className="flex-1 flex flex-col gap-5 min-w-0">
 
-          {/* Tab bar */}
-          <div className="card flex items-center gap-1 px-2" style={{ height: 42, borderRadius: 'var(--c-radius-btn)' }}>
-            {TABS.map(t => {
-              const on = tab === t.id
-              return (
+          {/* Tab bar: the plaintext on the left, the two files inside the ZIP on the right */}
+          <div className="tx-tabs">
+            <div className="tx-track">
+              <button onClick={() => setTab('doc')} aria-pressed={tab === 'doc'} className="tx-tab">
+                Document
+              </button>
+            </div>
+
+            <div className={`tx-track tx-arch${tdfBytes ? ' is-on' : ''}`}>
+              <span className="tx-arch-head">
+                <ZipGlyph />
+                {tdfBytes ? (
+                  <>
+                    <span className="truncate tx-arch-name" title={archiveName}>{archiveName}</span>
+                    <span className="tx-arch-meta num">
+                      {fileCount > 0 ? `${plural(fileCount, 'file')}, ` : ''}{formatSize(tdfBytes.length)}
+                    </span>
+                  </>
+                ) : (
+                  <span className="tx-arch-meta">No archive yet</span>
+                )}
+              </span>
+              {TABS.filter(t => t.id !== 'doc').map(t => (
                 <button key={t.id} onClick={() => t.enabled && setTab(t.id)} disabled={!t.enabled}
-                  className="px-3 py-1.5 rounded font-mono cursor-pointer disabled:cursor-default transition-all"
-                  style={{
-                    fontSize: 12,
-                    fontWeight: on ? 700 : 500,
-                    background: on ? 'var(--c-info-bg)' : 'transparent',
-                    color: !t.enabled ? 'var(--c-text-6)' : on ? 'var(--c-accent)' : 'var(--c-text-4)',
-                    border: '1px solid transparent',
-                    opacity: t.enabled ? 1 : 0.5,
-                  }}>
+                  aria-pressed={tab === t.id} className="tx-tab tx-tab-mono">
                   {t.label}
                 </button>
-              )
-            })}
-            <span className="flex-1" />
-            {tdfBytes && (
-              <span className="font-mono truncate" style={{ fontSize: 11, color: 'var(--c-text-5)', maxWidth: 260 }}>
-                {importedFilename ?? `${sourceName}.tdf`} · {formatSize(tdfBytes.length)}
-              </span>
-            )}
+              ))}
+            </div>
           </div>
 
+          {/* Encrypting: the sheet goes under ink */}
           {encrypting && (
-            <div className="card p-10 flex flex-col items-center gap-3 text-center">
-              <div style={{ fontSize: 28, animation: 'spin 1s linear infinite' }}>⚙</div>
-              <div style={{ fontSize: 13, color: 'var(--c-text-3)' }}>Encrypting with KAS…</div>
-              <div style={{ fontSize: 12, color: 'var(--c-text-5)' }}>Fetching public key · AES-256-GCM encrypt · RSA-OAEP wrap</div>
+            <div className="tx-sealing" role="status">
+              <div style={{ minWidth: 0 }}>
+                <Sheet marking={marking} compact>
+                  <InkBars text={plaintext} label="Document being encrypted" sealing />
+                </Sheet>
+              </div>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-text-2)' }}>Encrypting with KAS…</div>
+                <div style={{ fontSize: 12.5, color: 'var(--c-text-5)', marginTop: 4, maxWidth: '34ch' }}>
+                  Fetching the public key, AES-256-GCM encrypting, RSA-OAEP wrapping
+                </div>
+              </div>
             </div>
           )}
 
           {/* ── Document ─────────────────────────────────────────────── */}
           {!encrypting && tab === 'doc' && (
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-5">
               {!hasSource ? (
-                <div className="card p-10 flex flex-col items-center gap-3 text-center" style={{ borderStyle: 'dashed' }}>
-                  <Icon name="tdf" size={36} />
-                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--c-text-3)' }}>
-                    {tdfBytes ? 'This archive was imported — there is no plaintext to show' : 'Pick a sample document, or upload one of your own'}
+                <div className="tx-ghost">
+                  <div className="tx-ghost-lines" aria-hidden="true">
+                    {FALLBACK_BARS.map((n, i) => <span key={i} style={{ width: `${n}%` }} />)}
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--c-text-5)', maxWidth: 420 }}>
-                    {tdfBytes
-                      ? 'Open the manifest to see what policy it carries, then try a persona below.'
-                      : 'The samples are full documents. What the KAS releases at the end is what you read here.'}
+                  <div className="tx-ghost-copy">
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-text-2)' }}>
+                      {tdfBytes ? 'This archive was imported, so there is no plaintext to show' : 'Pick a sample document, or upload one of your own'}
+                    </div>
+                    <div style={{ fontSize: 13, color: 'var(--c-text-5)', maxWidth: 420, marginTop: 4 }}>
+                      {tdfBytes
+                        ? 'Open the manifest to see what policy it carries, then try a persona below.'
+                        : 'The samples are full documents. What the KAS releases at the end is what you read here.'}
+                    </div>
                   </div>
                 </div>
               ) : (
                 <>
-                  <div className="card overflow-hidden">
-                    <div className="flex items-center gap-3 px-4 py-2.5" style={{ borderBottom: '1px solid var(--c-border)', background: 'var(--c-surface-2)' }}>
-                      <span className="font-mono truncate flex-1" style={{ fontSize: 12, fontWeight: 700, color: 'var(--c-text-1)' }}>
-                        {sourceName}
-                      </span>
-                      {doc && <ClassificationBanner level={doc.classification} size="sm" />}
+                  <Sheet marking={marking} title={sourceName} sub={doc?.summary}>
+                    <div className="brief-open" key={sourceName}>
+                      <pre className="tx-sheet-body">{plaintext}</pre>
                     </div>
-                    {doc?.summary && (
-                      <div className="px-4 pt-3" style={{ fontSize: 12, color: 'var(--c-text-5)' }}>{doc.summary}</div>
-                    )}
-                    <pre className="px-4 py-3 m-0 overflow-auto"
-                      style={{
-                        fontSize: 11.5, lineHeight: 1.65, maxHeight: 420,
-                        color: 'var(--c-text-2)', whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-                        fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace',
-                      }}>
-                      {plaintext}
-                    </pre>
-                  </div>
+                  </Sheet>
 
                   {/* Policy to be applied */}
-                  <div className="card p-4">
-                    <div className="font-bold mb-2" style={{ fontSize: 11, letterSpacing: '0.06em', color: 'var(--c-text-5)' }}>
-                      {tdfBytes ? 'POLICY ON THIS ARCHIVE' : 'POLICY THAT WILL BE APPLIED'}
-                    </div>
+                  <section>
+                    <h2 className="section-title">
+                      {tdfBytes ? 'Policy on this archive' : 'Policy that will be applied'}
+                    </h2>
                     <div className="flex flex-wrap gap-1.5">
                       {policyGroups.map(g => <GroupChip key={g.definition} group={g} />)}
                       {policyGroups.length === 0 && (
-                        <span style={{ fontSize: 12, color: 'var(--c-text-5)' }}>No attributes — anyone who can reach the KAS can open it.</span>
+                        <span style={{ fontSize: 13, color: 'var(--c-text-5)' }}>No attributes, so anyone who can reach the KAS can open it.</span>
                       )}
                     </div>
                     {policyGroups.some(g => g.values.length > 1) && (
-                      <div className="mt-2" style={{ fontSize: 11, color: 'var(--c-text-5)' }}>
+                      <div className="mt-2" style={{ fontSize: 12, color: 'var(--c-text-5)' }}>
                         Definitions AND together; the values inside one are ANY_OF, so a roster needs one match, not all of them.
                       </div>
                     )}
                     {doc?.policyWhy && !tdfBytes && (
                       <div className="mt-3 flex flex-col gap-1">
                         {policyGroups.map(g => doc.policyWhy[g.name] && (
-                          <div key={g.definition} style={{ fontSize: 11, color: 'var(--c-text-5)' }}>
-                            <span className="font-mono" style={{ color: 'var(--c-text-3)' }}>{groupLabel(g)}</span>
+                          <div key={g.definition} style={{ fontSize: 12.5, color: 'var(--c-text-4)' }}>
+                            <span style={{ fontFamily: MONO, fontSize: 11.5, color: 'var(--c-text-2)' }}>{groupLabel(g)}</span>
                             {' — '}{doc.policyWhy[g.name]}
                           </div>
                         ))}
                       </div>
                     )}
                     {doc?.detectDelta && (
-                      <div className="mt-3 p-2.5 rounded-lg" style={{ fontSize: 11, background: 'var(--c-info-bg)', color: 'var(--c-text-3)' }}>
-                        <span style={{ fontWeight: 700 }}>Banner ≠ policy. </span>{doc.detectDelta}
+                      <div className="mt-3" style={{ fontSize: 12.5, padding: '2px 0 2px 12px', borderLeft: '3px solid var(--c-accent)', color: 'var(--c-text-3)' }}>
+                        <span style={{ fontWeight: 700, color: 'var(--c-text-1)' }}>Banner ≠ policy. </span>{doc.detectDelta}
                       </div>
                     )}
                     {detectedMarking && (
-                      <div className="mt-3" style={{ fontSize: 11, color: 'var(--c-text-5)' }}>
-                        Derived from this file's own banner line: <span className="font-mono" style={{ color: 'var(--c-text-3)' }}>{detectedMarking}</span>
-                        {' → '}{fqnsToShortLabels(detectedFqns).join(', ')}
+                      <div className="mt-3" style={{ fontSize: 12.5, color: 'var(--c-text-4)' }}>
+                        Derived from this file's own banner line: <span style={{ fontFamily: MONO, fontSize: 11.5, color: 'var(--c-text-2)' }}>{detectedMarking}</span>
+                        {', which maps to '}{fqnsToShortLabels(detectedFqns).join(', ')}
                       </div>
                     )}
-                  </div>
+                  </section>
                 </>
               )}
             </div>
@@ -733,96 +816,104 @@ export default function TdfExplorerPage() {
 
           {/* ── manifest.json ────────────────────────────────────────── */}
           {!encrypting && tab === 'manifest' && manifest && (
-            <div className="card p-4 flex flex-col gap-3">
-              <div style={{ fontSize: 12, color: 'var(--c-text-5)' }}>
+            <div className="flex flex-col gap-3">
+              <div style={{ fontSize: 13, color: 'var(--c-text-4)', maxWidth: '68ch' }}>
                 One of the two files in the ZIP. It travels with the data and names the KAS that must
-                be asked, the policy that KAS will evaluate, and the key it wrapped — but never the key itself.
+                be asked, the policy that KAS will evaluate, and the key it wrapped, but never the key itself.
               </div>
 
-              {keyAccess && (
-                <Collapsible open={openSections.has('keyAccess')} onToggle={() => toggleSection('keyAccess')}
-                  name="keyAccess" blurb="which KAS to ask, and the key it wrapped">
-                  <Field name="type" value={`"${keyAccess.type}"`} />
-                  <Field name="url" value={`"${keyAccess.url}"`} note="live KAS" />
-                  <Field name="wrappedKey" value={`"${(keyAccess.wrappedKey || '').slice(0, 40)}…"`} tone="hash" note="RSA-OAEP wrapped DEK" />
-                  <Field name="protocol" value={`"${keyAccess.protocol}"`} />
-                </Collapsible>
-              )}
-
-              <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--c-border)' }}>
-                <div className="px-3 py-2 flex items-center gap-2 flex-wrap" style={{ background: 'var(--c-surface-2)' }}>
-                  <span className="font-mono font-bold" style={{ fontSize: 12, color: 'var(--c-text-1)' }}>"policy"</span>
-                  <span className="font-mono truncate" style={{ fontSize: 11, color: 'var(--c-text-5)', maxWidth: 220 }}>"{policyB64.slice(0, 28)}…"</span>
-                  <span style={{ fontSize: 11, color: 'var(--c-text-6)' }}>base64</span>
+              <div className="tx-file">
+                <div className="tx-file-head">
+                  <span className="tx-file-name">manifest.json</span>
+                  {manifestEntry && <span className="tx-file-meta num">{formatSize(manifestEntry.length)}</span>}
                   <span className="flex-1" />
-                  {!policyDecoded ? (
-                    <button onClick={() => setPolicyDecoded(true)}
-                      className="px-2 py-0.5 rounded cursor-pointer"
-                      style={{ fontSize: 11, fontWeight: 600, background: 'var(--c-info-bg)', color: 'var(--c-accent)', border: '1px solid var(--c-accent)' }}>
-                      Decode →
-                    </button>
-                  ) : (
-                    <span className="px-2 py-0.5 rounded"
-                      style={{ fontSize: 11, background: 'var(--c-grant-bg)', color: 'var(--c-grant)', border: '1px solid var(--c-grant-br)' }}>
-                      decoded ✓
-                    </span>
-                  )}
+                  <span className="tx-file-meta truncate" title={archiveName}>in {archiveName}</span>
                 </div>
-                {policyDecoded && (
-                  <div className="px-3 py-3" style={{ background: 'var(--c-surface)' }}>
-                    <div className="mb-2" style={{ fontSize: 11, color: 'var(--c-text-5)' }}>
-                      The KAS re-evaluates every one of these against the caller's live entitlements, on
-                      every single decrypt. Separate definitions are ANDed; values inside one follow its rule.
+                <div className="tx-file-body">
+                  {keyAccess && (
+                    <Collapsible open={openSections.has('keyAccess')} onToggle={() => toggleSection('keyAccess')}
+                      name="keyAccess" blurb="which KAS to ask, and the key it wrapped">
+                      <Field name="type" value={`"${keyAccess.type}"`} />
+                      <Field name="url" value={`"${keyAccess.url}"`} note="live KAS" />
+                      <Field name="wrappedKey" value={`"${(keyAccess.wrappedKey || '').slice(0, 40)}…"`} tone="hash" note="RSA-OAEP wrapped DEK" />
+                      <Field name="protocol" value={`"${keyAccess.protocol}"`} />
+                    </Collapsible>
+                  )}
+
+                  <div className="tx-sec">
+                    <div className="py-2.5 flex items-center gap-2 flex-wrap">
+                      <span style={{ fontFamily: MONO, fontSize: 12, fontWeight: 700, color: 'var(--c-text-1)', paddingLeft: 21 }}>"policy"</span>
+                      <span className="truncate" style={{ fontFamily: MONO, fontSize: 11.5, color: 'var(--c-text-5)', maxWidth: 240 }}>"{policyB64.slice(0, 28)}…"</span>
+                      <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--c-text-5)' }}>base64</span>
+                      <span className="flex-1" />
+                      {!policyDecoded ? (
+                        <button onClick={() => setPolicyDecoded(true)} className="btn btn-sm">
+                          Decode
+                        </button>
+                      ) : (
+                        <span className="chip chip-grant" style={{ fontFamily: 'var(--font-ui)' }}>
+                          <UiIcon name="check" size={11} strokeWidth={2.6} /> Decoded
+                        </span>
+                      )}
                     </div>
-                    <div className="flex flex-wrap gap-1.5 mb-2">
-                      {groupPolicy(archivePolicy).map(g => <GroupChip key={g.definition} group={g} />)}
-                      {archivePolicy.length === 0 && <span style={{ fontSize: 11, color: 'var(--c-text-5)' }}>No attribute restrictions</span>}
-                    </div>
-                    <div className="font-mono break-all" style={{ fontSize: 10, color: 'var(--c-text-6)' }}>{policyB64}</div>
+                    {policyDecoded && (
+                      <div style={{ padding: '0 0 14px 21px', fontFamily: 'var(--font-ui)' }}>
+                        <div className="mb-2" style={{ fontSize: 12.5, color: 'var(--c-text-4)' }}>
+                          The KAS re-evaluates every one of these against the caller's live entitlements, on
+                          every single decrypt. Separate definitions are ANDed; values inside one follow its rule.
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 mb-2">
+                          {groupPolicy(archivePolicy).map(g => <GroupChip key={g.definition} group={g} />)}
+                          {archivePolicy.length === 0 && <span style={{ fontSize: 12, color: 'var(--c-text-5)' }}>No attribute restrictions</span>}
+                        </div>
+                        <div className="break-all" style={{ fontFamily: MONO, fontSize: 10.5, color: 'var(--c-text-5)' }}>{policyB64}</div>
+                      </div>
+                    )}
                   </div>
-                )}
+
+                  {method && (
+                    <Collapsible open={openSections.has('method')} onToggle={() => toggleSection('method')}
+                      name="method" blurb="the symmetric algorithm and its IV">
+                      <Field name="algorithm" value={`"${method.algorithm}"`} />
+                      <Field name="iv" value={`"${method.iv?.slice(0, 24)}${method.iv?.length > 24 ? '…' : ''}"`} note="96-bit random" />
+                      <Field name="isStreamable" value={String(!!method.isStreamable)} tone="bool" />
+                    </Collapsible>
+                  )}
+
+                  <Collapsible open={openSections.has('payloadRef')} onToggle={() => toggleSection('payloadRef')}
+                    name="payload" blurb="a reference to the other file in the ZIP">
+                    <Field name="url" value={'"0.payload"'} note="the ciphertext, beside this manifest" />
+                    <Field name="isEncrypted" value="true" tone="bool" />
+                  </Collapsible>
+                </div>
               </div>
-
-              {method && (
-                <Collapsible open={openSections.has('method')} onToggle={() => toggleSection('method')}
-                  name="method" blurb="the symmetric algorithm and its IV">
-                  <Field name="algorithm" value={`"${method.algorithm}"`} />
-                  <Field name="iv" value={`"${method.iv?.slice(0, 24)}${method.iv?.length > 24 ? '…' : ''}"`} note="96-bit random" />
-                  <Field name="isStreamable" value={String(!!method.isStreamable)} tone="bool" />
-                </Collapsible>
-              )}
-
-              <Collapsible open={openSections.has('payloadRef')} onToggle={() => toggleSection('payloadRef')}
-                name="payload" blurb="a reference to the other file in the ZIP">
-                <Field name="url" value={'"0.payload"'} note="the ciphertext, beside this manifest" />
-                <Field name="isEncrypted" value="true" tone="bool" />
-              </Collapsible>
             </div>
           )}
 
           {/* ── 0.payload ────────────────────────────────────────────── */}
           {!encrypting && tab === 'payload' && hexRows && (
-            <div className="card p-4">
-              <div className="flex items-center justify-between gap-3 mb-3">
-                <div style={{ fontSize: 12, color: 'var(--c-text-5)' }}>
-                  AES-256-GCM ciphertext — the real bytes from this archive. No structure, no readable strings.
-                </div>
-                <span className="px-2 py-0.5 rounded font-mono flex-shrink-0"
-                  style={{ fontSize: 11, background: 'var(--c-surface-2)', color: 'var(--c-text-4)', border: '1px solid var(--c-border)' }}>
-                  {formatSize(payloadBytes.length)}
-                </span>
+            <div className="flex flex-col gap-3">
+              <div style={{ fontSize: 13, color: 'var(--c-text-4)' }}>
+                AES-256-GCM ciphertext: the real bytes from this archive. No structure, no readable strings.
               </div>
-              <div className="rounded-lg p-3 font-mono overflow-auto"
-                style={{ fontSize: 11, lineHeight: 1.8, background: 'var(--c-surface-2)', border: '1px solid var(--c-border)' }}>
-                {hexRows.map((row, i) => (
-                  <div key={i} className="flex gap-6" style={{ whiteSpace: 'nowrap' }}>
-                    <span style={{ color: 'var(--c-text-6)', userSelect: 'none', minWidth: 68 }}>{row.offset}</span>
-                    <span style={{ color: 'var(--c-text-3)' }}>{row.bytes.slice(0, 8).join(' ')}</span>
-                    <span style={{ color: 'var(--c-text-3)' }}>{row.bytes.slice(8).join(' ')}</span>
+              <div className="tx-file">
+                <div className="tx-file-head">
+                  <span className="tx-file-name">0.payload</span>
+                  <span className="tx-file-meta num">{formatSize(payloadBytes.length)}</span>
+                  <span className="flex-1" />
+                  <span className="tx-file-meta truncate" title={archiveName}>in {archiveName}</span>
+                </div>
+                <div className="tx-hex overflow-auto">
+                  {hexRows.map((row, i) => (
+                    <div key={i} className="tx-hex-row">
+                      <span className="tx-hex-off">{row.offset}</span>
+                      <span>{row.bytes.slice(0, 8).join(' ')}</span>
+                      <span>{row.bytes.slice(8).join(' ')}</span>
+                    </div>
+                  ))}
+                  <div style={{ color: 'var(--c-text-5)', marginTop: 6 }}>
+                    … {formatSize(payloadBytes.length)} total
                   </div>
-                ))}
-                <div style={{ color: 'var(--c-text-6)', marginTop: 6 }}>
-                  … {formatSize(payloadBytes.length)} total
                 </div>
               </div>
             </div>
@@ -830,18 +921,16 @@ export default function TdfExplorerPage() {
 
           {/* ── Try to open ──────────────────────────────────────────── */}
           {tdfBytes && !encrypting && (
-            <div className="card p-4">
-              <div className="flex items-baseline justify-between gap-3 mb-3">
-                <div className="font-bold" style={{ fontSize: 11, letterSpacing: '0.06em', color: 'var(--c-text-5)' }}>
-                  TRY TO OPEN AS
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--c-text-5)' }}>
+            <section style={{ marginTop: 8 }}>
+              <div className="flex items-baseline justify-between gap-4 mb-3">
+                <h2 className="section-title" style={{ margin: 0, whiteSpace: 'nowrap' }}>Try to open as</h2>
+                <div style={{ fontSize: 12, color: 'var(--c-text-5)', textAlign: 'right' }}>
                   Chips are each persona's live entitlements against this policy. The verdict comes from the KAS.
                 </div>
               </div>
 
-              <div className="flex flex-col">
-                {DECRYPT_PERSONAS.map((persona, idx) => {
+              <div className="card overflow-hidden">
+                {DECRYPT_PERSONAS.map(persona => {
                   const ent = entitlements[persona.id] ?? persona.fqns ?? []
                   // One verdict per definition, so Emma's single `nationality:gbr` reads as the whole
                   // reason a five-nation FVEY policy lets her in rather than as four refusals.
@@ -849,80 +938,90 @@ export default function TdfExplorerPage() {
                   const result = decryptResults[persona.id]
                   const isLoading = decryptingId === persona.id
                   const expanded = openResult === persona.id
+                  const rowState = isLoading ? 'loading' : result ? (result.ok ? 'grant' : 'deny') : 'idle'
                   return (
-                    <div key={persona.id} style={{ borderTop: idx === 0 ? 'none' : '1px solid var(--c-border)', paddingTop: idx === 0 ? 0 : 10, paddingBottom: 10 }}>
+                    <div key={persona.id} className="tx-row" data-state={rowState}>
                       <div className="flex items-center gap-3">
-                        <span style={{ fontSize: 18, flexShrink: 0 }}>{persona.avatar}</span>
+                        <span className="flex items-center justify-center flex-shrink-0 rounded-full"
+                          style={{ width: 32, height: 32, background: 'var(--c-surface-3)', color: 'var(--c-text-4)' }}>
+                          <UiIcon name="user" size={16} />
+                        </span>
                         <div className="flex-1 min-w-0">
-                          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--c-text-1)' }}>
-                            {persona.name}
-                            <span style={{ fontWeight: 400, color: 'var(--c-text-5)' }}> · {persona.title}</span>
+                          <div className="flex items-baseline gap-2 flex-wrap">
+                            <span style={{ fontSize: 13, fontWeight: 650, color: 'var(--c-text-1)' }}>{persona.name}</span>
+                            <span style={{ fontSize: 12, color: 'var(--c-text-5)' }}>{persona.title}</span>
                           </div>
-                          <div className="flex flex-wrap gap-1 mt-1">
+                          <div className="flex flex-wrap gap-1 mt-1.5">
                             {verdict.groups.map(g => (
                               <GroupChip key={g.definition} group={g} evaluated={g} />
                             ))}
                             {effectivePolicy.length === 0 && (
-                              <span style={{ fontSize: 11, color: 'var(--c-text-6)' }}>no policy attributes to satisfy</span>
+                              <span style={{ fontSize: 12, color: 'var(--c-text-5)' }}>No policy attributes to satisfy</span>
                             )}
                           </div>
                         </div>
+                        {result && !isLoading && (
+                          <span className={`chip ${result.ok ? 'chip-grant' : 'chip-deny'}`}>
+                            <UiIcon name={result.ok ? 'check' : 'x'} size={11} strokeWidth={2.6} />
+                            {result.ok ? 'Granted' : 'Denied'}
+                          </span>
+                        )}
                         <button onClick={() => handleDecrypt(persona)} disabled={isLoading || !!decryptingId}
-                          className="px-3 py-1.5 rounded-lg font-semibold cursor-pointer disabled:opacity-40 flex-shrink-0"
-                          style={{
-                            fontSize: 12,
-                            background: result ? (result.ok ? 'var(--c-grant-bg)' : 'var(--c-deny-bg)') : 'var(--c-surface-2)',
-                            color: result ? (result.ok ? 'var(--c-grant)' : 'var(--c-deny)') : 'var(--c-text-3)',
-                            border: `1px solid ${result ? (result.ok ? 'var(--c-grant-br)' : 'var(--c-deny-br)') : 'var(--c-border-2)'}`,
-                          }}>
-                          {isLoading ? 'Asking KAS…' : result ? (result.ok ? '✓ Granted' : '✗ Denied') : 'Open'}
+                          className="btn btn-sm flex-shrink-0" style={{ minWidth: 72 }}>
+                          {isLoading ? 'Asking KAS…' : result ? 'Open again' : 'Open'}
                         </button>
                       </div>
 
                       {result?.ok && (
-                        <div className="mt-2 ml-9">
+                        <div className="tx-result">
                           <button onClick={() => setOpenResult(expanded ? null : persona.id)}
-                            className="cursor-pointer px-0 py-0"
-                            style={{ fontSize: 11, fontWeight: 600, background: 'none', border: 'none', color: 'var(--c-grant)' }}>
-                            {expanded ? '▼' : '▶'} Released plaintext · {formatSize(new TextEncoder().encode(result.text).length)}
+                            aria-expanded={expanded}
+                            className="cursor-pointer px-0 py-0 flex items-center gap-1.5"
+                            style={{ fontSize: 12, fontWeight: 600, background: 'none', border: 'none', color: 'var(--c-grant)', fontFamily: 'inherit' }}>
+                            <UiIcon name="chevron" size={12} strokeWidth={2.4}
+                              style={{ transform: expanded ? 'none' : 'rotate(-90deg)', transition: 'transform .12s' }} />
+                            Released plaintext
+                            <span className="num" style={{ fontWeight: 500, color: 'var(--c-text-5)' }}>{formatSize(new TextEncoder().encode(result.text).length)}</span>
                           </button>
                           {expanded && (
-                            <pre className="mt-1.5 p-3 m-0 rounded-lg overflow-auto"
-                              style={{
-                                fontSize: 11, lineHeight: 1.6, maxHeight: 280,
-                                background: 'var(--c-grant-bg)', border: '1px solid var(--c-grant-br)',
-                                color: 'var(--c-text-2)', whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-                                fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace',
-                              }}>
-                              {result.text}
-                            </pre>
+                            <div className="mt-2">
+                              <Sheet marking={marking} compact>
+                                <div className="brief-open">
+                                  <pre className="tx-sheet-body">{result.text}</pre>
+                                </div>
+                              </Sheet>
+                            </div>
                           )}
                         </div>
                       )}
 
                       {result?.ok === false && (
-                        <div className="mt-2 ml-9 p-2.5 rounded-lg"
-                          style={{ fontSize: 11, background: 'var(--c-deny-bg)', border: '1px solid var(--c-deny-br)', color: 'var(--c-text-3)' }}>
-                          {verdict.missing.length
-                            ? <><span style={{ fontWeight: 700, color: 'var(--c-deny)' }}>KAS withheld the key. </span>
-                                {verdict.missing.map(g => (
-                                  <span key={g.definition}>
-                                    {' '}Needs {groupLabel(g)}
-                                    {g.held.length
-                                      // Surname, not the first word: every federal persona's name
-                                      // starts with a rank, so `split(' ')[0]` read "Maj. holds…".
-                                      ? ` — ${persona.name.split(' ').at(-1)} holds ${g.name}:${g.held.join(', ')}.`
-                                      : `; none held.`}
-                                  </span>
-                                ))}</>
-                            : <><span style={{ fontWeight: 700, color: 'var(--c-deny)' }}>KAS denied. </span>{result.error.slice(0, 200)}</>}
+                        <div className="tx-result">
+                          <Sheet marking={marking} compact>
+                            <InkBars text={plaintext} lines={5} label="Redacted: the KAS withheld the key" />
+                          </Sheet>
+                          <div className="tx-reason">
+                            {verdict.missing.length
+                              ? <><span style={{ fontWeight: 700, color: 'var(--c-deny)' }}>KAS withheld the key. </span>
+                                  {verdict.missing.map(g => (
+                                    <span key={g.definition}>
+                                      {' '}Needs {groupLabel(g)}
+                                      {g.held.length
+                                        // Surname, not the first word: every federal persona's name
+                                        // starts with a rank, so `split(' ')[0]` read "Maj. holds…".
+                                        ? ` — ${persona.name.split(' ').at(-1)} holds ${g.name}:${g.held.join(', ')}.`
+                                        : `; none held.`}
+                                    </span>
+                                  ))}</>
+                              : <><span style={{ fontWeight: 700, color: 'var(--c-deny)' }}>KAS denied. </span>{result.error.slice(0, 200)}</>}
+                          </div>
                         </div>
                       )}
                     </div>
                   )
                 })}
               </div>
-            </div>
+            </section>
           )}
         </div>
       </div>

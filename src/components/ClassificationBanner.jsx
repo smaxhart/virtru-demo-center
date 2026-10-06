@@ -1,9 +1,9 @@
 const COLORS = {
-  'TOP SECRET': { bg: '#fef2f2', text: '#ef4444', border: '#fca5a5' },
-  'SECRET':     { bg: '#fff7ed', text: '#f97316', border: '#fdba74' },
-  'CONFIDENTIAL': { bg: '#fefce8', text: '#ca8a04', border: '#fde047' },
-  'UNCLASSIFIED': { bg: '#f0fdf4', text: '#16a34a', border: '#86efac' },
-  'CUI':          { bg: '#eff6ff', text: '#2563eb', border: '#93c5fd' },
+  'TOP SECRET':   { bg: 'var(--c-deny-bg)',   text: 'var(--c-deny)',   border: 'var(--c-deny-br)' },
+  'SECRET':       { bg: 'var(--c-warn-bg)',   text: 'var(--c-warn)',   border: 'var(--c-warn-br)' },
+  'CONFIDENTIAL': { bg: 'var(--c-purple-bg)', text: '#5b3fb0',         border: '#cfc4f0' },
+  'UNCLASSIFIED': { bg: 'var(--c-grant-bg)',  text: 'var(--c-grant)',  border: 'var(--c-grant-br)' },
+  'CUI':          { bg: 'var(--c-info-bg)',   text: 'var(--c-accent)', border: '#b9d3f0' },
 }
 
 export default function ClassificationBanner({ level, size = 'md' }) {
@@ -16,15 +16,15 @@ export default function ClassificationBanner({ level, size = 'md' }) {
       display: 'inline-flex',
       alignItems: 'center',
       padding: pad,
-      borderRadius: 4,
+      borderRadius: 'var(--c-radius-chip)',
       fontSize: fs,
       fontWeight: 700,
-      letterSpacing: '0.5px',
+      letterSpacing: '0.04em',
       background: c.bg,
       color: c.text,
       border: `1px solid ${c.border}`,
       textTransform: 'uppercase',
-      fontFamily: 'monospace',
+      fontFamily: 'var(--font-mono)',
       flexShrink: 0,
     }}>
       {level}

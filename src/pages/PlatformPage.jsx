@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useDemo } from '../context/DemoContext.jsx'
 import { getPlatformToken } from '../api/auth.js'
 import Icon from '../components/Icon.jsx'
+import UiIcon from '../components/UiIcon.jsx'
 
 function decodeJwt(token) {
   try {
@@ -41,7 +42,7 @@ const CHECKS = [
       if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
       return { data: await res.json(), headers: captureHeaders(res), httpStatus: res.status }
     },
-    summarize: d => `Issuer: ${d.issuer} · JWKS: ${d.jwks_uri}`,
+    summarize: d => `Issuer: ${d.issuer}, JWKS: ${d.jwks_uri}`,
   },
   {
     id: 'jwks',
@@ -57,7 +58,7 @@ const CHECKS = [
       if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
       return { data: await res.json(), headers: captureHeaders(res), httpStatus: res.status }
     },
-    summarize: d => `${d.keys?.length ?? 0} signing key(s) · Algorithms: ${[...new Set(d.keys?.map(k => k.alg) ?? [])].join(', ')}`,
+    summarize: d => `${d.keys?.length ?? 0} signing key(s), algorithms: ${[...new Set(d.keys?.map(k => k.alg) ?? [])].join(', ')}`,
   },
   {
     id: 'kas',
@@ -77,7 +78,7 @@ const CHECKS = [
       if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
       return { data: await res.json(), headers: captureHeaders(res), httpStatus: res.status }
     },
-    summarize: d => `KID: ${d.kid || '(present)'} · Key length: ${d.publicKey?.length ?? '?'} chars`,
+    summarize: d => `KID: ${d.kid || '(present)'}, key length: ${d.publicKey?.length ?? '?'} chars`,
   },
   {
     id: 'policy',
@@ -127,162 +128,155 @@ const CHECKS = [
       const fqns = d.entitlementsList?.[0]?.entityEntitlements?.attributeValueFqns ??
                    d.entitlements?.[0]?.attributeValueFqns ?? []
       return fqns.length > 0
-        ? `sarah → ${fqns.map(f => f.split('/value/')[1] || f).join(', ')}`
+        ? `sarah: ${fqns.map(f => f.split('/value/')[1] || f).join(', ')}`
         : 'Response received'
     },
   },
 ]
 
 function StatusBadge({ s }) {
-  const styles = {
-    idle:    { bg: 'var(--c-border)',    color: 'var(--c-text-5)', border: 'var(--c-border-2)', label: 'idle' },
-    running: { bg: '#1e3a5f',            color: '#60a5fa',         border: '#3b82f6',            label: '◌ running' },
-    ok:      { bg: 'var(--c-success-bg)', color: '#15803d',        border: '#166534',            label: '✓ 200 OK' },
-    error:   { bg: 'var(--c-error-bg)',  color: '#b91c1c',         border: '#7f1d1d',            label: '✗ error' },
-  }[s] || styles.idle
-  return (
-    <span className="text-xs px-2 py-0.5 rounded-full"
-      style={{ background: styles.bg, color: styles.color, border: `1px solid ${styles.border}` }}>
-      {styles.label}
-    </span>
-  )
+  if (s === 'running') return <span className="chip chip-info">Running</span>
+  if (s === 'ok') return <span className="chip chip-grant"><UiIcon name="check" size={12} strokeWidth={2.4} />200 OK</span>
+  if (s === 'error') return <span className="chip chip-deny"><UiIcon name="x" size={12} strokeWidth={2.4} />Error</span>
+  return <span className="chip">Idle</span>
 }
 
-function CheckCard({ check, result, onRun, anyRunning, techMode }) {
+const monoBlock = {
+  fontFamily: 'var(--font-mono)', fontSize: 12, lineHeight: 1.6,
+  background: 'var(--c-surface-2)', border: '1px solid var(--c-border)', borderRadius: 8,
+  color: 'var(--c-text-2)',
+}
+
+function CheckRow({ check, result, onRun, anyRunning, techMode, first }) {
   const [showReq, setShowReq] = useState(false)
   const [showRaw, setShowRaw] = useState(true)
   const s = result?.s ?? 'idle'
   const r = result ?? {}
 
   return (
-    <div className="rounded-xl overflow-hidden"
-      style={{
-        background: 'var(--c-surface)',
-        border: `1px solid ${s === 'ok' ? '#166534' : s === 'error' ? '#7f1d1d' : 'var(--c-border)'}`,
-      }}>
+    <div style={{ borderTop: first ? 'none' : '1px solid var(--c-border)' }}>
       {/* Header row */}
-      <div className="flex items-center justify-between px-4 py-3"
-        style={{ borderBottom: '1px solid var(--c-border)' }}>
-        <div className="flex items-center gap-3">
-          <Icon name={check.icon} size={24} fallback={<span className="text-xl">{check.icon}</span>} />
-          <div>
-            <div className="font-semibold text-sm" style={{ color: 'var(--c-text-1)' }}>{check.name}</div>
-            {check.businessContext && !techMode && (
-              <div className="text-xs mt-0.5" style={{ color: 'var(--c-text-4)' }}>{check.businessContext}</div>
-            )}
-            {techMode && (
-              <div className="text-xs mt-0.5" style={{ color: 'var(--c-text-5)' }}>{check.description}</div>
-            )}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '16px 20px 10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
+          <span style={{
+            width: 38, height: 38, flexShrink: 0, borderRadius: 9, background: 'var(--c-info-bg)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Icon name={check.icon} size={22} fallback={<span>{check.icon}</span>} />
+          </span>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontWeight: 650, fontSize: 14.5, color: 'var(--c-text-1)' }}>{check.name}</div>
+            <div style={{ fontSize: 13, marginTop: 2, color: 'var(--c-text-4)' }}>
+              {techMode ? check.description : check.businessContext}
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
           {r.latency != null && (
-            <span className="text-xs font-mono"
-              style={{ color: r.latency > 400 ? '#b45309' : 'var(--c-text-5)' }}>
+            <span className="num" style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: r.latency > 400 ? 'var(--c-warn)' : 'var(--c-text-5)' }}>
               {r.latency}ms
             </span>
           )}
           <StatusBadge s={s} />
-          <button onClick={onRun} disabled={s === 'running' || anyRunning}
-            className="text-xs px-2 py-0.5 rounded cursor-pointer disabled:opacity-40"
-            style={{ background: 'var(--c-border)', color: 'var(--c-text-4)', border: '1px solid var(--c-border-2)' }}>
-            ↺
+          <button type="button" className="btn btn-sm" onClick={onRun} disabled={s === 'running' || anyRunning}>
+            Rerun
           </button>
         </div>
       </div>
 
-      {/* Request block (always visible, toggle for details) */}
-      <div className="px-4 py-2" style={{ borderBottom: '1px solid var(--c-border)', background: 'var(--c-bg)' }}>
-        <button onClick={() => setShowReq(x => !x)}
-          className="flex items-center gap-2 text-xs cursor-pointer w-full text-left"
-          style={{ color: 'var(--c-text-5)' }}>
-          <span style={{ color: 'var(--c-text-2)' }}>{showReq ? '▼' : '▶'}</span>
-          <span className="font-mono">
-            <span style={{ color: 'var(--c-text-2)' }}>{check.method}</span>
+      {/* Request line (toggle for details) */}
+      <div style={{ padding: '0 20px 12px 72px' }}>
+        <button type="button" onClick={() => setShowReq(x => !x)} aria-expanded={showReq}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6, width: '100%', textAlign: 'left',
+            background: 'none', border: 0, padding: 0, cursor: 'pointer', color: 'var(--c-text-4)',
+            fontFamily: 'var(--font-mono)', fontSize: 12,
+          }}>
+          <UiIcon name="chevron" size={13} style={{ transform: showReq ? 'none' : 'rotate(-90deg)', transition: 'transform .12s' }} />
+          <span>
+            <span style={{ color: 'var(--c-accent)', fontWeight: 600 }}>{check.method}</span>
             {' '}
-            <span style={{ color: 'var(--c-text-3)' }}>{check.url}</span>
+            <span style={{ wordBreak: 'break-all' }}>{check.url}</span>
           </span>
         </button>
         {showReq && (
-          <div className="mt-2 font-mono text-xs rounded px-3 py-2 leading-relaxed"
-            style={{ background: '#0f172a', border: '1px solid #1e293b' }}>
+          <div style={{ ...monoBlock, marginTop: 8, padding: '8px 12px' }}>
             <div>
-              <span style={{ color: '#93c5fd' }}>{check.method}</span>
-              {' '}
-              <span style={{ color: '#e2e8f0' }}>{check.url}</span>
+              <span style={{ color: 'var(--c-accent)', fontWeight: 600 }}>{check.method}</span>
+              {' '}{check.url}
             </div>
             {check.auth && (
-              <div style={{ color: '#cbd5e1' }}>
-                Authorization: <span style={{ color: '#7dd3fc' }}>Bearer</span>{' '}
-                <span style={{ color: '#c4b5fd' }}>eyJ… [opentdf-admin client_credentials token]</span>
+              <div>
+                Authorization: Bearer{' '}
+                <span style={{ color: 'var(--c-text-4)' }}>eyJ… [opentdf-admin client_credentials token]</span>
               </div>
             )}
-            <div style={{ color: '#cbd5e1' }}>Content-Type: application/json</div>
-            {check.body && (
-              <div style={{ color: '#cbd5e1' }}>Body: <span style={{ color: '#e2e8f0' }}>{check.body}</span></div>
-            )}
+            <div>Content-Type: application/json</div>
+            {check.body && <div>Body: {check.body}</div>}
           </div>
         )}
       </div>
 
       {/* Response area */}
-      <div className="px-4 py-3">
-        {s === 'idle' && (
-          <p className="text-xs" style={{ color: 'var(--c-text-6)' }}>Waiting to run…</p>
-        )}
-        {s === 'running' && (
-          <p className="text-xs" style={{ color: '#60a5fa' }}>◌ Waiting for response…</p>
-        )}
-        {s === 'error' && (
-          <div className="font-mono text-xs px-3 py-2 rounded"
-            style={{ background: 'var(--c-error-bg)', color: '#fca5a5', border: '1px solid #7f1d1d' }}>
-            {r.error}
-          </div>
-        )}
-        {s === 'ok' && r.response && (
-          <>
-            {/* Response headers */}
-            <div className="mb-3 font-mono text-xs rounded px-3 py-2 leading-relaxed"
-              style={{ background: 'var(--c-bg)', border: '1px solid var(--c-border)' }}>
-              <div style={{ color: '#15803d', marginBottom: 2 }}>
-                ← {r.response.httpStatus} OK · {r.latency}ms
+      {(
+        <div style={{ padding: '0 20px 18px 72px' }}>
+          {s === 'idle' && (
+            <p style={{ margin: 0, fontSize: 12.5, color: 'var(--c-text-5)' }}>Waiting to run…</p>
+          )}
+          {s === 'running' && (
+            <p style={{ margin: 0, fontSize: 12.5, color: 'var(--c-accent)' }}>Waiting for response…</p>
+          )}
+          {s === 'error' && (
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: 12, padding: '8px 12px', borderRadius: 8,
+              background: 'var(--c-deny-bg)', color: 'var(--c-deny)', border: '1px solid var(--c-deny-br)',
+              wordBreak: 'break-word',
+            }}>
+              {r.error}
+            </div>
+          )}
+          {s === 'ok' && r.response && (
+            <>
+              {/* Summary */}
+              <div style={{
+                marginBottom: 10, fontSize: 12.5, padding: '7px 12px', borderRadius: 8,
+                background: 'var(--c-grant-bg)', color: 'var(--c-grant)', border: '1px solid var(--c-grant-br)',
+                wordBreak: 'break-word',
+              }}>
+                {check.summarize(r.response.data)}
               </div>
-              {Object.entries(r.response.headers)
-                .filter(([k]) => SHOW_HEADERS.includes(k))
-                .map(([k, v]) => (
-                  <div key={k}>
-                    <span style={{ color: '#cbd5e1' }}>{k}: </span>
-                    <span style={{ color: '#e2e8f0' }}>{v}</span>
-                  </div>
-                ))}
-            </div>
-            {/* Summary */}
-            <div className="mb-3 text-xs px-3 py-1.5 rounded"
-              style={{ background: 'var(--c-success-bg)', color: '#15803d', border: '1px solid #166534' }}>
-              {check.summarize(r.response.data)}
-            </div>
-            {/* Raw JSON */}
-            <button onClick={() => setShowRaw(x => !x)}
-              className="text-xs cursor-pointer mb-2 flex items-center gap-1"
-              style={{ color: 'var(--c-text-2)' }}>
-              <span>{showRaw ? '▼' : '▶'}</span> RAW RESPONSE
-            </button>
-            {showRaw && (
-              <pre className="text-xs rounded p-3 overflow-auto"
+              {/* Response headers */}
+              <div style={{ ...monoBlock, marginBottom: 10, padding: '8px 12px' }}>
+                <div style={{ color: 'var(--c-grant)', fontWeight: 600, marginBottom: 2 }}>
+                  {r.response.httpStatus} OK, {r.latency}ms
+                </div>
+                {Object.entries(r.response.headers)
+                  .filter(([k]) => SHOW_HEADERS.includes(k))
+                  .map(([k, v]) => (
+                    <div key={k} style={{ wordBreak: 'break-all' }}>
+                      <span style={{ color: 'var(--c-text-5)' }}>{k}: </span>{v}
+                    </div>
+                  ))}
+              </div>
+              {/* Raw JSON */}
+              <button type="button" onClick={() => setShowRaw(x => !x)} aria-expanded={showRaw}
                 style={{
-                  background: '#f8fafc',
-                  color: '#0f172a',
-                  border: '1px solid var(--c-border)',
-                  maxHeight: '12rem',
-                  fontFamily: 'monospace',
-                  lineHeight: 1.5,
+                  display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8,
+                  background: 'none', border: 0, padding: 0, cursor: 'pointer',
+                  fontSize: 12.5, fontWeight: 600, color: 'var(--c-text-3)',
                 }}>
-                {JSON.stringify(r.response.data, null, 2)}
-              </pre>
-            )}
-          </>
-        )}
-      </div>
+                <UiIcon name="chevron" size={13} style={{ transform: showRaw ? 'none' : 'rotate(-90deg)', transition: 'transform .12s' }} />
+                Raw response
+              </button>
+              {showRaw && (
+                <pre style={{ ...monoBlock, margin: 0, padding: 12, overflow: 'auto', maxHeight: '12rem' }}>
+                  {JSON.stringify(r.response.data, null, 2)}
+                </pre>
+              )}
+            </>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -383,100 +377,87 @@ export default function PlatformPage() {
       items.push({
         ok: valid,
         label: 'Platform token valid and not expired',
-        detail: `client: ${jwtPayload.clientId || jwtPayload.azp || '—'} · exp: ${new Date(jwtPayload.exp * 1000).toLocaleTimeString()}`,
+        detail: `client: ${jwtPayload.clientId || jwtPayload.azp || '—'}, exp: ${new Date(jwtPayload.exp * 1000).toLocaleTimeString()}`,
       })
     }
 
     return items
   }, [allDone, results, jwt])
 
+  const chainAllOk = chainOfTrust.every(i => i.ok)
+
   return (
-    <div className="p-6 flex flex-col gap-6 max-w-6xl mx-auto">
+    <div className="page">
       <div className="page-hero">
-        <p className="page-subtitle">
-          Live proof your DSP instance is running correctly. Every call here is hitting your actual KAS —
-          this is the same chain of trust that protects every document in your environment.
-        </p>
+        <div>
+          <h2 className="page-title">Platform</h2>
+          <p className="page-subtitle">
+            Live proof your DSP instance is running correctly. Every call here is hitting your actual KAS —
+            this is the same chain of trust that protects every document in your environment.
+          </p>
+        </div>
         <div className="page-actions">
-          <div style={{ display: 'flex', gap: 8 }}>
-            {allDone && (
-              <div className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-lg"
-                style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)' }}>
-                {okCount > 0 && <span style={{ color: '#15803d' }}>✓ {okCount} healthy</span>}
-                {errCount > 0 && <span style={{ color: '#b91c1c' }}>✗ {errCount} error</span>}
-                {ranAt && <span style={{ color: 'var(--c-text-6)', fontSize: 11 }}>· {ranAt.toLocaleTimeString()}</span>}
-              </div>
-            )}
-            <button
-              onClick={runAll}
-              disabled={anyRunning}
-              className="px-4 py-2 rounded-lg font-medium text-sm transition-all cursor-pointer disabled:opacity-40"
-              style={{ background: 'var(--c-surface-2)', color: 'var(--c-text-2)', border: '1px solid var(--c-border)' }}>
-              {anyRunning ? '◌ Running…' : '↺ Refresh All'}
-            </button>
-          </div>
+          {allDone && (
+            <>
+              {okCount > 0 && <span className="chip chip-grant"><UiIcon name="check" size={12} strokeWidth={2.4} />{okCount} healthy</span>}
+              {errCount > 0 && <span className="chip chip-deny"><UiIcon name="x" size={12} strokeWidth={2.4} />{errCount} error</span>}
+              {ranAt && <span className="num" style={{ color: 'var(--c-text-5)', fontSize: 12 }}>{ranAt.toLocaleTimeString()}</span>}
+            </>
+          )}
+          <button type="button" className="btn" onClick={runAll} disabled={anyRunning}>
+            {anyRunning ? 'Running…' : 'Refresh all'}
+          </button>
         </div>
       </div>
 
-      <div className="flex gap-6">
-        {/* Left: 5 check cards */}
-        <div className="flex-1 flex flex-col gap-4">
-          {CHECKS.map(check => (
-            <CheckCard
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 330px', gap: 28, alignItems: 'start' }}>
+        {/* Left: check list */}
+        <div className="card" style={{ overflow: 'hidden' }}>
+          {CHECKS.map((check, i) => (
+            <CheckRow
               key={check.id}
               check={check}
               result={results[check.id]}
               onRun={() => runCheck(check)}
               anyRunning={anyRunning}
               techMode={techMode}
+              first={i === 0}
             />
           ))}
         </div>
 
         {/* Right sidebar */}
-        <div className="w-80 flex flex-col gap-4">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 28, minWidth: 0 }}>
 
-          {/* Chain of Trust */}
-          <div className="rounded-xl p-4"
-            style={{
-              background: 'var(--c-surface)',
-              border: `1px solid ${allDone && chainOfTrust.every(i => i.ok) ? '#166534' : 'var(--c-border)'}`,
-            }}>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="text-xs font-bold" style={{ color: 'var(--c-text-5)' }}>
-                CHAIN OF TRUST VERIFICATION
-              </div>
+          {/* Chain of trust */}
+          <section>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 12 }}>
+              <h3 className="section-title" style={{ margin: 0 }}>Chain of trust verification</h3>
               {allDone && chainOfTrust.length > 0 && (
-                <span className="text-xs px-1.5 py-0.5 rounded-full ml-auto"
-                  style={{
-                    background: chainOfTrust.every(i => i.ok) ? 'var(--c-success-bg)' : 'var(--c-error-bg)',
-                    color: chainOfTrust.every(i => i.ok) ? '#15803d' : '#b91c1c',
-                    border: `1px solid ${chainOfTrust.every(i => i.ok) ? '#166534' : '#7f1d1d'}`,
-                  }}>
+                <span className={`chip ${chainAllOk ? 'chip-grant' : 'chip-deny'}`}>
                   {chainOfTrust.filter(i => i.ok).length}/{chainOfTrust.length} passed
                 </span>
               )}
             </div>
             {chainOfTrust.length === 0 ? (
-              <p className="text-xs" style={{ color: 'var(--c-text-6)' }}>
-                {anyRunning ? '◌ Verifying cross-service trust…' : 'Run checks to verify.'}
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--c-text-5)' }}>
+                {anyRunning ? 'Verifying cross-service trust…' : 'Run checks to verify.'}
               </p>
             ) : (
-              <div className="flex flex-col gap-3">
+              <div className="card" style={{ borderColor: chainAllOk ? 'var(--c-grant-br)' : 'var(--c-border)', padding: '4px 16px' }}>
                 {chainOfTrust.map((item, i) => (
-                  <div key={i} className="flex items-start gap-2 step-in">
-                    <span className="flex-shrink-0 text-sm mt-0.5"
-                      style={{ color: item.ok ? '#15803d' : '#b91c1c' }}>
-                      {item.ok ? '✓' : '✗'}
-                    </span>
-                    <div>
-                      <div className="text-xs font-medium"
-                        style={{ color: item.ok ? '#15803d' : '#b91c1c' }}>
+                  <div key={i} className="step-in" style={{
+                    display: 'flex', alignItems: 'flex-start', gap: 10, padding: '11px 0',
+                    borderTop: i ? '1px solid var(--c-border)' : 'none',
+                  }}>
+                    <UiIcon name={item.ok ? 'check' : 'x'} size={15} strokeWidth={2.4}
+                      style={{ marginTop: 2, color: item.ok ? 'var(--c-grant)' : 'var(--c-deny)' }} />
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: item.ok ? 'var(--c-text-1)' : 'var(--c-deny)' }}>
                         {item.label}
                       </div>
                       {item.detail && (
-                        <div className="text-xs font-mono mt-0.5 break-all"
-                          style={{ color: 'var(--c-text-5)' }}>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, marginTop: 2, wordBreak: 'break-all', color: 'var(--c-text-5)' }}>
                           {item.detail}
                         </div>
                       )}
@@ -485,68 +466,64 @@ export default function PlatformPage() {
                 ))}
               </div>
             )}
-          </div>
+          </section>
 
           {/* Decoded JWT */}
           {jwt?.decoded && (
-            <div className="rounded-xl p-4 step-in"
-              style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)' }}>
-              <div className="text-xs font-bold mb-3" style={{ color: 'var(--c-text-5)' }}>
-                LIVE PLATFORM TOKEN — DECODED
-              </div>
-              <div className="text-xs font-semibold mb-1" style={{ color: 'var(--c-text-4)' }}>Header</div>
-              <pre className="text-xs rounded p-2 mb-3 overflow-auto"
-                style={{ background: 'var(--c-bg)', color: '#e2e8f0', border: '1px solid var(--c-border)', maxHeight: '6rem', fontFamily: 'monospace' }}>
+            <section className="step-in">
+              <h3 className="section-title">Live platform token, decoded</h3>
+              <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, color: 'var(--c-text-4)' }}>Header</div>
+              <pre style={{ ...monoBlock, fontSize: 11.5, margin: '0 0 12px', padding: 10, overflow: 'auto', maxHeight: '6rem' }}>
                 {JSON.stringify(jwt.decoded.header, null, 2)}
               </pre>
-              <div className="text-xs font-semibold mb-1" style={{ color: 'var(--c-text-4)' }}>Claims</div>
-              <pre className="text-xs rounded p-2 overflow-auto"
-                style={{ background: 'var(--c-bg)', color: '#e2e8f0', border: '1px solid var(--c-border)', maxHeight: '16rem', fontFamily: 'monospace' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, color: 'var(--c-text-4)' }}>Claims</div>
+              <pre style={{ ...monoBlock, fontSize: 11.5, margin: 0, padding: 10, overflow: 'auto', maxHeight: '16rem' }}>
                 {JSON.stringify(jwt.decoded.payload, null, 2)}
               </pre>
-            </div>
+            </section>
           )}
 
           {jwt?.error && (
-            <div className="rounded-xl p-4" style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)' }}>
-              <div className="text-xs font-bold mb-2" style={{ color: 'var(--c-text-5)' }}>PLATFORM TOKEN</div>
-              <div className="text-xs p-2 rounded" style={{ background: 'var(--c-error-bg)', color: '#b91c1c' }}>
+            <section>
+              <h3 className="section-title">Platform token</h3>
+              <div style={{ fontSize: 12.5, padding: '8px 12px', borderRadius: 8, background: 'var(--c-deny-bg)', color: 'var(--c-deny)', border: '1px solid var(--c-deny-br)' }}>
                 {jwt.error}
               </div>
-            </div>
+            </section>
           )}
 
           {/* API call log */}
-          <div className="rounded-xl p-4" style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)' }}>
-            <div className="text-xs font-bold mb-3" style={{ color: 'var(--c-text-5)' }}>
-              API CALL LOG ({apiLog.length})
-            </div>
+          <section>
+            <h3 className="section-title">API call log ({apiLog.length})</h3>
             {apiLog.length === 0 ? (
-              <p className="text-xs" style={{ color: 'var(--c-text-5)' }}>No calls yet.</p>
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--c-text-5)' }}>No calls yet.</p>
             ) : (
-              <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto">
-                {apiLog.slice(0, 20).map(entry => (
-                  <div key={entry.id} className="flex items-center gap-2 text-xs px-2 py-1 rounded"
-                    style={{ background: 'var(--c-bg)', border: '1px solid var(--c-border)' }}>
-                    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                      style={{ background: entry.ok !== false ? '#15803d' : '#b91c1c' }} />
-                    <span className="font-mono flex-shrink-0"
-                      style={{ color: entry.ok !== false ? '#15803d' : '#b91c1c' }}>
-                      {entry.status ?? '?'}
-                    </span>
-                    <span className="truncate flex-1" style={{ color: 'var(--c-text-5)' }} title={entry.url}>
-                      {entry.url?.replace('/platform/', '')}
-                    </span>
-                    {entry.latency != null && (
-                      <span className="flex-shrink-0" style={{ color: 'var(--c-text-6)' }}>
-                        {entry.latency}ms
+              <div style={{ maxHeight: 220, overflowY: 'auto', borderTop: '1px solid var(--c-border-2)' }}>
+                {apiLog.slice(0, 20).map(entry => {
+                  const good = entry.ok !== false
+                  return (
+                    <div key={entry.id} style={{
+                      display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, padding: '7px 0',
+                      borderBottom: '1px solid var(--c-border)',
+                    }}>
+                      <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: good ? 'var(--c-grant)' : 'var(--c-deny)' }} />
+                      <span style={{ fontFamily: 'var(--font-mono)', flexShrink: 0, color: good ? 'var(--c-grant)' : 'var(--c-deny)' }}>
+                        {entry.status ?? '?'}
                       </span>
-                    )}
-                  </div>
-                ))}
+                      <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--c-text-4)' }} title={entry.url}>
+                        {entry.url?.replace('/platform/', '')}
+                      </span>
+                      {entry.latency != null && (
+                        <span className="num" style={{ flexShrink: 0, color: 'var(--c-text-5)' }}>
+                          {entry.latency}ms
+                        </span>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             )}
-          </div>
+          </section>
 
         </div>
       </div>

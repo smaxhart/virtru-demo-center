@@ -9,6 +9,15 @@ import {
 const DEFAULT_PERSONA = 'gcap-marco'
 const COMPROMISED = PERSONA_BY_ID[COMPROMISED_ID]
 
+// Who sits where in the story. Presentation only: the personas and their attributes are in data.js.
+const CAST = [
+  { label: 'Programme',           ids: ['gcap-harriet', 'gcap-marco', 'gcap-sanjay'] },
+  { label: 'Partners',            ids: ['gcap-priya', 'gcap-oliver', 'gcap-giulia', 'gcap-kenji'] },
+  { label: 'Supply chain',        ids: ['gcap-wren', 'gcap-owen'] },
+  { label: 'Outside the programme', ids: ['gcap-ryan'] },
+]
+const SHORT_EMPLOYER = { 'Mitsubishi Heavy Industries': 'MHI' }
+
 const nowStamp = () => new Date().toLocaleTimeString([], { hour12: false })
 
 // The page carries its own night palette by overriding the shared tokens, so Card, Button and Verdict
@@ -26,6 +35,7 @@ const SKY = '#7FC2E8'
 const RED = '#FF6B5E'
 const PAPER = '#F2F4F4'
 const INK = '#1B2731'
+const MONO = "ui-monospace, 'SF Mono', Menlo, Consolas, monospace"
 const SERIF = "'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif"
 
 function Shell({ children }) {
@@ -51,17 +61,17 @@ function Avatar({ persona, size = 30, dim }) {
   )
 }
 
-function Card({ title, right, children, style }) {
+function Card({ title, right, children, style, accent }) {
   return (
     <section style={{
-      background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 'var(--c-radius-card)',
-      boxShadow: 'var(--c-shadow-sm)', ...style,
+      background: 'var(--c-surface)', border: `1px solid ${accent ? 'var(--c-deny-br)' : 'var(--c-border)'}`,
+      borderLeft: accent ? `3px solid ${RED}` : undefined,
+      borderRadius: 'var(--c-radius-card)', boxShadow: 'var(--c-shadow-sm)', ...style,
     }}>
       {title && (
         <header style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px',
-          borderBottom: '1px solid var(--c-border)', fontSize: 12, fontWeight: 700,
-          letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--c-text-3)',
+          display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, padding: '13px 14px 2px',
+          fontSize: 14, fontWeight: 650, color: 'var(--c-text-1)', flexShrink: 0,
         }}>
           <span>{title}</span>{right}
         </header>
@@ -76,7 +86,7 @@ function Button({ children, onClick, disabled, tone = 'neutral', style }) {
     neutral: { bg: 'var(--c-surface)', fg: 'var(--c-text-2)', br: 'var(--c-border)' },
     danger:  { bg: 'var(--c-deny-bg)', fg: 'var(--c-deny)', br: 'var(--c-deny-br)' },
     go:      { bg: 'var(--c-grant-bg)', fg: 'var(--c-grant)', br: 'var(--c-grant-br)' },
-    primary: { bg: '#2563eb', fg: '#fff', br: '#2563eb' },
+    primary: { bg: SKY, fg: INK, br: SKY },
   }[tone]
   return (
     <button onClick={onClick} disabled={disabled} style={{
@@ -101,8 +111,8 @@ function Verdict({ granted, children }) {
 function Banner({ marking, position }) {
   return (
     <div style={{
-      background: marking.tone, color: '#fff', textAlign: 'center', padding: '5px 12px', fontSize: 11,
-      fontWeight: 700, letterSpacing: '0.1em', fontFamily: 'monospace',
+      background: marking.tone, color: '#fff', textAlign: 'center', padding: '6px 12px', fontSize: 11.5,
+      fontWeight: 700, letterSpacing: '0.12em', fontFamily: MONO,
       borderRadius: position === 'top' ? '6px 6px 0 0' : '0 0 6px 6px',
     }}>{marking.banner}</div>
   )
@@ -113,43 +123,65 @@ function Banner({ marking, position }) {
 const ROUTE_ORDER = ['gigo', 'gbr', 'ita', 'jpn', 'nato', 'ace']
 const ROUTE_LABEL = { gigo: 'GIGO joint', gbr: 'UK', ita: 'Italy', jpn: 'Japan', nato: 'NATO', ace: 'ACE ops' }
 
+const ROUTE_CSS = `
+  @keyframes gcap-draw { from { stroke-dashoffset: 1 } to { stroke-dashoffset: 0 } }
+  @keyframes gcap-pop  { from { opacity: 0; transform: scale(.6) } to { opacity: 1; transform: none } }
+  .gcap-draw { stroke-dasharray: 1; animation: gcap-draw .55s ease-out both; }
+  .gcap-fade { animation: gcap-pop .3s ease-out .2s both; transform-box: fill-box; transform-origin: center; }
+  .gcap-pop  { animation: gcap-pop .25s ease-out .45s both; transform-box: fill-box; transform-origin: center; }
+  @media (prefers-reduced-motion: reduce) { .gcap-draw, .gcap-fade, .gcap-pop { animation: none; } }
+`
+
 function RoutePanel({ rows }) {
-  const W = 820, X0 = 210, STEP = 110, TOP = 52, ROW = 86
-  const H = TOP + Math.max(rows.length, 1) * ROW - 14
+  const W = 600, X0 = 118, STEP = 86, TOP = 54, ROW = 96
+  const H = TOP + Math.max(rows.length, 1) * ROW - 24
   const xOf = (c) => X0 + ROUTE_ORDER.indexOf(c) * STEP
   return (
     <Card title="Where the key came from">
-      <div style={{ padding: '10px 16px 8px' }}>
-        <div style={{ fontSize: 12.5, color: 'var(--c-text-4)' }}>
+      <style>{ROUTE_CSS}</style>
+      <div style={{ padding: '4px 16px 12px' }}>
+        <div style={{ fontSize: 13, color: 'var(--c-text-4)' }}>
           Each open is a request to the custodian that holds the key. This is the live answer, not a label.
         </div>
         {rows.length === 0 ? (
-          <div style={{ padding: '18px 0 10px', fontSize: 12.5, color: 'var(--c-text-5)' }}>Open an item and the custodian that answered appears here.</div>
+          <div style={{ padding: '18px 0 10px', fontSize: 13, color: 'var(--c-text-5)' }}>Open an item and the custodian that answered appears here.</div>
         ) : (
-          <svg viewBox={`0 0 ${W} ${H}`} role="img" style={{ width: '100%', height: 'auto', display: 'block', marginTop: 6 }}
+          <svg viewBox={`0 0 ${W} ${H}`} role="img" style={{ width: '100%', height: 'auto', display: 'block', marginTop: 8 }}
             aria-label={rows.map(r => `${r.actor.initials}: ${r.granted ? 'released' : 'refused'} by ${CUSTODIANS[r.custodian].label} for ${r.title}`).join('. ')}>
-            <g fontSize="14" fill="#8DA0B0" textAnchor="middle">
-              {ROUTE_ORDER.map(c => <text key={c} x={xOf(c)} y="18">{ROUTE_LABEL[c]}</text>)}
-            </g>
+            {ROUTE_ORDER.map(c => (
+              <g key={c}>
+                <text x={xOf(c)} y="16" fontSize="13" fill="#9DB0BF" textAnchor="middle">{ROUTE_LABEL[c]}</text>
+                <line x1={xOf(c)} y1="28" x2={xOf(c)} y2={H} stroke="#36495A" strokeWidth="1.5" strokeDasharray="2 5" />
+              </g>
+            ))}
             {rows.map((r, i) => {
               const y = TOP + i * ROW
               const tx = xOf(r.custodian)
               const tone = r.granted ? SKY : RED
-              const right = ROUTE_ORDER.indexOf(r.custodian) >= 3
               return (
-                <g key={i}>
-                  <line x1="57" y1={y} x2={tx - 17} y2={y} stroke={tone} strokeWidth="3" strokeDasharray={r.granted ? undefined : '7 5'} />
-                  <circle cx="40" cy={y} r="15" fill={r.actor.color} />
-                  <text x="40" y={y + 4.5} fontSize="12" fontWeight="700" fill="#fff" textAnchor="middle">{r.actor.initials}</text>
-                  {ROUTE_ORDER.filter(c => xOf(c) < tx).map(c => <circle key={c} cx={xOf(c)} cy={y} r="10" fill="#1F2F3D" stroke="#36495A" strokeWidth="2" />)}
-                  <circle cx={tx} cy={y} r="16" fill={tone} />
+                <g key={`${i}-${r.custodian}-${r.title}-${r.granted}`}>
                   {r.granted
-                    ? <path d={`M${tx - 8} ${y}l6 6 11-12`} stroke="#16222D" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                    : <path d={`M${tx - 7} ${y - 7}l14 14M${tx + 7} ${y - 7}l-14 14`} stroke="#16222D" strokeWidth="3" strokeLinecap="round" />}
-                  <text x={right ? tx + 16 : tx - 16} y={y + 36} fontSize="16" fontWeight="700" fill={tone} textAnchor={right ? 'end' : 'start'}>
+                    ? <line className="gcap-draw" pathLength="1" x1="52" y1={y} x2={tx - 18} y2={y} stroke={tone} strokeWidth="4" strokeLinecap="round" />
+                    : <>
+                        <line className="gcap-fade" x1="52" y1={y} x2={tx - 34} y2={y} stroke={tone} strokeWidth="4" strokeDasharray="8 6" />
+                        <line className="gcap-pop" x1={tx - 27} y1={y - 12} x2={tx - 27} y2={y + 12} stroke={tone} strokeWidth="5" strokeLinecap="round" />
+                      </>}
+                  <circle cx="34" cy={y} r="17" fill={r.actor.color} />
+                  <text x="34" y={y + 4.5} fontSize="13" fontWeight="700" fill="#fff" textAnchor="middle">{r.actor.initials}</text>
+                  {ROUTE_ORDER.filter(c => xOf(c) < tx && (r.granted || xOf(c) < tx - 34)).map(c => <circle key={c} cx={xOf(c)} cy={y} r="6" fill="#1F2F3D" stroke="#4A6072" strokeWidth="2" />)}
+                  {r.granted
+                    ? <g className="gcap-pop">
+                        <circle cx={tx} cy={y} r="18" fill={tone} />
+                        <path d={`M${tx - 8} ${y}l6 6 11-12`} stroke="#16222D" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                      </g>
+                    : <g className="gcap-pop">
+                        <circle cx={tx} cy={y} r="18" fill="#16222D" stroke={tone} strokeWidth="3" />
+                        <path d={`M${tx - 6} ${y - 6}l12 12M${tx + 6} ${y - 6}l-12 12`} stroke={tone} strokeWidth="3" strokeLinecap="round" />
+                      </g>}
+                  <text x="16" y={y + 46} fontSize="17" fontWeight="700" fill={tone}>
                     {r.granted ? 'Released' : 'Refused'}
                   </text>
-                  <text x={right ? tx + 16 : tx - 16} y={y + 55} fontSize="14" fill="#8DA0B0" textAnchor={right ? 'end' : 'start'}>
+                  <text x="16" y={y + 66} fontSize="13.5" fill="#B5C4CF">
                     {CUSTODIANS[r.custodian].label} · {r.title}
                   </text>
                 </g>
@@ -418,49 +450,79 @@ export default function GcapPage() {
     <Shell>
     <div style={{ padding: '20px 24px 40px', maxWidth: 1400, margin: '0 auto' }}>
       {/* Title */}
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 20, marginBottom: 16 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 22, color: 'var(--c-text-1)' }}>GCAP · Advanced Collaborative Environment</h1>
-          <div style={{ fontSize: 13, color: 'var(--c-text-4)', marginTop: 2 }}>
-            One workspace for Edgewing, BAE Systems, Leonardo and Mitsubishi Heavy Industries. Everyone sees only what their attributes release.
+          <h1 style={{ margin: 0, fontSize: 26, fontWeight: 650, letterSpacing: '-0.01em', color: 'var(--c-text-1)' }}>One workspace, three nations</h1>
+          <div style={{ fontSize: 14, color: 'var(--c-text-4)', marginTop: 4, maxWidth: '70ch' }}>
+            The UK, Italy and Japan work in one environment with the programme office, the Edgewing design authority and three industry partners. Everyone sees only what their attributes release.
           </div>
         </div>
         <Button onClick={reset}>Reset demo</Button>
       </div>
 
-      <div style={{ fontSize: 12.5, color: 'var(--c-text-4)', margin: '0 0 14px' }}>
-        <b style={{ color: 'var(--c-text-1)' }}>{persona.name}</b>, {persona.title}. {persona.note}
+      {/* Who is looking */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap', padding: '14px 18px', marginBottom: 20,
+        background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderLeft: `4px solid ${persona.color}`,
+        borderRadius: 'var(--c-radius-card)',
+      }}>
+        <Avatar persona={persona} size={46} />
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--c-text-1)' }}>{persona.name}</div>
+          <div style={{ fontSize: 12.5, color: 'var(--c-text-5)' }}>{persona.title} · {persona.employer} · {persona.nation}</div>
+        </div>
+        <div style={{ flex: '1 1 320px', paddingLeft: 18, borderLeft: '1px solid var(--c-border)', fontSize: 15, lineHeight: 1.5, color: 'var(--c-text-2)' }}>
+          {persona.note}
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(190px, 220px) minmax(250px, 300px) minmax(0, 1fr)', gap: 18, alignItems: 'start' }}>
         {/* Cast */}
-        <div role="list" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {PERSONAS.map(p => {
-            const active = p.id === personaId
-            const gone = revoked && p.id === COMPROMISED_ID
-            return (
-              <button key={p.id} role="listitem" aria-current={active} onClick={() => choosePersona(p.id)} style={{
-                display: 'flex', alignItems: 'center', gap: 10, padding: '7px 10px', borderRadius: 10, cursor: 'pointer',
-                background: active ? 'var(--c-info-bg)' : 'transparent', border: 'none', textAlign: 'left', width: '100%',
-              }}>
-                <Avatar persona={p} size={34} dim={gone} />
-                <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25, minWidth: 0 }}>
-                  <span style={{ fontSize: 13.5, fontWeight: 600, color: active ? 'var(--c-text-1)' : 'var(--c-text-3)', textDecoration: gone ? 'line-through' : 'none' }}>{p.name}</span>
-                  <span style={{ fontSize: 11, color: 'var(--c-text-5)' }}>{p.employer} · {p.nation}{gone ? ' · revoked' : ''}</span>
-                </span>
-              </button>
-            )
-          })}
+        <div role="group" aria-label="Viewing as" style={{ position: 'sticky', top: 16, maxHeight: 'calc(100vh - 110px)', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {CAST.map(g => (
+            <div key={g.label} role="group" aria-label={g.label}>
+              <div style={{ padding: '0 10px 4px', fontSize: 12, fontWeight: 600, color: 'var(--c-text-5)' }}>{g.label}</div>
+              {g.ids.map(id => {
+                const p = PERSONA_BY_ID[id]
+                const active = p.id === personaId
+                const gone = revoked && p.id === COMPROMISED_ID
+                const flag = p.id === COMPROMISED_ID ? (gone ? 'revoked' : 'account at risk') : p.id === 'gcap-ryan' ? 'outsider' : null
+                return (
+                  <button key={p.id} aria-current={active} onClick={() => choosePersona(p.id)} style={{
+                    display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px', borderRadius: 10, cursor: 'pointer',
+                    background: active ? 'var(--c-info-bg)' : 'transparent', border: 'none', textAlign: 'left', width: '100%',
+                  }}>
+                    <Avatar persona={p} size={34} dim={gone} />
+                    <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25, minWidth: 0, flex: 1 }}>
+                      <span style={{ fontSize: 13.5, fontWeight: 600, color: active ? 'var(--c-text-1)' : 'var(--c-text-3)', textDecoration: gone ? 'line-through' : 'none' }}>{p.name}</span>
+                      <span title={`${p.employer} · ${p.nation}`} style={{ fontSize: 11.5, color: 'var(--c-text-5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {SHORT_EMPLOYER[p.employer] ?? p.employer} · {p.nation}
+                      </span>
+                      {flag && (
+                        <span style={{
+                          alignSelf: 'flex-start', marginTop: 3, fontSize: 10.5, fontWeight: 600, padding: '0 6px', borderRadius: 4,
+                          color: p.id === COMPROMISED_ID ? 'var(--c-deny)' : 'var(--c-text-4)',
+                          background: p.id === COMPROMISED_ID ? 'var(--c-deny-bg)' : 'var(--c-surface)',
+                          border: `1px solid ${p.id === COMPROMISED_ID ? 'var(--c-deny-br)' : 'var(--c-border)'}`,
+                        }}>{flag}</span>
+                      )}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          ))}
         </div>
 
         {/* Tree */}
         <Card
           title="Workspace"
-          right={<span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 600 }}>
+          style={{ position: 'sticky', top: 16, maxHeight: 'calc(100vh - 110px)', display: 'flex', flexDirection: 'column' }}
+          right={<span style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--c-text-4)' }}>
             {listing ? `${visible.length} item${visible.length === 1 ? '' : 's'} you can see` : 'resolving…'}
           </span>}
         >
-          <div style={{ padding: 8, minHeight: 120 }}>
+          <div style={{ padding: 8, minHeight: 120, overflowY: 'auto', flex: 1 }}>
             {!listing && <div style={{ padding: 12, fontSize: 12.5, color: 'var(--c-text-5)' }}>Asking the key server what you may open…</div>}
             {listing && visible.length === 0 && (
               <div style={{ padding: 12, fontSize: 12.5, color: 'var(--c-text-5)' }}>Nothing has been released to this account.</div>
@@ -503,14 +565,14 @@ export default function GcapPage() {
               <>
                 <Banner marking={marking} position="top" />
                 <div style={{ padding: '20px 26px 22px' }}>
-                  <div style={{ fontFamily: SERIF, fontSize: 24, fontWeight: 600, lineHeight: 1.2 }}>
+                  <div style={{ fontFamily: SERIF, fontSize: 28, fontWeight: 600, lineHeight: 1.15, letterSpacing: '-0.005em' }}>
                     {selected.doc.title}{selected.tier ? ` — ${selected.tier.label}` : ''}
                   </div>
                   <dl style={{ margin: '14px 0 0', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '1px', background: '#C9D1D6', border: '1px solid #C9D1D6' }}>
                     {titleBlock.map(([k, v]) => (
                       <div key={k} style={{ background: PAPER, padding: '7px 10px' }}>
-                        <dt style={{ fontSize: 11, color: '#52636F' }}>{k}</dt>
-                        <dd style={{ margin: 0, fontSize: 13.5, fontWeight: 600 }}>{v}</dd>
+                        <dt style={{ fontSize: 12, color: '#475663' }}>{k}</dt>
+                        <dd style={{ margin: '1px 0 0', fontSize: 14, fontWeight: 600 }}>{v}</dd>
                       </div>
                     ))}
                   </dl>
@@ -552,7 +614,7 @@ export default function GcapPage() {
             </div>
           </Card>
 
-          <Card title="If it is taken">
+          <Card title="If it is taken" accent>
             <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ fontSize: 12.5, color: 'var(--c-text-4)' }}>
                 <b style={{ color: 'var(--c-text-2)' }}>{COMPROMISED.name}</b> ({COMPROMISED.employer}) has an ordinary account, and someone else now holds its credential.
@@ -567,7 +629,7 @@ export default function GcapPage() {
 
               {stolen.length > 0 && (
                 <div style={{ border: '1px dashed var(--c-border-2)', borderRadius: 10, padding: 12, background: 'var(--c-surface-2)' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--c-text-5)', marginBottom: 8 }}>Unmanaged device</div>
+                  <div style={{ fontSize: 12.5, fontWeight: 650, color: 'var(--c-text-3)', marginBottom: 8 }}>Unmanaged device</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
                     {stolen.map((f, i) => (
                       <button key={f.doc.id} onClick={() => pickStolen(i)} style={{
@@ -608,7 +670,7 @@ export default function GcapPage() {
               {log.length === 0 && <div style={{ padding: 14, color: 'var(--c-text-5)' }}>No activity yet.</div>}
               {log.map((e, i) => (
                 <div key={i} style={{ display: 'flex', gap: 10, padding: '6px 14px', borderTop: i ? '1px solid var(--c-border)' : 'none' }}>
-                  <span style={{ fontFamily: 'monospace', color: 'var(--c-text-5)' }}>{e.t}</span>
+                  <span style={{ fontFamily: MONO, color: 'var(--c-text-5)' }}>{e.t}</span>
                   <span style={{ width: 8, height: 8, marginTop: 5, borderRadius: '50%', flexShrink: 0, background: e.ok ? 'var(--c-grant)' : 'var(--c-deny)' }} />
                   <span><b style={{ color: 'var(--c-text-1)' }}>{e.persona}</b> · {e.action} · <span style={{ color: 'var(--c-text-4)' }}>{e.detail}</span></span>
                 </div>

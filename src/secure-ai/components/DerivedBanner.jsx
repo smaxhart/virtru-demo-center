@@ -33,19 +33,15 @@ export default function DerivedBanner({ policy, compact = false, style }) {
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
         <div className="section-label" style={{ flex: compact ? '1 0 100%' : '0 0 auto' }}>
-          CUI MARKING · DERIVED
+          CUI marking, derived
         </div>
         {/* Basic vs Specified is the first thing that changes an assessor's handling
             obligations, so it sits with the heading rather than inside the rows. */}
-        <span className="mono" style={{
-          fontSize: 9, padding: '1px 6px', borderRadius: 4,
-          background: 'var(--c-surface)', color: 'var(--c-text-5)',
-          border: '1px solid var(--c-border)',
-        }}>{level}</span>
+        <span className="chip chip-mono" style={{ height: 20, background: 'var(--c-surface)' }}>{level}</span>
       </div>
 
       <div className="mono" style={{
-        fontSize: compact ? 11 : 12.5, fontWeight: 700, letterSpacing: 0.2,
+        fontSize: compact ? 12 : 13.5, fontWeight: 700,
         color: 'var(--c-text-2)', margin: compact ? '6px 0 7px' : '7px 0 9px',
         wordBreak: 'break-word',
       }}>{banner}</div>
@@ -56,23 +52,21 @@ export default function DerivedBanner({ policy, compact = false, style }) {
             display: 'flex', gap: 7, alignItems: 'baseline',
             flexWrap: compact ? 'wrap' : 'nowrap',
           }}>
-            <span className="mono" style={{
-              fontSize: 9.5, padding: '1px 5px', borderRadius: 4, flexShrink: 0,
-              background: 'var(--c-surface)', color: 'var(--c-text-4)',
-              border: '1px solid var(--c-border)',
+            <span className="chip chip-mono" style={{
+              height: 20, flexShrink: 0, background: 'var(--c-surface)', color: 'var(--c-text-3)',
             }}>{r.fqn}</span>
             <span className="mono" style={{
-              fontSize: 9.5, color: 'var(--c-text-5)', flexShrink: 0,
-            }}>→ {/* A category with no marking of its own is the whole point of cui:basic. */}
+              fontSize: 11, color: 'var(--c-text-3)', flexShrink: 0,
+            }}>{/* A category with no marking of its own is the whole point of cui:basic. */}
               {r.marking ?? '(no category marking)'}
             </span>
             <span style={{
-              fontSize: 10, color: 'var(--c-text-5)', lineHeight: 1.5,
+              fontSize: 11.5, color: 'var(--c-text-5)', lineHeight: 1.5,
               flex: compact ? '1 0 100%' : '1 1 auto', minWidth: 0,
             }}>
               {r.name}
               {r.authority && (
-                <span style={{ color: 'var(--c-text-6)' }}> · {r.authority}</span>
+                <span style={{ color: 'var(--c-text-5)' }}>, {r.authority}</span>
               )}
             </span>
           </div>
@@ -80,7 +74,7 @@ export default function DerivedBanner({ policy, compact = false, style }) {
       </div>
 
       {!compact && (
-        <div style={{ fontSize: 10, color: 'var(--c-text-6)', marginTop: 9, lineHeight: 1.6 }}>
+        <div style={{ fontSize: 11.5, color: 'var(--c-text-5)', marginTop: 9, lineHeight: 1.6 }}>
           No part of this banner was typed into the document. It is assembled from the attribute
           values above — the same values the KAS evaluates — so the marking and the enforcement
           cannot drift apart. What it does <em>not</em> carry is a decontrol date: DSP attributes
