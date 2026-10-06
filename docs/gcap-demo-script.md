@@ -25,7 +25,7 @@ Every file in ACE is an encrypted object. The workspace is the same for everyone
 
 - **The tree is trimmed by policy.** A persona's file tree lists only what they can open. There are no padlocks and no "restricted" placeholders, because a file's *name* is intelligence.
 - **The counter shows what you can see, never the total.** "9 objects" — not "9 of 14." A total would tell a competitor how much they're missing. (COP shows "X of Y"; this page deliberately doesn't.)
-- **Probe by link.** A **Probe** box takes a file link, as if someone forwarded it in an email. It asks the KAS directly, bypassing the tree, so a refusal proves the data said no and not just the UI. The **custody panel** names which nation's custodian released or refused, and every probe lands in the audit log.
+- **Probe by link.** A **Probe** box takes a file link, as if someone forwarded it in an email. It asks the KAS directly, bypassing the tree, so a refusal proves the data said no and not just the UI. The **Where the key came from** panel draws the request as a line from the person to the custodian that answered: solid blue with a tick when released, dashed red with a cross when refused. Every probe lands in the audit log.
 - **Auditor view (presenter only).** A presenter shortcut — not a persona, not a nav item, unreachable from any seat — opens a persona × document grid of all 14 documents, showing who can open what. It is the proof that files were hidden rather than absent, and it is computed from the same policy decisions as the tree, never typed in. See Act 6 and "When Someone Asks".
 - **The trim and the open share one decision path.** The tree is not filtered by a separate client-side list; it is built from the same policy decision that gates opening.
 
@@ -55,7 +55,7 @@ Counts are tree items. The interface control document is one item whose contents
 1. Open the Virtru Demo Center → **GCAP** page.
 2. Reset the scenario (clears the compromise and revocation state).
 3. Set the active persona to **Marco Bellandi**.
-4. Confirm the custody panel and the **Probe** box are visible.
+4. Confirm the **Where the key came from** panel and the **Open by address** box are visible.
 
 ---
 
@@ -87,7 +87,7 @@ Counts are tree items. The interface control document is one item whose contents
 > "No UK electronic-warfare library. No Japanese range plan. They aren't greyed out — they aren't there. Marco can't tell they exist."
 
 **Paste the UK EW library link into Probe**
-> "Say someone forwarded him the link. The KAS refuses — and look at the custody panel: the *UK custodian* said no. Not Edgewing, not ACE. The nation that owns the data. And that attempt is now in the audit log."
+> "Say someone forwarded him the link. The KAS refuses — and look at the key route: the line stops at the UK with a red cross. The *UK custodian* said no. Not Edgewing, not ACE. The nation that owns the data. And that attempt is now in the audit log."
 
 **Switch persona to Harriet Lowe (GIGO security)**
 > "Harriet runs programme security for all three governments. Her clearance is national TOP SECRET."
@@ -229,7 +229,7 @@ Counts are tree items. The interface control document is one item whose contents
 ## What Not to Claim
 
 - **Not an accreditation.** This shows the enforcement mechanism. It does not replace accredited enclaves or a cross-domain solution, and it has not been approved by any of the three governments.
-- **Custody is simulated.** The "UK custodian / Italian custodian / Japanese custodian" panel is a model of per-nation key custody on a single platform. If asked, say so, and that per-nation key servers are the real mechanism.
+- **Custody is simulated.** The "UK custodian / Italian custodian / Japanese custodian" route is a model of per-nation key custody on a single platform. If asked, say so, and that per-nation key servers are the real mechanism.
 - **Trimming is not secrecy of the policy.** It hides *which files exist for a persona*. It does not hide that a programme exists or that ACE has a policy engine.
 - **Markings are illustrative** (see the top of this file).
 - **No attribution, no named competitor.** The compromise is "an adversary" and the competitor is "a competing prime." Do not name a state or a company on screen or in the room.
