@@ -36,9 +36,9 @@
 .sable .pc .t { color: var(--dim); font-size: 11.5px; }
 .sable .pc .o { color: var(--faint); font-size: 11px; }
 .sable .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
-.sable .chip { font: 600 9.5px var(--mono); padding: 1px 6px; border-radius: 3px; border: 1px solid var(--line2); color: var(--dim); letter-spacing: .04em; white-space: nowrap; }
-.sable .chip.wp { color: var(--cyan); border-color: #1d4a5c; }
-.sable .chip.comp { color: var(--amber); border-color: #5a3f0f; }
+.sable .chip { display: inline-block; height: auto; background: #0d1620; font: 600 9.5px var(--mono); padding: 1px 6px; border-radius: 3px; border: 1px solid var(--line2); color: var(--dim); letter-spacing: .04em; white-space: nowrap; }
+.sable .chip.wp { color: var(--cyan); background: #0c2230; border-color: #1d4a5c; }
+.sable .chip.comp { color: var(--amber); background: #221808; border-color: #5a3f0f; }
 .sable .lv { font: 700 9.5px var(--mono); padding: 1px 6px; border-radius: 3px; color: #fff; letter-spacing: .06em; }
 .sable .lv.U { background: var(--u); }
 .sable .lv.CUI { background: var(--cui); }
@@ -49,11 +49,11 @@
 .sable h2 { margin: 0 0 4px; font-size: 16px; }
 .sable h3 { margin: 0 0 8px; font-size: 13px; letter-spacing: .02em; }
 .sable .sub { color: var(--dim); margin: 0 0 14px; max-width: 920px; }
-.sable .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+.sable .card { box-shadow: none; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
 .sable .card + .card { margin-top: 12px; }
 .sable .grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
 .sable .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.sable .btn { background: #16222e; color: var(--txt); border: 1px solid var(--line2); border-radius: 6px; padding: 6px 12px; font: 600 12px var(--sans); cursor: pointer; }
+.sable .btn { display: inline-block; height: auto; line-height: 1.45; background: #16222e; color: var(--txt); border: 1px solid var(--line2); border-radius: 6px; padding: 6px 12px; font: 600 12px var(--sans); cursor: pointer; }
 .sable .btn:hover { border-color: var(--cyan); color: var(--cyan); }
 .sable .btn.pri { background: #0e3a4c; border-color: #1d6a86; color: var(--cyan); }
 .sable .btn.pri:hover { background: #124a60; }
