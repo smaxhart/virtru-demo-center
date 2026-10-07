@@ -43,7 +43,7 @@
  */
 
 import { execFileSync } from 'node:child_process'
-import { readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -351,6 +351,18 @@ let notes = ''
     notes.split('\n').slice(0, 8).forEach(l => note(l))
     if (n > 8) note(`… and ${n - 8} more`)
   }
+}
+
+// 8b ── Bundled inputs. electron-builder skips a missing extraResources `from` without an error, and
+//       resources/bin is gitignored, so a fresh worktree builds an app with no platform binary.
+console.log('\nBundled inputs')
+{
+  const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'))
+  const missing = (pkg.build?.extraResources ?? []).map(r => r.from).filter(f => !existsSync(join(ROOT, f)))
+  if (missing.length) {
+    fail(`${missing.length} extraResources input(s) missing — the app would ship without them`)
+    missing.forEach(f => note(f))
+  } else ok('every extraResources input is present')
 }
 
 // 9 ── Advisory only, and deliberately so: the embedded feed token is a known, accepted risk
