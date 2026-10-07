@@ -6,6 +6,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getPlatformToken: ()                   => ipcRenderer.invoke('get-platform-token'),
   gcapRevoke:      (id)                  => ipcRenderer.invoke('gcap-revoke', id),
   gcapRestore:     (id)                  => ipcRenderer.invoke('gcap-restore', id),
+  gcapPeople:       ()            => ipcRenderer.invoke('gcap-people'),
+  gcapSetPerson:    (id, grants)  => ipcRenderer.invoke('gcap-set-person', id, grants),
+  gcapAddPerson:    (spec)        => ipcRenderer.invoke('gcap-add-person', spec),
+  gcapRemovePerson: (id)          => ipcRenderer.invoke('gcap-remove-person', id),
+  gcapResetPeople:  ()            => ipcRenderer.invoke('gcap-reset-people'),
 
   // Platform status
   getPlatformStatus: ()                  => ipcRenderer.invoke('get-platform-status'),

@@ -17,6 +17,7 @@ const { isNewerVersion } = require('./update-version')
 // The AI Protection page brings its own vocabulary, its own uploads, and the scenarios a user
 // builds. All four are additive — nothing above changes because they exist.
 const aiSeeder     = require('./ai-seeder')
+const gcapGrants   = require('./gcap-grants')
 const aiIdentities = require('./ai-identities')
 const aiScenarios  = require('./ai-scenarios')
 const aiUploads    = require('./ai-uploads')
@@ -217,6 +218,14 @@ ipcMain.handle('get-user-token', (_event, personaId) => {
 // and is not — it withdraws the account, it does not reach into a token already issued.
 ipcMain.handle('gcap-revoke',  (_e, id) => jwtIssuer.revokeIdentity(id))
 ipcMain.handle('gcap-restore', (_e, id) => (id === '*' ? (jwtIssuer.restoreAllIdentities(), true) : jwtIssuer.restoreIdentity(id)))
+
+// GCAP free play: edit who holds what, for real (subject mappings on the platform). See gcap-grants.js.
+const gcapAdmin = () => jwtIssuer.issueToken('admin').access_token
+ipcMain.handle('gcap-people',        () => ({ people: gcapGrants.people(), vocab: gcapGrants.VOCAB }))
+ipcMain.handle('gcap-set-person',    (_e, id, grants) => gcapGrants.setPerson(gcapAdmin(), jwtIssuer, id, grants))
+ipcMain.handle('gcap-add-person',    (_e, spec) => gcapGrants.addPerson(gcapAdmin(), jwtIssuer, spec))
+ipcMain.handle('gcap-remove-person', (_e, id) => gcapGrants.removePerson(gcapAdmin(), jwtIssuer, id))
+ipcMain.handle('gcap-reset-people',  () => gcapGrants.reset(gcapAdmin(), jwtIssuer))
 
 ipcMain.handle('get-platform-token', () => {
   return jwtIssuer.issueToken('admin')
@@ -498,6 +507,16 @@ async function bootAi(userDataPath) {
     } catch (err) {
       log.warn(`[main] Could not activate scenario "${scenario.name}" (${scenario.id}): ${err.message}`)
     }
+  }
+
+  // Free-play edits live in the platform's database and outlive the session that made them, so every
+  // launch puts the GCAP people back on their shipped grants. Never fatal: at worst a demo starts
+  // with last session's edits, which the in-page reset clears.
+  try {
+    const r = await gcapGrants.reset(jwtIssuer.issueToken('admin').access_token, jwtIssuer)
+    log.info(`[main] GCAP people reconciled — ${r.created} mapping(s) created, ${r.deleted} removed`)
+  } catch (err) {
+    log.warn('[main] GCAP reconcile failed:', err.message)
   }
 
   aiStatus = 'ready'

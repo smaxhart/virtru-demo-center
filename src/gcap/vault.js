@@ -13,7 +13,7 @@ import { authTokenInterceptor } from '@opentdf/sdk'
 import { encryptText, decryptTdf } from '../api/tdf.js'
 import { manifestAttributes, describeDenial } from '../secure-ai/api/tdf.js'
 import { inspectZtdf } from '../secure-ai/api/tdfInspect.js'
-import { DOCUMENTS, UNITS, PERSONAS, DOC_BY_LINK, unitsOf } from './data.js'
+import { DOCUMENTS, UNITS, DOC_BY_LINK } from './data.js'
 
 const PLATFORM_URL = 'http://localhost:7777'
 const KAS_URL = `${PLATFORM_URL}/kas`
@@ -52,7 +52,7 @@ async function attempt(entry, personaId) {
  * tier the KAS releases is the one returned, so the tearline is the KAS's doing and not the page's.
  */
 export async function openDocument(vault, doc, personaId) {
-  const entries = unitsOf(doc).map(u => vault.get(u.key))
+  const entries = [...vault.values()].filter(e => e.unit.doc.id === doc.id)
   const tried = []
   let lastReason = null
   for (const entry of entries) {
@@ -75,15 +75,36 @@ export async function listFor(vault, personaId) {
   return results
 }
 
-/** persona × document, from live decisions. Presenter-only: no persona's view ever renders this. */
-export async function auditMatrix(vault, onRow) {
-  const rows = {}
-  for (const p of PERSONAS) {
-    const results = await listFor(vault, p.id)
-    rows[p.id] = Object.fromEntries(results.map(r => [r.doc.id, r]))
-    onRow?.(p.id, rows[p.id])
+/** How many rewraps a result cost the KAS: one per tier tried. */
+export const rewrapsIn = (results) => results.reduce((n, r) => n + r.tried.length, 0)
+
+// ── Changing a document's policy ─────────────────────────────────────────────
+
+/**
+ * Re-encrypt one unit under a new policy. This is the only thing in free play that touches the
+ * ciphertext: the old TDF is kept on the entry as `original` so "start of day" can put it back
+ * without another encryption. The Map is mutated in place; the caller bumps its own epoch.
+ */
+export async function reencryptUnit(vault, key, policy) {
+  const entry = vault.get(key)
+  if (!entry) throw new Error(`No unit ${key}`)
+  const { tdfBytes, manifest } = await encryptText(entry.unit.text, policy, 'admin')
+  vault.set(key, {
+    unit: { ...entry.unit, policy },
+    tdfBytes, manifest, boundAttributes: manifestAttributes(manifest),
+    original: entry.original ?? entry,
+  })
+}
+
+/** Put every edited unit back to the TDF it started the day as. Returns how many changed. */
+export function restoreUnits(vault) {
+  let n = 0
+  for (const [key, entry] of vault) {
+    if (!entry.original) continue
+    vault.set(key, entry.original)
+    n++
   }
-  return rows
+  return n
 }
 
 /**
