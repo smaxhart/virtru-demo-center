@@ -11,6 +11,7 @@ const PATHS = {
   server:   <><rect x="3" y="4" width="18" height="7" rx="2" /><rect x="3" y="13" width="18" height="7" rx="2" /><path d="M7 7.5h.01M7 16.5h.01" /></>,
   list:     <><path d="M8 6h12M8 12h12M8 18h12" /><path d="M4 6h.01M4 12h.01M4 18h.01" /></>,
   sliders:  <><path d="M4 7h10M18 7h2M4 17h2M10 17h10" /><circle cx="16" cy="7" r="2" /><circle cx="8" cy="17" r="2" /></>,
+  panel:    <><rect x="3" y="4.5" width="18" height="15" rx="2.5" /><path d="M9.5 4.5v15" /></>,
   chevron:  <path d="m6 9 6 6 6-6" />,
   check:    <path d="m5 12.5 4.5 4.5L19 7.5" />,
   x:        <path d="M6 6l12 12M18 6 6 18" />,

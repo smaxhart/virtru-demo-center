@@ -76,6 +76,7 @@ export default function Layout() {
 
   const [devOpen, setDevOpen]               = useState(false)
   const [drawerOpen, setDrawerOpen]         = useState(false)
+  const [navHidden, setNavHidden]           = useState(() => localStorage.getItem('dsp-demo-nav-hidden') === '1')
   const [pageVisibility, setPageVisibility] = useState({})
   const prevLogLen = useRef(0)
   const [pulse, setPulse]       = useState(false)
@@ -83,6 +84,19 @@ export default function Layout() {
   const [appVersion, setAppVersion] = useState(null)
   const devRef   = useRef(null)
   const location = useLocation()
+
+  useEffect(() => {
+    localStorage.setItem('dsp-demo-nav-hidden', navHidden ? '1' : '0')
+  }, [navHidden])
+
+  // Cmd/Ctrl + \ hides the navigation for a demo without reaching for the mouse.
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === '\\') { e.preventDefault(); setNavHidden(h => !h) }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   useEffect(() => {
     if (!window.electronAPI?.onUpdateStatus) return
@@ -164,7 +178,7 @@ export default function Layout() {
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)' }}>
 
       {/* ── Sidebar ────────────────────────────────────────────── */}
-      <aside className="sidebar">
+      <aside className={`sidebar ${navHidden ? 'collapsed' : ''}`} aria-hidden={navHidden}>
 
         {/* Logo — left padding clears macOS traffic light buttons (hiddenInset titlebar) */}
         <div className="sidebar-brand">
@@ -255,11 +269,24 @@ export default function Layout() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
 
         {/* Topbar */}
-        <header className="topbar">
+        <header className={`topbar ${navHidden ? 'nav-hidden' : ''}`}>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+          <button
+            type="button"
+            className="nav-toggle"
+            onClick={() => setNavHidden(h => !h)}
+            aria-label={navHidden ? 'Show navigation' : 'Hide navigation'}
+            aria-expanded={!navHidden}
+            title={`${navHidden ? 'Show' : 'Hide'} navigation (${/Mac/.test(navigator.platform) ? '⌘' : 'Ctrl'}+\\)`}
+          >
+            <UiIcon name="panel" size={18} />
+          </button>
 
           <h1 style={{ margin: 0, fontSize: 17, fontWeight: 660, letterSpacing: '-0.015em', color: 'var(--c-text-1)', whiteSpace: 'nowrap' }}>
             {pageLabel}
           </h1>
+          </div>
 
           {/* Controls */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>

@@ -37,27 +37,46 @@ export async function encryptVault(onProgress) {
   return vault
 }
 
+// Every rewrap a window asked for, as the renderer measured it. Rows are only kept for callers that
+// pass a `source`, so the bulk matrix sweeps do not fill it.
+const ledger = []
+const listeners = new Set()
+export const subscribeLedger = (fn) => { listeners.add(fn); return () => listeners.delete(fn) }
+export const ledgerRows = () => ledger
+
 /** One rewrap, as one persona. A thrown error is the denial. */
-async function attempt(entry, personaId) {
+async function attempt(entry, personaId, source) {
+  const at = Date.now()
+  const t0 = performance.now()
+  let out
   try {
     const text = await decryptTdf(entry.tdfBytes, personaId)
-    return { granted: true, text, reason: null }
+    out = { granted: true, text, reason: null }
   } catch (err) {
-    return { granted: false, text: null, reason: describeDenial(err) }
+    out = { granted: false, text: null, reason: describeDenial(err) }
   }
+  out.at = at
+  out.ms = Math.max(1, Math.round(performance.now() - t0))
+  if (source) {
+    const row = { at, ms: out.ms, personaId, source, unitKey: entry.unit.key, docId: entry.unit.doc.id, tier: entry.unit.tier ?? null, granted: out.granted }
+    ledger.push(row)
+    if (ledger.length > 200) ledger.shift()
+    listeners.forEach(fn => fn(row))
+  }
+  return out
 }
 
 /**
  * Open one document as one persona. A tiered document is tried most privileged first and the first
  * tier the KAS releases is the one returned, so the tearline is the KAS's doing and not the page's.
  */
-export async function openDocument(vault, doc, personaId) {
+export async function openDocument(vault, doc, personaId, source) {
   const entries = [...vault.values()].filter(e => e.unit.doc.id === doc.id)
   const tried = []
   let lastReason = null
   for (const entry of entries) {
-    const r = await attempt(entry, personaId)
-    tried.push({ key: entry.unit.key, tier: entry.unit.tier?.id ?? null, granted: r.granted })
+    const r = await attempt(entry, personaId, source)
+    tried.push({ key: entry.unit.key, tier: entry.unit.tier?.id ?? null, granted: r.granted, at: r.at, ms: r.ms })
     if (r.granted) {
       return { granted: true, doc, entry, tier: entry.unit.tier, text: r.text, reason: null, tried }
     }

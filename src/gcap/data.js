@@ -97,6 +97,9 @@ export const PERSONAS = [
   },
 ]
 
+/** How a person is named in any audit event. The competing prime has no account here, so the system has no name for them. */
+export const auditName = (p) => (p?.id === 'gcap-ryan' || p?.id === 'gmail' ? 'Unknown user' : p?.name)
+
 export const PERSONA_BY_ID = Object.fromEntries(PERSONAS.map(p => [p.id, p]))
 
 /** The persona the compromise act is about. */

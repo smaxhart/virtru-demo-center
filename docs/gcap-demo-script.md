@@ -1,6 +1,6 @@
 # GCAP Demo Script — One Environment, Three Nations
 
-**Status:** The Workspace tab is built; see "Live Tabs" for the two newer tabs. Markings still need partner review.
+**Status:** All three tabs are built; see "The Three Pages" for how they fit together. Markings still need partner review.
 **Runtime:** ~11 minutes (cut list at the bottom gets it to ~8)
 **Page:** GCAP — Advanced Collaborative Environment (ACE)
 **Narrative:** Interoperability and supply-chain management for a three-nation fighter programme, with data sovereignty as the spine — and a competitor, a compromised supplier, and a platform administrator as the three ways it could go wrong.
@@ -226,19 +226,101 @@ Counts are tree items. The interface control document is one item whose contents
 - **"Who can see the auditor view?"** Only the presenter. It is deliberately not a role in the demo, because a role would be an attribute someone could hold.
 - **"Can a competitor tell the programme is bigger than what they see?"** Not from the tree or the counter, and a probe for a specific file is refused and logged. What they can know is only what they can already guess.
 
-## Live Tabs — Three Windows and A Day on the Programme
+## The Three Pages
 
-The page has three tabs: **Workspace** (Acts 1–8 above), **Three windows** and **A day on the programme**. Both new tabs are live KAS rewraps and both support free play.
+The GCAP page has three tabs. They tell one story at three zoom levels:
+
+| Tab | Question it answers | Time |
+|---|---|---|
+| **Workspace** | What can each person see, and who holds the key? | ~11 min (Acts 1–8 above) |
+| **Three windows** | The file has already left the building. Who can still read it? | ~5 min |
+| **A day on the programme** | Programmes change by the hour. Does access keep up? | ~3 min |
 
 **Every visit starts the day fresh.** Opening the GCAP page resets every person, document and revocation to the shipped state, so an edit made in one run never leaks into the next. **Reset demo** does the same on demand.
 
-### Three windows (~2 min)
+Suggested run for a 15-minute slot: Workspace Acts 1, 2 and 7 (about 5 min), Three windows in full, A day on the programme to close. Each tab stands alone if you only have one of them.
 
-One ICD opened at once by Marco (Rome), Priya (Filton) and Kenji (Nagoya). Press **Open for all three**: Marco is served the full release, Priya and Kenji the extract, with the withheld block shown on their sheets. Each window's person is a dropdown, so swap in Ryan or Wren. The chips under each sheet say why; the verdict is always the key server's. **Seal it again** closes all three; an open window re-asks on its own after any edit.
+---
 
-### A day on the programme (~3 min)
+## Tab 2 — Three Windows (~5 min)
 
-**Run the day** plays four events 3 s apart; **Apply this one** plays any single event. Each event is one change at the identity provider, and the matrix shows only what the KAS then answered differently (9 of 140 decisions over the whole day):
+**What the audience is looking at.** Meridian SCM is a stand-in for the supply-chain system a programme office lives in: change requests, parts, suppliers, orders. Three people are signed in to it at once, Marco (Rome, Edgewing), Priya (Filton, BAE Systems) and Kenji (Nagoya, Mitsubishi Heavy Industries). **The SCM is mocked. The attached files and every key-server answer are real.** Say that early and once; the page no longer says it for you.
+
+**Who is who on the change request.** CR-4471, *Revise ICD baseline: mission bus, thermal loops, mounting pattern*, is an Integration change. Marco is the design authority and approver. Priya reviews the sensors interfaces, Kenji the propulsion interfaces. Each person's Home tab lists tasks that fit their job, and the Approvals tab shows the same three names. The one attachment is the Common Interface Control Document.
+
+**Screen space.** Press **⌘ \\** (Ctrl+\\ on Windows), or the panel icon beside the page title, to hide the side navigation for the whole demo; press it again to bring it back. The choice is remembered.
+
+**Setup.** Open the Three windows tab. All three windows show CR-4471 on its Summary tab. Nothing has been opened yet.
+
+### Beat 1 — Delivered (30 s)
+
+> "The same encrypted file is in all three inboxes. It came through the change request like any attachment. Nothing about this looks like security software."
+
+Point at the shield button in each title bar, or hover it. It lists what the key server holds for that person: clearance, nationality, work packages, supply tier. Marco holds integration; Priya and Kenji do not.
+
+### Beat 2 — Opened (1 min)
+
+Press **Open it in every window** (or **Open** on each attachment). Marco gets the **full release**. Priya and Kenji get the **supplier extract**, with the withheld block on their sheets.
+
+> "Same file, three answers. The strip under the banner says what each person was opened on: clearance, nationality and, for Marco, the integration work package. Priya and Kenji were opened on the partner tier."
+
+Switch Priya to **Oliver Hartley** (funding controller) or **Owen Pryce** (Tier-3 machinist) from the name menu to see a narrower answer for the same file. The strip shows what they were opened on, or, if refused, each attribute the file asks for with a ✗ and what they actually hold.
+
+### Beat 3 — Proof it is a real TDF (1 min)
+
+Press the **ⓘ** on the attachment in any window. The inspector shows the container listing, the policy written inside the file, where the key lives, the manifest, and a hex dump of the ciphertext with the sha256 of the file. **Download the encrypted file** (⤓) saves the actual `.tdf`; **Copy sha256** puts the hash on the clipboard.
+
+> "You can open this in any zip tool. The policy is in the manifest, and the ciphertext is not readable without a key the server releases."
+
+### Beat 4 — Shared on, to someone who isn't in the system (2 min)
+
+The competing prime is **not a user of the SCM**: there is no Ryan Mercer in the name menus. In Marco's window press **Share**, choose **ryan.mercer@rival-prime.example (external email)**, and **Send**. A small "Delivered to an outside inbox" card appears under the windows.
+
+Press **Open Ryan's Outlook** on the card. The scene switches to Ryan's Windows desktop with a new Outlook open on Marco's message and the `.tdf` attachment. **Double-click the attachment**, or use its chevron and choose **Download**, then open **File Explorer**, go to Downloads and double-click the `.tdf`. A Windows dialog appears: **"Error: unable to open file."** with the file name and a generic line that the file is protected and could not be decrypted. The wording is deliberately generic: Ryan's machine cannot know why a key was refused. The refusal itself is the real key server's answer.
+
+Press **Back to the SCM** in Outlook's title bar. Marco's window lands on its History tab, which reads **"Unknown user tried to open Common Interface Control Document · sent by Marco Bellandi"**.
+
+> "This is all Ryan gets: a file he can't open. He isn't a user here, so the system has no name for him, only that someone unknown tried. But it knows exactly who sent it. The copy went. The access didn't, and it's traceable back to the sender."
+
+To take an attachment off the change request, press **✕** on its row. **Copies already shared are unaffected**, and the toast says so; that is the point to make. Each outside mailbox can be closed with its **✕**.
+
+### Beat 4b — The Desktop (3 min, optional)
+
+Press **Desktop** in the Meridian SCM | Desktop switch above the stage. The scene becomes a Windows machine for whoever is selected in **Sitting at**: Outlook, Teams, Edge and File Explorer on the taskbar. Nothing on the desktop is a mock of the key server; every open goes through the real one.
+
+- **Send protected mail.** As Marco open Outlook, press **New mail**, address it to Priya, attach the Common Interface Control Document (note the "Virtru · Protected" pill) and **Send**. It lands in Sent Items and in Priya's inbox.
+- **Secure Viewer.** As Priya, double-click the attachment (or chevron, **Open in Secure Viewer**). Edge opens the Virtru Secure Viewer at `/secureviewer/`, signed in by SSO as Priya. The page carries the marking banner and a watermark of `username / email / name`. Download is on for low levels and switched off for Secret and above ("Download disabled by policy").
+- **A refusal, in detail.** As Marco post *GIGO Governance and Workshare Summary* in Teams, then sit as Wren and click it. The viewer shows "Unable to open governance.tdf" and a table of what the file requires against what Wren holds, with a ✗ on the supply tier. Insiders get the detail; outsiders (Ryan) get only the generic dialog.
+- **Teams.** Marco's **Attach** menu in the Integration channel posts a protected file as a card. Anyone can click it and it opens in their own Secure Viewer.
+- **Pull it.** With a viewer tab open, press **Disable X's account**. The page dissolves and the tab re-asks, now reading "Your account can no longer decrypt files." **Restore** reverses it.
+
+**Reset demo** and **Start over** both clear the desktops, mail, files and chat and return to the SCM stage.
+
+### Beat 5 — Pulled (1 min)
+
+In the **Account** control under the windows (on the Desktop, the **Disable X's account** button), pick **Kenji Watanabe** and press **Disable account**. His open sheet dissolves and the window re-asks the key server, which refuses. His shield card now shows his attributes struck through under **Account disabled**. **Restore account** reverses it. The tally under the windows counts copies open, refusals and accounts disabled.
+
+> "We didn't recall the file, and we didn't need to. Disable the account and every copy, wherever it is, stops opening."
+
+### Translate for Italy and Japan
+
+The button at the top right of the page switches Marco's window to Italian and Kenji's to Japanese; Priya's stays in English. Only the application's words change. **Document titles, document text and the classification markings are not translated**, because they belong to the file and to each nation. Toggle it back at any time.
+
+### Free play
+
+Change any window's person from its name menu (Ryan Mercer is deliberately not on it), open a different document (**Document in play**, which also attaches it), or press **Edit X's access** to change a person's attributes and watch open windows re-ask. **Start over** returns to the opening state.
+
+### If asked
+
+- **"Is that a real SCM?"** No. It is a stand-in so the file has somewhere realistic to live. Any system that carries an attachment would behave the same way.
+- **"Does the shield show what the token says?"** No. It shows what the platform resolves for the person, which is the same thing the key server uses. The key server does not read token claims and does not cache.
+- **"Can Priya see the design rationale in the extract?"** No. The extract is a different encrypted object. The withheld block is a label; the content is not in her file.
+
+---
+
+## Tab 3 — A Day on the Programme (~3 min)
+
+**Run the day** plays four events 3 s apart; **Apply this one** plays any single event. Each event is one change at the identity provider, and the matrix shows only what the key server then answered differently (9 of 140 decisions over the whole day):
 
 | Time | Event | Effect |
 |---|---|---|
@@ -247,9 +329,15 @@ One ICD opened at once by Marco (Rome), Priya (Filton) and Kenji (Nagoya). Press
 | 13:30 | Priya's clearance lapses to RESTRICTED | Priya loses sensors, BoM and the NATO paper |
 | 16:05 | Kenji moves to integration | Kenji loses engine and the Japan range plan; his ICD extract becomes the full ICD |
 
+> "Nobody emailed anyone. Four changes at the identity provider, and nine answers changed."
+
 Nuance for Q&A: revoked Wren **still opens the GCAP Programme Overview**, because its policy is empty and needs no entitlement. Say so before anyone else notices.
 
 **Free play.** Click a person's header to edit their attributes, a document's row title to change its policy (the file is re-encrypted; earlier copies keep the old policy), **Add person** to create someone with any access, or any cell to see why. Each edit is a real change to the platform's subject mappings or ciphertext, and takes effect on the very next rewrap: the platform does not cache decisions.
+
+**Bridge back to Three windows.** The 16:05 event is the same move as giving Kenji the integration package. If Three windows is open afterwards, his extract would now be the full release.
+
+---
 
 ## What Not to Claim
 

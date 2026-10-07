@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { PERSONA_BY_ID, DOCUMENTS, FOLDERS, CUSTODIANS, COMPROMISED_ID } from './data.js'
+import { PERSONA_BY_ID, DOCUMENTS, FOLDERS, CUSTODIANS, COMPROMISED_ID, auditName } from './data.js'
 import { markingOf, nationalEquivalent } from './marking.js'
 import {
   encryptVault, listFor, probe,
@@ -142,7 +142,7 @@ function Workspace({ vault, world, active, resetKey, onEditPerson }) {
     if (!listing || loggedFor.current === persona.id) return
     loggedFor.current = persona.id
     const n = listing.filter(r => r.granted).length
-    addLog({ persona: persona.name, action: 'Workspace resolved', detail: `${n} object${n === 1 ? '' : 's'} released`, ok: true })
+    addLog({ persona: auditName(persona), action: 'Workspace resolved', detail: `${n} object${n === 1 ? '' : 's'} released`, ok: true })
   }, [listing, persona, addLog])
 
   useEffect(() => {
@@ -206,7 +206,7 @@ function Workspace({ vault, world, active, resetKey, onEditPerson }) {
   const onOpen = (r) => {
     setSelectedId(r.doc.id)
     addLog({
-      persona: persona.name, action: 'Open', ok: true,
+      persona: auditName(persona), action: 'Open', ok: true,
       detail: `${r.doc.title}${r.tier ? ` (${r.tier.label})` : ''} · key released by ${CUSTODIANS[r.doc.custodian].label}`,
     })
   }
@@ -216,9 +216,9 @@ function Workspace({ vault, world, active, resetKey, onEditPerson }) {
     const res = await probe(vault, probeText, personaId)
     setProbeResult(res)
     if (res.found && !res.granted) setRefusal({ actor: { initials: initialsOf(persona), color: persona.color }, custodian: res.doc.custodian, granted: false, title: res.doc.title })
-    if (!res.found) addLog({ persona: persona.name, action: 'Probe', ok: false, detail: `${probeText.trim()} · nothing at this address` })
+    if (!res.found) addLog({ persona: auditName(persona), action: 'Probe', ok: false, detail: `${probeText.trim()} · nothing at this address` })
     else addLog({
-      persona: persona.name, action: 'Probe', ok: res.granted,
+      persona: auditName(persona), action: 'Probe', ok: res.granted,
       detail: res.granted
         ? `${res.doc.title} · key released by ${CUSTODIANS[res.doc.custodian].label}`
         : `${probeText.trim()} · refused by ${CUSTODIANS[res.doc.custodian].label}`,
@@ -699,11 +699,11 @@ export default function GcapPage() {
           <Workspace vault={vault} world={world} active={tab === 'workspace'} resetKey={resetKey} onEditPerson={editPerson} />
         </div>
         <div hidden={tab !== 'windows'}>
-          <ThreeWindows vault={vault} world={world} active={tab === 'windows'} onEditPerson={editPerson} />
+          <ThreeWindows key={resetKey} vault={vault} world={world} active={tab === 'windows'} onEditPerson={editPerson} />
         </div>
         <div hidden={tab !== 'day'}>
           <ProgrammeDay
-            vault={vault} world={world} active={tab === 'day'}
+            key={resetKey} vault={vault} world={world} active={tab === 'day'}
             onEditPerson={editPerson} onAddPerson={() => setEditor({ person: null })} onEditDoc={(doc) => setEditor({ doc })}
           />
         </div>
