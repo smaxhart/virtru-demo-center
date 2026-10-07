@@ -6,6 +6,7 @@ import { entitlementsOf } from './entitle.js'
 import { evaluatePolicy, groupLabel } from '../data/policyMatch.js'
 import { AppWindow } from './Scm.jsx'
 import Desktop from './Desktop.jsx'
+import Presenter, { MAIN } from './Presenter.jsx'
 import { emailOf, stampNow, seedChat, CHANNELS } from './desk.js'
 import { initialsOf } from './ui.jsx'
 import TdfInspector, { fileNameOf } from './TdfInspector.jsx'
@@ -22,7 +23,7 @@ let generation = 0
 
 const fresh = () => ({
   n: 3, tr: false, doc: 'icd', att: ['icd'], approved: false, mails: [], insp: null, who: 'gcap-kenji', mailN: 0,
-  mode: 'stage', pc: 'gcap-marco', dk: {}, views: [], vtab: {}, viewN: 0, files: [], fileN: 0, chat: seedChat(), chN: 0, t0: Date.now(), gen: ++generation,
+  mode: 'stage', scene: 'payoff', apps: { teams: false, files: false }, pc: 'gcap-marco', dk: {}, views: [], vtab: {}, viewN: 0, files: [], fileN: 0, chat: seedChat(), chN: 0, t0: Date.now(), gen: ++generation,
   log: SEED_LOG.map(([t, w, x, k]) => ({ t, w, x, k })),
   wins: DEFAULT_IDS.map((p, i) => newWindow(`w${i}`, p)),
 })
@@ -46,6 +47,17 @@ export default function ThreeWindows({ world, vault, active, onEditPerson }) {
     toastTimer.current = setTimeout(() => setToast(null), 2600)
   }
   useEffect(() => () => clearTimeout(toastTimer.current), [])
+  const [pdOpen, setPdOpen] = useState(() => localStorage.getItem('gcap-presenter-open') === '1')
+  useEffect(() => { localStorage.setItem('gcap-presenter-open', pdOpen ? '1' : '0') }, [pdOpen])
+  useEffect(() => {
+    if (!active) return undefined
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === '.') { e.preventDefault(); setPdOpen(o => !o) }
+      else if (e.key === 'Escape') setPdOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [active])
 
   const who = (id) => (id === 'gmail' ? EXTERNAL : env.current.byId[id] ?? env.current.people[0])
   const unitsOf = (docId) => [...env.current.vault.values()].filter(e => e.unit.doc.id === docId)
@@ -147,9 +159,36 @@ export default function ThreeWindows({ world, vault, active, onEditPerson }) {
   const startOver = async () => {
     const off = [...env.current.revokedIds]
     const tr = S.tr
-    Object.assign(S, fresh(), { tr })
+    Object.assign(S, fresh(), { tr, scene: S.scene })
     render()
     for (const id of off) await world.restoreAccount(id)
+  }
+
+  const resetScene = async (scene = S.scene) => {
+    const off = [...env.current.revokedIds]
+    const tr = S.tr
+    Object.assign(S, fresh(), { tr, scene, mode: 'desk', pc: scene === 'payoff' ? 'gcap-priya' : 'gcap-marco' })
+    stage()
+    say(scene === 'payoff' ? 'Scene reset: the mail is already delivered' : 'Scene reset: nothing sent yet')
+    render()
+    for (const id of off) await world.restoreAccount(id)
+  }
+
+  /** The payoff scene: Marco has already shared the change request with Priya and with Ryan, so the demo can open on the reading. */
+  function stage() {
+    if (S.scene !== 'payoff' || S.mails.length) return
+    const subject = `Shared: ${FIRST_CR} · ${CR_TITLE}`
+    const body = ['The current baseline is attached.', 'Please review and comment in Meridian.']
+    for (const to of [who('gcap-priya'), EXTERNAL]) ctx.sendMail({ from: 'gcap-marco', toAddr: emailOf(to), subject, body, docs: S.att, via: 'scm', quiet: true })
+    S.pc = 'gcap-priya'
+  }
+
+  const enterDesk = () => { stage(); S.mode = 'desk'; render() }
+
+  const setApp = (name, on) => {
+    S.apps[name] = on
+    if (!on) Object.values(S.dk).forEach(d => { d.open = d.open.filter(a => a !== name); if (d.front === name) d.front = d.open.at(-1) ?? null })
+    render()
   }
 
   const set = (w, patch) => { Object.assign(w, patch); render() }
@@ -185,6 +224,7 @@ export default function ThreeWindows({ world, vault, active, onEditPerson }) {
     dkOf: (pid) => (S.dk[pid] ??= { open: ['outlook'], front: 'outlook', want: null }),
     goDesk: (pid, app, opts = {}) => {
       const d = ctx.dkOf(pid)
+      if (app in S.apps) S.apps[app] = true
       if (!d.open.includes(app)) d.open.push(app)
       d.front = app
       if (opts.mail) d.want = opts.mail
@@ -206,11 +246,12 @@ export default function ThreeWindows({ world, vault, active, onEditPerson }) {
       if (!S.files.some(f => f.pid === pid && f.docId === docId && f.from === from)) {
         S.files.push({ id: `f${++S.fileN}`, pid, docId, from, tdf: true, res: null, seq: 0, at: stampNow(S), name: fileNameOf(unitsOf(docId)[0]) })
       }
+      S.apps.files = true
       say('Saved to Downloads')
       render()
     },
     openFile: (f) => ask(f, f.docId),
-    sendMail: ({ from, toAddr, subject, body, docs, via }) => {
+    sendMail: ({ from, toAddr, subject, body, docs, via, quiet }) => {
       const addr = toAddr.trim().toLowerCase()
       const hit = people.find(x => x.id !== 'gcap-ryan' && emailOf(x).toLowerCase() === addr)
       const pid = hit ? hit.id : 'gmail'
@@ -220,18 +261,20 @@ export default function ThreeWindows({ world, vault, active, onEditPerson }) {
       const name = auditName(who(from))
       if (docs.length) log(name, 'shared this change request with {0}', 'sys', to.name)
       else log(name, 'emailed {0}', 'sys', to.name)
-      say(`Sent to ${hit ? to.name : toAddr.trim()}`)
+      if (!quiet) say(`Sent to ${hit ? to.name : toAddr.trim()}`)
       render()
       return m
     },
     postChat: (pid, ch, text, docs) => {
       const m = { id: `p${++S.chN}`, ch, from: pid, day: 'Today', at: stampNow(S), text, docs: [...docs], likes: 0 }
       S.chat.push(m)
+      S.apps.teams = true
       if (docs.length) log(auditName(who(pid)), 'posted a protected file in the {0} channel', 'sys', CHANNELS.find(c => c.id === ch).name)
       render()
       return m
     },
     backToScm: () => backToScm(),
+    inspectDoc: (pid) => { S.insp = { wid: null, pid, docId: S.doc, idx: 0 }; render() },
     detach: (w, docId) => {
       S.att = S.att.filter(d => d !== docId)
       if (S.doc === docId && S.att.length) S.doc = S.att[0]
@@ -269,6 +312,9 @@ export default function ThreeWindows({ world, vault, active, onEditPerson }) {
   const notes = S.mails.filter(m => m.via === 'scm' && !m.closed)
   const desk = S.mode === 'desk'
   const deskPeople = [...ctx.people, EXTERNAL]
+  const castIds = MAIN.includes(S.pc) ? MAIN : [...MAIN, S.pc]
+  const seats = castIds.map(id => deskPeople.find(x => x.id === id)).filter(Boolean)
+  const others = deskPeople.filter(x => !castIds.includes(x.id))
   const visible = S.wins.slice(0, S.n)
   const openCopies = allWins().filter(w => w.res?.status === 'done' && w.res.result.granted).length
   const refused = S.log.filter(e => e.k === 'deny').length
@@ -292,7 +338,7 @@ export default function ThreeWindows({ world, vault, active, onEditPerson }) {
         {steps.map(s => <div key={s[0]} className={`beat ${s[2] ? 'done' : ''}`}><b>{s[0]}</b><span>{s[1]}</span></div>)}
         <span className="seg modes" role="group" aria-label="Scene">
           <button className={`btn ${!desk ? 'on' : ''}`} aria-pressed={!desk} onClick={() => { S.mode = 'stage'; render() }}>Meridian SCM</button>
-          <button className={`btn ${desk ? 'on' : ''}`} aria-pressed={desk} onClick={() => { S.mode = 'desk'; render() }}>Desktop</button>
+          <button className={`btn ${desk ? 'on' : ''}`} aria-pressed={desk} onClick={enterDesk}>Desktop</button>
         </span>
         <button className={`btn lang ${S.tr ? 'on' : ''}`} aria-pressed={S.tr} onClick={() => { S.tr = !S.tr; render() }}>{S.tr ? 'Translated: Italian, Japanese' : 'Translate for Italy and Japan'}</button>
       </div>
@@ -300,18 +346,27 @@ export default function ThreeWindows({ world, vault, active, onEditPerson }) {
       {desk ? <>
         <div className="pcs" role="tablist" aria-label="Whose desktop">
           <span className="k">Sitting at</span>
-          {deskPeople.map(x => (
+          {seats.map(x => (
             <button key={x.id} role="tab" aria-selected={S.pc === x.id} className={`${S.pc === x.id ? 'on' : ''} ${revokedIds.has(x.id) ? 'off' : ''}`} onClick={() => { S.pc = x.id; render() }}>
               <i style={{ background: x.color }}>{x.id === 'gmail' ? 'RM' : initialsOf(x)}</i>{x.id === 'gmail' ? 'Ryan (outside)' : x.name.split(' ')[0]}
             </button>
           ))}
           <span className="sp" />
-          {S.pc !== 'gmail' && (revokedIds.has(S.pc)
-            ? <button className="btn" onClick={() => restoreOne(S.pc)}>Restore {who(S.pc).name.split(' ')[0]}&rsquo;s account</button>
-            : <button className="btn d" onClick={() => disable(S.pc)}>Disable {who(S.pc).name.split(' ')[0]}&rsquo;s account</button>)}
-          <button className="btn" onClick={startOver}>Start over</button>
+          <button className={`btn pdbtn ${pdOpen ? 'on' : ''}`} aria-pressed={pdOpen} aria-keyshortcuts="Control+. Meta+." title="Presenter controls (Cmd/Ctrl + .)" onClick={() => setPdOpen(o => !o)}>Presenter</button>
         </div>
-        <Desktop key={`${S.gen}-${S.pc}`} ctx={ctx} pid={S.pc} onBack={backToScm} />
+        <div className="dkwrap">
+          <Desktop key={`${S.gen}-${S.pc}`} ctx={ctx} pid={S.pc} onBack={backToScm} />
+          {pdOpen && (
+            <Presenter
+              ctx={ctx} pc={S.pc} scene={S.scene} revoked={revokedIds} others={others}
+              tally={{ open: openCopies, refused, off: revokedIds.size }}
+              onClose={() => setPdOpen(false)}
+              onScene={(sc) => resetScene(sc)} onReset={() => resetScene()}
+              onDisable={disable} onRestore={restoreOne}
+              onSeat={(id) => { S.pc = id; render() }} onApp={setApp} onInspect={() => ctx.inspectDoc(S.pc)}
+            />
+          )}
+        </div>
       </> : <>
       <div className="stage" style={{ gridTemplateColumns: `repeat(${S.n}, minmax(0, 1fr))` }}>
         {visible.map(w => <AppWindow key={w.id} ctx={ctx} w={w} />)}
@@ -353,17 +408,17 @@ export default function ThreeWindows({ world, vault, active, onEditPerson }) {
       </div>
       </>}
 
-      <div className="tally">
+      {!desk && <div className="tally">
         <div><b>{openCopies}</b>copies open</div>
         <div><b>{refused}</b>refused</div>
         <div><b>{revokedIds.size}</b>accounts disabled</div>
         <div><b>0</b>files recalled</div>
         <div><b>{edited}</b>files touched</div>
-      </div>
+      </div>}
 
       {insp && inspEntries.length > 0 && (
         <TdfInspector
-          entries={inspEntries} index={insp.idx} cr={FIRST_CR} holder={inspWin ? who(inspWin.pid).name : '—'}
+          entries={inspEntries} index={insp.idx} cr={FIRST_CR} holder={inspWin ? who(inspWin.pid).name : insp.pid ? who(insp.pid).name : '—'}
           nameOf={(id) => who(id).name}
           onIndex={(i) => { insp.idx = i; render() }}
           onClose={() => { S.insp = null; render() }}

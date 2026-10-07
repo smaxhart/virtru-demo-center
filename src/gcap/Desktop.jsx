@@ -17,13 +17,15 @@ const APPS = {
 }
 
 const APPS_FOR = (pid) => (pid === 'gmail' ? ['outlook', 'files'] : ['outlook', 'teams', 'edge', 'files'])
+// Teams and Explorer stay off the taskbar until the presenter turns them on or the story reaches for them.
+const OPTIONAL = ['teams', 'files']
 
 /** A Windows 11 desktop for one person: the apps that person has, a taskbar, and a clock. */
 export default function Desktop({ ctx, pid, onBack }) {
   const { S } = ctx
   const d = ctx.dkOf(pid)
   const who = ctx.who(pid)
-  const apps = APPS_FOR(pid)
+  const apps = APPS_FOR(pid).filter(a => !OPTIONAL.includes(a) || S.apps[a])
 
   const toggle = (a) => {
     if (!d.open.includes(a)) { d.open.push(a); d.front = a }
@@ -45,7 +47,7 @@ export default function Desktop({ ctx, pid, onBack }) {
     <div className="dk" aria-label={`${who.name}'s desktop`}>
       <div className="dk-area">
         <div className="dk-icons" aria-hidden="true"><span><svg width="34" height="34" viewBox="0 0 24 24"><path d="M6 7h12l-1 13H7z" fill="#dfe8f1" stroke="#9fb3c8" /><path d="M5 7h14M10 7V5h4v2" stroke="#9fb3c8" fill="none" /></svg>Recycle Bin</span></div>
-        {d.open.map(a => (
+        {d.open.filter(a => apps.includes(a)).map(a => (
           <div key={a} className={`dk-win ${a} ${d.front === a ? 'front' : ''}`} hidden={d.front !== a}>
             <div className="dk-ctl">
               <button aria-label="Minimise" onClick={() => minimise(a)}><Ico d={ICONS.min} size={13} sw={1} /></button>

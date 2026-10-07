@@ -543,3 +543,38 @@
 .scm .tm-menu{top:auto;bottom:100%;margin:0 0 4px;min-width:260px}
 @media (max-width:1000px){.scm .tm-side,.scm .ex-nav2{display:none}}
 @media (max-width:760px){.scm .tm-rail{display:none}.scm .ex-hd span:nth-child(n+3),.scm .ex-list>button span:nth-child(n+3){display:none}.scm .ex-hd,.scm .ex-list>button{grid-template-columns:1fr 130px}}
+
+/* ── Presenter drawer: everything the audience does not need to see ───────────── */
+.scm .pcs .pdbtn{margin-left:4px;background:transparent;border-color:var(--b1);color:var(--t5)}
+.scm .pcs .pdbtn.on{background:#213646;border-color:var(--sky);color:var(--t1)}
+.scm .dkwrap{position:relative}
+.scm .pd{position:absolute;top:0;right:0;bottom:0;width:300px;z-index:60;display:flex;flex-direction:column;gap:2px;overflow-y:auto;background:var(--bg);border-left:1px solid var(--b2);border-radius:0 10px 10px 0;box-shadow:-14px 0 34px rgba(0,0,0,.4);color:var(--t2);font-family:inherit;animation:pd-in .18s ease-out}
+@keyframes pd-in{from{transform:translateX(24px);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.scm .pd{animation:none}}
+.scm .pd header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 8px;font-size:14px;color:var(--t1)}
+.scm .pd header button{background:none;border:0;color:var(--t5);font-size:14px;cursor:pointer;padding:2px 6px}
+.scm .pd section{padding:10px 14px 12px;border-top:1px solid var(--b1);display:grid;gap:8px;align-content:start}
+.scm .pd h5{margin:0;font-size:12px;font-weight:600;color:var(--t5)}
+.scm .pd .btn{min-height:0;height:auto;padding:5px 11px;font-size:12px;justify-self:start}
+.scm .pd .btn.off{opacity:.55;text-decoration:line-through}
+.scm .pd-opt{display:flex;gap:9px;align-items:flex-start;padding:7px 9px;border:1px solid var(--b1);border-radius:8px;background:var(--s2);cursor:pointer}
+.scm .pd-opt.on{border-color:var(--sky);background:#213646}
+.scm .pd-opt input{margin-top:3px}
+.scm .pd-opt b{display:block;font-size:12.5px;color:var(--t1)}
+.scm .pd-opt small{display:block;font-size:11.5px;color:var(--t5)}
+.scm .pd-apps{display:grid;gap:6px}
+.scm .pd-apps label{display:flex;align-items:center;gap:8px;font-size:12.5px}
+.scm .pd-apps input:disabled+*{opacity:.6}
+.scm .pd-note{margin:0;font-size:11.5px;color:var(--t5)}
+.scm .pd summary{cursor:pointer;font-size:12px;color:var(--t4)}
+.scm .pd-who{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.scm .pd-who .btn{padding:3px 9px;font-size:11.5px}
+.scm .pd-log{display:grid;gap:5px;max-height:190px;overflow-y:auto;font-size:11.5px;line-height:1.35}
+.scm .pd-log div{display:flex;gap:7px}
+.scm .pd-log time{flex:none;width:52px;color:var(--t6)}
+.scm .pd-log b{color:var(--t1);font-weight:600}
+.scm .pd-log em{font:10px var(--mono);font-style:normal;margin-left:5px;padding:0 4px;border:1px solid var(--b2);border-radius:3px;color:var(--t5)}
+.scm .pd-log em.deny{color:var(--red);border-color:rgba(255,107,94,.4)}
+.scm .pd-tally{display:flex;gap:18px}
+.scm .pd-tally div{font-size:11.5px;color:var(--t5)}
+.scm .pd-tally b{display:block;font-size:20px;font-weight:600;color:var(--t1);line-height:1.1}

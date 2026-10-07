@@ -286,19 +286,26 @@ To take an attachment off the change request, press **✕** on its row. **Copies
 
 ### Beat 4b — The Desktop (3 min, optional)
 
-Press **Desktop** in the Meridian SCM | Desktop switch above the stage. The scene becomes a Windows machine for whoever is selected in **Sitting at**: Outlook, Teams, Edge and File Explorer on the taskbar. Nothing on the desktop is a mock of the key server; every open goes through the real one.
+Press **Desktop** in the Meridian SCM | Desktop switch above the stage. The scene becomes a Windows machine for whoever is selected in **Sitting at** (Marco, Priya, Wren, Ryan). The taskbar carries Outlook and Edge only. Nothing on the desktop is a mock of the key server; every open goes through the real one.
+
+**Presenter drawer.** The **Presenter** button (or Cmd/Ctrl + `.`, Esc to close) slides in the controls the audience doesn't need to see, and remembers whether it was open:
+
+- **Scene.** *Start at the payoff* (default) opens on Priya's desk with Marco's mail already delivered to her and to Ryan, so you begin at the reading. *Fresh start* seats Marco with nothing sent, for composing live (the first bullet below). Picking a scene resets the desktops; **Reset scene** does the same for the current one.
+- **Apps on the desktop.** Teams and File Explorer are off the taskbar by default. Tick them to show them; they also appear on their own when the story reaches for them (a download puts Explorer on the taskbar, a Teams post puts Teams there).
+- **Pull access.** **Disable X's account** and **Restore** for whoever is selected. Ryan has no account to disable.
+- **Under the hood.** Inspect the TDF, **Sit as someone else** for the other seven personas, the live audit log, and the copies-open / refused / disabled counters. Ctrl/Cmd + Shift + A still opens the who-can-open-what matrix.
 
 - **Send protected mail.** As Marco open Outlook, press **New mail**, address it to Priya, attach the Common Interface Control Document (note the "Virtru · Protected" pill) and **Send**. It lands in Sent Items and in Priya's inbox.
 - **Secure Viewer.** As Priya, double-click the attachment (or chevron, **Open in Secure Viewer**). Edge opens the Virtru Secure Viewer at `/secureviewer/`, signed in by SSO as Priya. The page carries the marking banner and a watermark of `username / email / name`. Download is on for low levels and switched off for Secret and above ("Download disabled by policy").
 - **A refusal, in detail.** As Marco post *GIGO Governance and Workshare Summary* in Teams, then sit as Wren and click it. The viewer shows "Unable to open governance.tdf" and a table of what the file requires against what Wren holds, with a ✗ on the supply tier. Insiders get the detail; outsiders (Ryan) get only the generic dialog.
 - **Teams.** Marco's **Attach** menu in the Integration channel posts a protected file as a card. Anyone can click it and it opens in their own Secure Viewer.
-- **Pull it.** With a viewer tab open, press **Disable X's account**. The page dissolves and the tab re-asks, now reading "Your account can no longer decrypt files." **Restore** reverses it.
+- **Pull it.** With a viewer tab open, open the Presenter drawer and press **Disable X's account**. The page dissolves and the tab re-asks, now reading "Your account can no longer decrypt files." **Restore** reverses it.
 
-**Reset demo** and **Start over** both clear the desktops, mail, files and chat and return to the SCM stage.
+**Reset demo** and **Start over** clear the desktops, mail, files and chat and return to the SCM stage; the drawer's **Reset scene** does the same but stays on the Desktop.
 
 ### Beat 5 — Pulled (1 min)
 
-In the **Account** control under the windows (on the Desktop, the **Disable X's account** button), pick **Kenji Watanabe** and press **Disable account**. His open sheet dissolves and the window re-asks the key server, which refuses. His shield card now shows his attributes struck through under **Account disabled**. **Restore account** reverses it. The tally under the windows counts copies open, refusals and accounts disabled.
+In the **Account** control under the windows (on the Desktop, **Disable X's account** in the Presenter drawer), pick **Kenji Watanabe** and press **Disable account**. His open sheet dissolves and the window re-asks the key server, which refuses. His shield card now shows his attributes struck through under **Account disabled**. **Restore account** reverses it. The tally under the windows counts copies open, refusals and accounts disabled.
 
 > "We didn't recall the file, and we didn't need to. Disable the account and every copy, wherever it is, stops opening."
 
