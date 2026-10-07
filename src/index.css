@@ -317,7 +317,23 @@ textarea.input { height: auto; padding: 10px 12px; line-height: 1.5; }
   overflow: hidden;
   background: var(--c-ink);
   color: #fff;
+  transition: width .18s ease, visibility 0s;
 }
+.sidebar > * { width: 232px; flex-shrink: 0; }
+.sidebar > nav { flex: 1 1 auto; min-height: 0; }
+.sidebar.collapsed { width: 0; visibility: hidden; transition: width .18s ease, visibility 0s .18s; }
+@media (prefers-reduced-motion: reduce) { .sidebar, .sidebar.collapsed { transition: none; } }
+.nav-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; flex-shrink: 0;
+  border-radius: 8px; border: 0; background: transparent;
+  color: var(--c-text-4); cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+.nav-toggle:hover { background: var(--c-surface-3); color: var(--c-text-1); }
+.topbar { transition: padding-left .18s ease; }
+/* With the sidebar gone the macOS traffic lights sit over the topbar, so it clears them. */
+.topbar.nav-hidden { padding-left: 84px; }
 .sidebar-brand {
   height: 60px;
   flex-shrink: 0;
