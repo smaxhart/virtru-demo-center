@@ -1,10 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { PERSONAS, PERSONA_BY_ID, DOCUMENTS, FOLDERS, CUSTODIANS, COMPROMISED_ID, UNITS } from './data.js'
+import { PERSONA_BY_ID, DOCUMENTS, FOLDERS, CUSTODIANS, COMPROMISED_ID } from './data.js'
 import { markingOf, nationalEquivalent } from './marking.js'
 import {
-  encryptVault, listFor, probe, auditMatrix,
-  inspectCopy, openWithoutIdentity, openWithCredential, revoke, restore,
+  encryptVault, listFor, probe,
+  inspectCopy, openWithoutIdentity, openWithCredential,
 } from './vault.js'
+import { useWorld } from './world.js'
+import {
+  Shell, Avatar, Card, Button, Verdict, Banner, initialsOf,
+  SKY, RED, PAPER, INK, MONO, SERIF,
+} from './ui.jsx'
+import ThreeWindows from './ThreeWindows.jsx'
+import ProgrammeDay from './ProgrammeDay.jsx'
+import { PersonEditor, PolicyEditor } from './Editors.jsx'
 
 const DEFAULT_PERSONA = 'gcap-marco'
 const COMPROMISED = PERSONA_BY_ID[COMPROMISED_ID]
@@ -19,104 +27,6 @@ const CAST = [
 const SHORT_EMPLOYER = { 'Mitsubishi Heavy Industries': 'MHI' }
 
 const nowStamp = () => new Date().toLocaleTimeString([], { hour12: false })
-
-// The page carries its own night palette by overriding the shared tokens, so Card, Button and Verdict
-// pick it up without the rest of the app changing. No web fonts: the demo must work offline.
-const THEME = {
-  '--c-surface': '#1F2F3D', '--c-surface-2': '#16222D', '--c-border': '#36495A', '--c-border-2': '#4A6072',
-  '--c-text-1': '#E6EDF2', '--c-text-2': '#D3DEE6', '--c-text-3': '#B5C4CF', '--c-text-4': '#9DB0BF',
-  '--c-text-5': '#8DA0B0', '--c-text-6': '#5E7384',
-  '--c-info-bg': '#2A3E4F', '--c-purple-bg': '#3A3358',
-  '--c-grant': '#7FD4A6', '--c-grant-bg': 'rgba(127,212,166,0.10)', '--c-grant-br': 'rgba(127,212,166,0.35)',
-  '--c-deny': '#FF8A7E', '--c-deny-bg': 'rgba(255,107,94,0.10)', '--c-deny-br': 'rgba(255,107,94,0.4)',
-  '--c-shadow-sm': 'none', '--c-shadow-lg': '0 12px 40px rgba(0,0,0,0.5)',
-}
-const SKY = '#7FC2E8'
-const RED = '#FF6B5E'
-const PAPER = '#F2F4F4'
-const INK = '#1B2731'
-const MONO = "ui-monospace, 'SF Mono', Menlo, Consolas, monospace"
-const SERIF = "'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif"
-
-function Shell({ children }) {
-  return (
-    <div style={{ ...THEME, position: 'absolute', inset: 0, overflowY: 'auto', background: '#16222D', color: 'var(--c-text-2)' }}>
-      {children}
-    </div>
-  )
-}
-
-const initialsOf = (persona) => persona.name.split(' ').map(w => w[0]).join('')
-
-// ── Small pieces ─────────────────────────────────────────────────────────────
-
-function Avatar({ persona, size = 30, dim }) {
-  const initials = initialsOf(persona)
-  return (
-    <div style={{
-      width: size, height: size, borderRadius: '50%', flexShrink: 0,
-      background: persona.color, color: '#fff', fontSize: size * 0.38, fontWeight: 700,
-      display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: dim ? 0.4 : 1,
-    }}>{initials}</div>
-  )
-}
-
-function Card({ title, right, children, style, accent }) {
-  return (
-    <section style={{
-      background: 'var(--c-surface)', border: `1px solid ${accent ? 'var(--c-deny-br)' : 'var(--c-border)'}`,
-      borderLeft: accent ? `3px solid ${RED}` : undefined,
-      borderRadius: 'var(--c-radius-card)', boxShadow: 'var(--c-shadow-sm)', ...style,
-    }}>
-      {title && (
-        <header style={{
-          display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, padding: '13px 14px 2px',
-          fontSize: 14, fontWeight: 650, color: 'var(--c-text-1)', flexShrink: 0,
-        }}>
-          <span>{title}</span>{right}
-        </header>
-      )}
-      {children}
-    </section>
-  )
-}
-
-function Button({ children, onClick, disabled, tone = 'neutral', style }) {
-  const tones = {
-    neutral: { bg: 'var(--c-surface)', fg: 'var(--c-text-2)', br: 'var(--c-border)' },
-    danger:  { bg: 'var(--c-deny-bg)', fg: 'var(--c-deny)', br: 'var(--c-deny-br)' },
-    go:      { bg: 'var(--c-grant-bg)', fg: 'var(--c-grant)', br: 'var(--c-grant-br)' },
-    primary: { bg: SKY, fg: INK, br: SKY },
-  }[tone]
-  return (
-    <button onClick={onClick} disabled={disabled} style={{
-      padding: '7px 12px', borderRadius: 'var(--c-radius-btn)', fontSize: 12, fontWeight: 600,
-      cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.5 : 1,
-      background: tones.bg, color: tones.fg, border: `1px solid ${tones.br}`, ...style,
-    }}>{children}</button>
-  )
-}
-
-function Verdict({ granted, children }) {
-  return (
-    <div style={{
-      padding: '8px 10px', borderRadius: 8, fontSize: 12, lineHeight: 1.45,
-      background: granted ? 'var(--c-grant-bg)' : 'var(--c-deny-bg)',
-      border: `1px solid ${granted ? 'var(--c-grant-br)' : 'var(--c-deny-br)'}`,
-      color: granted ? 'var(--c-grant)' : 'var(--c-deny)',
-    }}>{children}</div>
-  )
-}
-
-function Banner({ marking, position }) {
-  return (
-    <div style={{
-      background: marking.tone, color: '#fff', textAlign: 'center', padding: '6px 12px', fontSize: 11.5,
-      fontWeight: 700, letterSpacing: '0.12em', fontFamily: MONO,
-      borderRadius: position === 'top' ? '6px 6px 0 0' : '0 0 6px 6px',
-    }}>{marking.banner}</div>
-  )
-}
 
 // Where the key came from: one line per decision, from the person to the custodian that answered.
 // Rows are real decisions (the open just made, the last refusal); nothing is drawn for a request that was not made.
@@ -196,17 +106,10 @@ function RoutePanel({ rows }) {
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
-export default function GcapPage() {
-  const [aiReady, setAiReady] = useState(!window.electronAPI?.getAiStatus)
-  const [aiError, setAiError] = useState(null)
-  const [vault, setVault] = useState(null)
-  const [progress, setProgress] = useState(null)
-
+function Workspace({ vault, world, active, resetKey, onEditPerson }) {
+  const { epoch, byId, people, revokedIds } = world
   const [personaId, setPersonaId] = useState(DEFAULT_PERSONA)
-  const [listing, setListing] = useState(null)   // results for the active persona, null while resolving
   const [selectedId, setSelectedId] = useState(null)
-  const [epoch, setEpoch] = useState(0)          // bumped by revoke / restore / reset to invalidate listings
-  const [revoked, setRevoked] = useState(false)
 
   const [log, setLog] = useState([])
   const [probeText, setProbeText] = useState('')
@@ -219,57 +122,32 @@ export default function GcapPage() {
   const [deviceResult, setDeviceResult] = useState(null)
 
   const [auditOpen, setAuditOpen] = useState(false)
-  const [matrix, setMatrix] = useState(null)
-  const [matrixBusy, setMatrixBusy] = useState(false)
 
-  const cache = useRef(new Map())
-  const persona = PERSONA_BY_ID[personaId]
+  const persona = byId[personaId] ?? byId[DEFAULT_PERSONA] ?? people[0]
+  const revoked = revokedIds.has(COMPROMISED_ID)
 
   const addLog = useCallback((entry) => {
     setLog(l => [{ t: nowStamp(), ...entry }, ...l].slice(0, 60))
   }, [])
 
-  // Wait for the AI seeder: GCAP identities are written by it, and a listing taken earlier would
-  // show every persona an empty tree and read as a bug in the KAS.
-  useEffect(() => {
-    const api = window.electronAPI
-    if (!api?.getAiStatus) return
-    const handle = (s) => {
-      if (s === 'ready') setAiReady(true)
-      else if (s && s.state === 'error') setAiError(s.message)
-    }
-    const off = api.onAiStatus?.(handle)
-    api.getAiStatus().then(handle).catch(() => {})
-    return off
-  }, [])
+  // The workspace is this person's row of the shared matrix: one rewrap per document, taken once.
+  const listing = useMemo(() => {
+    const row = world.cells[persona?.id]
+    if (!row || !DOCUMENTS.every(d => row[d.id])) return null
+    return DOCUMENTS.map(d => row[d.id])
+  }, [world.cells, persona?.id])
 
-  // Encrypt the vault once per app session.
+  const loggedFor = useRef(null)
   useEffect(() => {
-    if (!aiReady || vault) return
-    let live = true
-    encryptVault(p => live && setProgress(p))
-      .then(v => { if (live) setVault(v) })
-      .catch(e => live && setAiError(e.message))
-    return () => { live = false }
-  }, [aiReady, vault])
+    if (!listing || loggedFor.current === persona.id) return
+    loggedFor.current = persona.id
+    const n = listing.filter(r => r.granted).length
+    addLog({ persona: persona.name, action: 'Workspace resolved', detail: `${n} object${n === 1 ? '' : 's'} released`, ok: true })
+  }, [listing, persona, addLog])
 
-  // Resolve the active persona's workspace: one rewrap per document.
   useEffect(() => {
-    if (!vault) return
-    let live = true
-    const key = `${personaId}:${epoch}`
-    const hit = cache.current.get(key)
-    if (hit) { setListing(hit); return }
-    setListing(null)
-    listFor(vault, personaId).then(results => {
-      if (!live) return
-      cache.current.set(key, results)
-      setListing(results)
-      const n = results.filter(r => r.granted).length
-      addLog({ persona: PERSONA_BY_ID[personaId].name, action: 'Workspace resolved', detail: `${n} object${n === 1 ? '' : 's'} released`, ok: true })
-    })
-    return () => { live = false }
-  }, [vault, personaId, epoch, addLog])
+    if (!byId[personaId] && people.length) setPersonaId(DEFAULT_PERSONA)
+  }, [byId, personaId, people.length])
 
   // Keep the selection valid for whoever is looking.
   useEffect(() => {
@@ -280,6 +158,7 @@ export default function GcapPage() {
 
   // Presenter-only auditor view: a shortcut, not a control, so no persona's screen offers it.
   useEffect(() => {
+    if (!active) return
     const onKey = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
         e.preventDefault()
@@ -289,17 +168,18 @@ export default function GcapPage() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  }, [active])
 
+  const firstReset = useRef(resetKey)
   useEffect(() => {
-    if (!auditOpen || !vault) return
-    let live = true
-    setMatrixBusy(true)
-    setMatrix({})
-    auditMatrix(vault, (id, row) => live && setMatrix(m => ({ ...m, [id]: row })))
-      .finally(() => live && setMatrixBusy(false))
-    return () => { live = false }
-  }, [auditOpen, vault, epoch])
+    if (resetKey === firstReset.current) return
+    loggedFor.current = null
+    setPersonaId(DEFAULT_PERSONA)
+    setSelectedId(null)
+    setStolen([]); setStolenInfo(null); setDeviceResult(null)
+    setProbeText(''); setProbeResult(null); setRefusal(null)
+    setLog([])
+  }, [resetKey])
 
   const visible = useMemo(() => (listing ?? []).filter(r => r.granted), [listing])
   const selected = visible.find(r => r.doc.id === selectedId) ?? null
@@ -308,6 +188,12 @@ export default function GcapPage() {
   const byFolder = useMemo(() => FOLDERS
     .map(f => ({ folder: f, items: visible.filter(r => r.doc.folder === f) }))
     .filter(g => g.items.length), [visible])
+
+  const cast = useMemo(() => {
+    const groups = CAST.map(g => ({ label: g.label, people: g.ids.map(id => byId[id]).filter(Boolean) }))
+    const added = people.filter(p => p.added)
+    return added.length ? [...groups, { label: 'Added in free play', people: added }] : groups
+  }, [byId, people])
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
@@ -380,54 +266,17 @@ export default function GcapPage() {
   }
 
   const doRevoke = async () => {
-    await revoke(COMPROMISED_ID)
-    setRevoked(true)
-    setEpoch(e => e + 1)
+    await world.revokeAccount(COMPROMISED_ID)
     setDeviceResult(null)
     addLog({ persona: 'Programme security', action: 'Revoke', ok: false, detail: `${COMPROMISED.name}'s account withdrawn at the IdP` })
   }
 
   const doRestore = async () => {
-    await restore(COMPROMISED_ID)
-    setRevoked(false)
-    setEpoch(e => e + 1)
+    await world.restoreAccount(COMPROMISED_ID)
     setDeviceResult(null)
   }
 
-  const reset = async () => {
-    await restore('*')
-    cache.current.clear()
-    setRevoked(false)
-    setEpoch(e => e + 1)
-    setPersonaId(DEFAULT_PERSONA)
-    setSelectedId(null)
-    setStolen([]); setStolenInfo(null); setDeviceResult(null)
-    setProbeText(''); setProbeResult(null); setRefusal(null)
-    setLog([])
-  }
-
   // ── Render ─────────────────────────────────────────────────────────────────
-
-  if (aiError) {
-    return <Shell><div style={{ padding: 32 }}><Verdict granted={false}>GCAP could not start: {aiError}</Verdict></div></Shell>
-  }
-
-  if (!vault) {
-    return (
-      <Shell><div style={{ padding: 48, maxWidth: 520, margin: '0 auto', textAlign: 'center' }}>
-        <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--c-text-1)' }}>Advanced Collaborative Environment</div>
-        <div style={{ marginTop: 8, fontSize: 13, color: 'var(--c-text-4)' }}>
-          {!aiReady ? 'Waiting for the platform to finish seeding programme identities…'
-            : progress ? `Encrypting ${progress.label} (${progress.done + 1} of ${progress.total})…` : 'Preparing the vault…'}
-        </div>
-        {progress && (
-          <div style={{ marginTop: 14, height: 6, background: 'var(--c-border)', borderRadius: 3, overflow: 'hidden' }}>
-            <div style={{ width: `${(progress.done / progress.total) * 100}%`, height: '100%', background: SKY, transition: 'width .2s' }} />
-          </div>
-        )}
-      </div></Shell>
-    )
-  }
 
   const custodian = selected ? CUSTODIANS[selected.doc.custodian] : null
   const yourTerm = marking?.level && marking.programme ? nationalEquivalent(marking.level, persona.nation.toLowerCase()) : null
@@ -447,8 +296,7 @@ export default function GcapPage() {
   ].filter(Boolean) : []
 
   return (
-    <Shell>
-    <div style={{ padding: '20px 24px 40px', maxWidth: 1400, margin: '0 auto' }}>
+    <div>
       {/* Title */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 20, marginBottom: 16 }}>
         <div>
@@ -457,7 +305,6 @@ export default function GcapPage() {
             The UK, Italy and Japan work in one environment with the programme office, the Edgewing design authority and three industry partners. Everyone sees only what their attributes release.
           </div>
         </div>
-        <Button onClick={reset}>Reset demo</Button>
       </div>
 
       {/* Who is looking */}
@@ -474,36 +321,36 @@ export default function GcapPage() {
         <div style={{ flex: '1 1 320px', paddingLeft: 18, borderLeft: '1px solid var(--c-border)', fontSize: 15, lineHeight: 1.5, color: 'var(--c-text-2)' }}>
           {persona.note}
         </div>
+        {world.live && <Button onClick={() => onEditPerson(persona.id)}>Edit access</Button>}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(190px, 220px) minmax(250px, 300px) minmax(0, 1fr)', gap: 18, alignItems: 'start' }}>
         {/* Cast */}
         <div role="group" aria-label="Viewing as" style={{ position: 'sticky', top: 16, maxHeight: 'calc(100vh - 110px)', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {CAST.map(g => (
+          {cast.map(g => (
             <div key={g.label} role="group" aria-label={g.label}>
               <div style={{ padding: '0 10px 4px', fontSize: 12, fontWeight: 600, color: 'var(--c-text-5)' }}>{g.label}</div>
-              {g.ids.map(id => {
-                const p = PERSONA_BY_ID[id]
-                const active = p.id === personaId
-                const gone = revoked && p.id === COMPROMISED_ID
-                const flag = p.id === COMPROMISED_ID ? (gone ? 'revoked' : 'account at risk') : p.id === 'gcap-ryan' ? 'outsider' : null
+              {g.people.map(p => {
+                const on = p.id === persona.id
+                const gone = revokedIds.has(p.id)
+                const flag = gone ? 'revoked' : p.id === COMPROMISED_ID ? 'account at risk' : p.id === 'gcap-ryan' ? 'outsider' : p.added ? 'added' : null
                 return (
-                  <button key={p.id} aria-current={active} onClick={() => choosePersona(p.id)} style={{
+                  <button key={p.id} aria-current={on} onClick={() => choosePersona(p.id)} style={{
                     display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px', borderRadius: 10, cursor: 'pointer',
-                    background: active ? 'var(--c-info-bg)' : 'transparent', border: 'none', textAlign: 'left', width: '100%',
+                    background: on ? 'var(--c-info-bg)' : 'transparent', border: 'none', textAlign: 'left', width: '100%',
                   }}>
                     <Avatar persona={p} size={34} dim={gone} />
                     <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25, minWidth: 0, flex: 1 }}>
-                      <span style={{ fontSize: 13.5, fontWeight: 600, color: active ? 'var(--c-text-1)' : 'var(--c-text-3)', textDecoration: gone ? 'line-through' : 'none' }}>{p.name}</span>
+                      <span style={{ fontSize: 13.5, fontWeight: 600, color: on ? 'var(--c-text-1)' : 'var(--c-text-3)', textDecoration: gone ? 'line-through' : 'none' }}>{p.name}</span>
                       <span title={`${p.employer} · ${p.nation}`} style={{ fontSize: 11.5, color: 'var(--c-text-5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {SHORT_EMPLOYER[p.employer] ?? p.employer} · {p.nation}
                       </span>
                       {flag && (
                         <span style={{
                           alignSelf: 'flex-start', marginTop: 3, fontSize: 10.5, fontWeight: 600, padding: '0 6px', borderRadius: 4,
-                          color: p.id === COMPROMISED_ID ? 'var(--c-deny)' : 'var(--c-text-4)',
-                          background: p.id === COMPROMISED_ID ? 'var(--c-deny-bg)' : 'var(--c-surface)',
-                          border: `1px solid ${p.id === COMPROMISED_ID ? 'var(--c-deny-br)' : 'var(--c-border)'}`,
+                          color: gone || p.id === COMPROMISED_ID ? 'var(--c-deny)' : 'var(--c-text-4)',
+                          background: gone || p.id === COMPROMISED_ID ? 'var(--c-deny-bg)' : 'var(--c-surface)',
+                          border: `1px solid ${gone || p.id === COMPROMISED_ID ? 'var(--c-deny-br)' : 'var(--c-border)'}`,
                         }}>{flag}</span>
                       )}
                     </span>
@@ -680,15 +527,14 @@ export default function GcapPage() {
         </div>
       </div>
 
-      {auditOpen && <AuditorOverlay matrix={matrix} busy={matrixBusy} onClose={() => setAuditOpen(false)} />}
+      {auditOpen && <AuditorOverlay people={people} cells={world.cells} busy={world.syncing} onClose={() => setAuditOpen(false)} />}
     </div>
-    </Shell>
   )
 }
 
 // ── Presenter-only auditor view ──────────────────────────────────────────────
 
-function AuditorOverlay({ matrix, busy, onClose }) {
+function AuditorOverlay({ people, cells: matrix, busy, onClose }) {
   const totals = (id) => matrix?.[id] ? Object.values(matrix[id]).filter(r => r.granted).length : null
   const ink = { color: INK }
   const line = { height: 2, background: '#B9C3C9', borderRadius: 1 }
@@ -723,7 +569,7 @@ function AuditorOverlay({ matrix, busy, onClose }) {
           <thead>
             <tr>
               <th style={{ textAlign: 'left', padding: 4 }}>Document</th>
-              {PERSONAS.map(p => (
+              {people.map(p => (
                 <th key={p.id} style={{ padding: 4, fontWeight: 600, minWidth: 64 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                     <Avatar persona={p} size={22} />
@@ -737,19 +583,138 @@ function AuditorOverlay({ matrix, busy, onClose }) {
             {DOCUMENTS.map(d => (
               <tr key={d.id} style={{ borderTop: '1px solid #D5DCE0' }}>
                 <td style={{ padding: '6px 10px 6px 4px', whiteSpace: 'nowrap' }}>{d.title}</td>
-                {PERSONAS.map(p => (
+                {people.map(p => (
                   <td key={p.id} style={{ padding: '6px 8px', verticalAlign: 'middle' }}>{cellMark(matrix?.[p.id]?.[d.id])}</td>
                 ))}
               </tr>
             ))}
             <tr style={{ borderTop: '2px solid #52636F', fontWeight: 700 }}>
               <td style={{ padding: 4 }}>Visible to them</td>
-              {PERSONAS.map(p => <td key={p.id} style={{ textAlign: 'center', padding: 4 }}>{totals(p.id) ?? '…'}</td>)}
+              {people.map(p => <td key={p.id} style={{ textAlign: 'center', padding: 4 }}>{totals(p.id) ?? '…'}</td>)}
             </tr>
           </tbody>
         </table>
-        <div style={{ marginTop: 8, fontSize: 11, color: '#52636F' }}>{UNITS.length} encrypted objects · {DOCUMENTS.length} documents · Ctrl/Cmd+Shift+A or Esc to close</div>
+        <div style={{ marginTop: 8, fontSize: 11, color: '#52636F' }}>{DOCUMENTS.reduce((n, d) => n + (d.tiers?.length ?? 1), 0)} encrypted objects · {DOCUMENTS.length} documents · Ctrl/Cmd+Shift+A or Esc to close</div>
       </div>
     </div>
+  )
+}
+
+// ── Page ─────────────────────────────────────────────────────────────────────
+
+const TABS = [
+  { id: 'workspace', label: 'Workspace' },
+  { id: 'windows', label: 'Three windows' },
+  { id: 'day', label: 'A day on the programme' },
+]
+
+export default function GcapPage() {
+  const [aiReady, setAiReady] = useState(!window.electronAPI?.getAiStatus)
+  const [aiError, setAiError] = useState(null)
+  const [vault, setVault] = useState(null)
+  const [progress, setProgress] = useState(null)
+  const [tab, setTab] = useState('workspace')
+  const [resetKey, setResetKey] = useState(0)
+  const [editor, setEditor] = useState(null)   // { person: id | null } | { doc: id } | null
+  const [resetting, setResetting] = useState(false)
+
+  const world = useWorld(vault)
+
+  // Wait for the AI seeder: GCAP identities are written by it, and a listing taken earlier would
+  // show every persona an empty tree and read as a bug in the KAS.
+  useEffect(() => {
+    const api = window.electronAPI
+    if (!api?.getAiStatus) return
+    const handle = (s) => {
+      if (s === 'ready') setAiReady(true)
+      else if (s && s.state === 'error') setAiError(s.message)
+    }
+    const off = api.onAiStatus?.(handle)
+    api.getAiStatus().then(handle).catch(() => {})
+    return off
+  }, [])
+
+  // Encrypt the vault once per app session.
+  useEffect(() => {
+    if (!aiReady || vault) return
+    let live = true
+    encryptVault(p => live && setProgress(p))
+      .then(v => { if (live) setVault(v) })
+      .catch(e => live && setAiError(e.message))
+    return () => { live = false }
+  }, [aiReady, vault])
+
+  const resetDemo = async () => {
+    setResetting(true)
+    setEditor(null)
+    try {
+      await world.resetAll()
+      setResetKey(k => k + 1)
+    } finally {
+      setResetting(false)
+    }
+  }
+
+  if (aiError) {
+    return <Shell><div style={{ padding: 32 }}><Verdict granted={false}>GCAP could not start: {aiError}</Verdict></div></Shell>
+  }
+
+  if (!vault) {
+    return (
+      <Shell><div style={{ padding: 48, maxWidth: 520, margin: '0 auto', textAlign: 'center' }}>
+        <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--c-text-1)' }}>Advanced Collaborative Environment</div>
+        <div style={{ marginTop: 8, fontSize: 13, color: 'var(--c-text-4)' }}>
+          {!aiReady ? 'Waiting for the platform to finish seeding programme identities…'
+            : progress ? `Encrypting ${progress.label} (${progress.done + 1} of ${progress.total})…` : 'Preparing the vault…'}
+        </div>
+        {progress && (
+          <div style={{ marginTop: 14, height: 6, background: 'var(--c-border)', borderRadius: 3, overflow: 'hidden' }}>
+            <div style={{ width: `${(progress.done / progress.total) * 100}%`, height: '100%', background: SKY, transition: 'width .2s' }} />
+          </div>
+        )}
+      </div></Shell>
+    )
+  }
+
+  const editPerson = (id) => setEditor({ person: id })
+  const editorPerson = editor && 'person' in editor && editor.person ? world.byId[editor.person] : null
+
+  return (
+    <Shell>
+      <div style={{ padding: '20px 24px 40px', maxWidth: 1400, margin: '0 auto' }}>
+        <div role="tablist" aria-label="GCAP demo" style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 18, borderBottom: '1px solid var(--c-border)' }}>
+          {TABS.map(t => (
+            <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)} style={{
+              padding: '9px 16px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600,
+              color: tab === t.id ? 'var(--c-text-1)' : 'var(--c-text-5)',
+              borderBottom: `2px solid ${tab === t.id ? SKY : 'transparent'}`, marginBottom: -1,
+            }}>{t.label}</button>
+          ))}
+          <span style={{ flex: 1 }} />
+          {world.syncing && <span style={{ fontSize: 12, color: 'var(--c-text-5)', marginRight: 10 }}>asking the key server…</span>}
+          <Button onClick={resetDemo} disabled={resetting} title="Everyone back to their starting access, every document to its original policy">Reset demo</Button>
+        </div>
+
+        <div hidden={tab !== 'workspace'}>
+          <Workspace vault={vault} world={world} active={tab === 'workspace'} resetKey={resetKey} onEditPerson={editPerson} />
+        </div>
+        <div hidden={tab !== 'windows'}>
+          <ThreeWindows vault={vault} world={world} active={tab === 'windows'} onEditPerson={editPerson} />
+        </div>
+        <div hidden={tab !== 'day'}>
+          <ProgrammeDay
+            vault={vault} world={world} active={tab === 'day'}
+            onEditPerson={editPerson} onAddPerson={() => setEditor({ person: null })} onEditDoc={(doc) => setEditor({ doc })}
+          />
+        </div>
+
+        {editor && 'person' in editor && (editor.person === null || editorPerson) && (
+          <PersonEditor key={editor.person ?? 'new'} world={world} person={editorPerson ?? undefined} onClose={() => setEditor(null)} onDone={() => setEditor(null)} />
+        )}
+        {editor && 'doc' in editor && (
+          <PolicyEditor world={world} vault={vault} docId={editor.doc} onClose={() => setEditor(null)} />
+        )}
+      </div>
+    </Shell>
   )
 }

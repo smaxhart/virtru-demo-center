@@ -1,6 +1,6 @@
 {
   "name": "virtru-demo-center",
-  "version": "1.8.6",
+  "version": "1.8.7-beta.1",
   "description": "Virtru Demo Center — self-contained Electron app with embedded OpenTDF platform",
   "author": "Virtru",
   "license": "UNLICENSED",
@@ -18,13 +18,14 @@
     "release:check": "node scripts/release.mjs stable --dry-run",
     "release:check:beta": "node scripts/release.mjs beta --dry-run",
     "postinstall": "electron-builder install-app-deps",
-    "verify": "npm run verify:pages && npm run verify:updater && npm run verify:matrix && npm run verify:uploads && npm run verify:scenario && npm run verify:gcap",
+    "verify": "npm run verify:pages && npm run verify:updater && npm run verify:matrix && npm run verify:uploads && npm run verify:scenario && npm run verify:gcap && npm run verify:sable",
     "verify:pages": "node scripts/verify-pages.mjs",
     "verify:updater": "node scripts/verify-updater.mjs",
     "verify:matrix": "node scripts/verify-matrix.mjs",
     "verify:uploads": "node scripts/verify-uploads.mjs",
     "verify:scenario": "node scripts/verify-scenario.mjs",
-    "verify:gcap": "node scripts/verify-gcap.mjs"
+    "verify:gcap": "node scripts/verify-gcap.mjs",
+    "verify:sable": "node scripts/verify-sable.mjs"
   },
   "dependencies": {
     "@opentdf/sdk": "^0.19.0",

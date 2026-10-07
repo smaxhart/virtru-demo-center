@@ -5,6 +5,7 @@ import UiIcon from '../components/UiIcon.jsx'
 const CAPABILITIES = [
   { to: '/cop',         icon: 'pin',    label: 'Common Operating Picture', desc: 'Each partner sees only what their attributes release' },
   { to: '/gcap',        icon: 'plane',  label: 'GCAP',                     desc: 'Three nations share a supply chain and keep sovereignty', isNew: true },
+  { to: '/sable',       icon: 'target', label: 'SABLE',                    desc: 'Three suppliers run a joint simulation, and the result is sealed by what went in', isNew: true },
   { to: '/collaborate', icon: 'people', label: 'Collaborate',              desc: 'Files stay protected after they leave the building' },
   { to: '/ai-agent',    icon: 'shield', label: 'AI Protection',            desc: 'AI on sensitive data, within each person’s clearance', isNew: true },
 ]

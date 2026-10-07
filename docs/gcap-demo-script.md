@@ -1,6 +1,6 @@
 # GCAP Demo Script — One Environment, Three Nations
 
-**Status:** DRAFT. The page does not exist yet; every click target below is the *planned* one.
+**Status:** The Workspace tab is built; see "Live Tabs" for the two newer tabs. Markings still need partner review.
 **Runtime:** ~11 minutes (cut list at the bottom gets it to ~8)
 **Page:** GCAP — Advanced Collaborative Environment (ACE)
 **Narrative:** Interoperability and supply-chain management for a three-nation fighter programme, with data sovereignty as the spine — and a competitor, a compromised supplier, and a platform administrator as the three ways it could go wrong.
@@ -225,6 +225,31 @@ Counts are tree items. The interface control document is one item whose contents
 - **"How do I know those files are really there?"** Open the Auditor view. The grid is built from the live policy decisions, so a hidden file shows as a hidden file, not as a missing one.
 - **"Who can see the auditor view?"** Only the presenter. It is deliberately not a role in the demo, because a role would be an attribute someone could hold.
 - **"Can a competitor tell the programme is bigger than what they see?"** Not from the tree or the counter, and a probe for a specific file is refused and logged. What they can know is only what they can already guess.
+
+## Live Tabs — Three Windows and A Day on the Programme
+
+The page has three tabs: **Workspace** (Acts 1–8 above), **Three windows** and **A day on the programme**. Both new tabs are live KAS rewraps and both support free play.
+
+**Every visit starts the day fresh.** Opening the GCAP page resets every person, document and revocation to the shipped state, so an edit made in one run never leaks into the next. **Reset demo** does the same on demand.
+
+### Three windows (~2 min)
+
+One ICD opened at once by Marco (Rome), Priya (Filton) and Kenji (Nagoya). Press **Open for all three**: Marco is served the full release, Priya and Kenji the extract, with the withheld block shown on their sheets. Each window's person is a dropdown, so swap in Ryan or Wren. The chips under each sheet say why; the verdict is always the key server's. **Seal it again** closes all three; an open window re-asks on its own after any edit.
+
+### A day on the programme (~3 min)
+
+**Run the day** plays four events 3 s apart; **Apply this one** plays any single event. Each event is one change at the identity provider, and the matrix shows only what the KAS then answered differently (9 of 140 decisions over the whole day):
+
+| Time | Event | Effect |
+|---|---|---|
+| 08:12 | Owen's shop is acquired (drops Tier-3) | Owen loses the work order |
+| 10:47 | Wren's account is compromised (revoked) | Wren loses the ICD extract and the work order |
+| 13:30 | Priya's clearance lapses to RESTRICTED | Priya loses sensors, BoM and the NATO paper |
+| 16:05 | Kenji moves to integration | Kenji loses engine and the Japan range plan; his ICD extract becomes the full ICD |
+
+Nuance for Q&A: revoked Wren **still opens the GCAP Programme Overview**, because its policy is empty and needs no entitlement. Say so before anyone else notices.
+
+**Free play.** Click a person's header to edit their attributes, a document's row title to change its policy (the file is re-encrypted; earlier copies keep the old policy), **Add person** to create someone with any access, or any cell to see why. Each edit is a real change to the platform's subject mappings or ciphertext, and takes effect on the very next rewrap: the platform does not cache decisions.
 
 ## What Not to Claim
 

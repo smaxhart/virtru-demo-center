@@ -109,6 +109,15 @@ const ATTRIBUTE_DEFS = [
   // (GCAP RESTRICTED / GCAP SECRET) are rendered from these by `src/gcap/marking.js`, not stored.
   { name: 'workpackage', rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ANY_OF',    values: ['airframe', 'propulsion', 'sensors', 'integration'] },
   { name: 'supplytier',  rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ANY_OF',    values: ['partner', 'tier2', 'tier3'] },
+
+  // ── SABLE · joint mission engineering ─────────────────────────────────────
+  // The first ALL_OF definitions in the vocabulary, and the reason they exist: a simulation output
+  // is derived from several companies' models, so reading it takes the need-to-know of EVERY
+  // producer at once. ANY_OF would let one work package open everything. `sablewp` is the work
+  // package, `sablecomp` the compartment on the sealed threat side, `sableteam` program membership.
+  { name: 'sablewp',     rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ALL_OF',    values: ['airframe', 'propulsion', 'missionsys', 'threat'] },
+  { name: 'sablecomp',   rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ALL_OF',    values: ['kestrel'] },
+  { name: 'sableteam',   rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ANY_OF',    values: ['member'] },
 ]
 
 /**
@@ -198,6 +207,22 @@ const HUMANS = {
   'gcap-owen':    { name: 'Owen Pryce',     grants: { clearance: 'cui',          nationality: 'gbr', workpackage: 'airframe', supplytier: 'tier3' } },
   'gcap-sanjay':  { name: 'Sanjay Rao',     grants: { clearance: 'unclassified', nationality: 'gbr', supplytier: 'partner', role: 'admin' } },
   'gcap-ryan':    { name: 'Ryan Mercer',    grants: { clearance: 'unclassified', nationality: 'usa' } },
+
+  // ── SABLE · joint mission engineering ─────────────────────────────────────
+  // Clearance reuses the shared ladder: cui = CUI, secret = SECRET, ts-sci = TOP SECRET. The
+  // demo's CONFIDENTIAL rung is not used by any policy and is left out rather than inserted into
+  // an already-seeded hierarchy.
+  'sable-dana':    { name: 'Dana Whitfield',    grants: { clearance: 'secret', sablewp: 'airframe',   sableteam: 'member' } },
+  'sable-raj':     { name: 'Raj Patel',         grants: { clearance: 'secret', sablewp: 'propulsion', sableteam: 'member' } },
+  'sable-elena':   { name: 'Elena Marsh',       grants: { clearance: 'secret', sablewp: 'missionsys', sableteam: 'member' } },
+  'sable-tyler':   { name: 'Tyler Brandt',      grants: { clearance: 'cui',    sablewp: 'propulsion', sableteam: 'member' } },
+  'sable-okafor':  { name: 'Maj. Chris Okafor', grants: { clearance: 'secret', sablewp: ['airframe', 'propulsion', 'missionsys'], sableteam: 'member' } },
+  'sable-vasquez': { name: 'Dr. Lena Vasquez',  grants: { clearance: 'ts-sci', sablewp: 'threat',     sableteam: 'member' } },
+  'sable-hale':    { name: 'Col. Marcus Hale',  grants: { clearance: 'ts-sci', sablewp: ['airframe', 'propulsion', 'missionsys', 'threat'], sablecomp: 'kestrel', sableteam: 'member' } },
+  // The pipeline runner is a service identity, not a person, but it is listed here rather than in
+  // AGENTS: AGENTS are the AI agents a mode offers, and no mode offers this. It holds every grant so
+  // it can decrypt a run's inputs; see src/sable/vault.js for why that is the named trust boundary.
+  'sable-runner':  { name: 'AFSIM enclave runner', grants: { clearance: 'ts-sci', sablewp: ['airframe', 'propulsion', 'missionsys', 'threat'], sablecomp: 'kestrel', sableteam: 'member' } },
 }
 
 /**

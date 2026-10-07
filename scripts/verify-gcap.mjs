@@ -18,6 +18,16 @@
  *      files by the same KAS, and the restore brings it back. An unauthenticated client is refused
  *      throughout. Always restores, even on failure, so a red run never leaves an account withdrawn.
  *   5. Banners — the marking derived from a few policies, since those strings are what the audience reads.
+ *   6. Free play — editing a person changes the KAS's answer at once (the platform's subject mappings
+ *      are rewritten, not a token), an added person is entitled, a removed one is not, and reset puts
+ *      everyone back. Needs the app started with `--remote-debugging-port=9333` so the edits can be
+ *      made through the same IPC the page uses; without it this section is reported as SKIPPED,
+ *      never as passed.
+ *   7. A day on the programme — the four scripted events are applied in order and the units whose
+ *      KAS answer changed must be exactly the hand-written set below. Policy editing: a unit
+ *      re-encrypted under a wider policy opens for the people the new policy admits and nobody else.
+ *   8. The "why" chips — the page's explanation of a decision (entitle.js + policyMatch.js) must agree
+ *      with the KAS for every person and unit; the chips explain, they never decide.
  */
 
 import { OpenTDF } from '@opentdf/sdk/singlecontainer'
@@ -25,6 +35,9 @@ import { authTokenInterceptor } from '@opentdf/sdk'
 import identities from '../electron/ai-identities.js'
 import { PERSONAS, DOCUMENTS, UNITS, COMPROMISED_ID } from '../src/gcap/data.js'
 import { markingOf } from '../src/gcap/marking.js'
+import { DAY, cleanGrants } from '../src/gcap/events.js'
+import { entitlementsOf, specFromPolicy, policyFromSpec } from '../src/gcap/entitle.js'
+import { satisfiesPolicy } from '../src/data/policyMatch.js'
 
 const { IDENTITIES, ATTRIBUTE_DEFS, NS } = identities
 
@@ -55,6 +68,14 @@ const EXPECTED_COUNTS = {
 const EXPECTED_ICD_RAW = {
   full:    ['gcap-marco', 'gcap-harriet'],
   extract: ['gcap-marco', 'gcap-harriet', 'gcap-kenji', 'gcap-priya', 'gcap-oliver', 'gcap-giulia', 'gcap-wren'],
+}
+
+/** Units whose answer changes when the day's four events run, written out by hand. */
+const EXPECTED_DAY = {
+  'owen-acquired':    { 'gcap-owen':  { lost: ['workorder'], gained: [] } },
+  'wren-compromised': { 'gcap-wren':  { lost: ['icd:extract', 'workorder'], gained: [] } },
+  'priya-lapse':      { 'gcap-priya': { lost: ['sensors', 'bom', 'nato-paper'], gained: [] } },
+  'kenji-moved':      { 'gcap-kenji': { lost: ['engine', 'jp-range'], gained: ['icd:full'] } },
 }
 
 const EXPECTED_BANNERS = {
@@ -139,6 +160,15 @@ async function canOpen(tdfBytes, accessToken) {
   }
 }
 
+async function cdpRoster() {
+  const page = await cdp()
+  if (!page) return null
+  try {
+    const { people } = await page.call('window.electronAPI.gcapPeople()')
+    return Object.fromEntries(people.map(p => [p.id, p.grants]))
+  } finally { page.close() }
+}
+
 async function issuer(path, username) {
   const res = await fetch(`${ISSUER_URL}${path}`, {
     method: 'POST',
@@ -146,6 +176,36 @@ async function issuer(path, username) {
     body: new URLSearchParams({ username }),
   })
   return { status: res.status, body: await res.json().catch(() => null) }
+}
+
+
+// ── Free play (through the app's own IPC, over the debug port) ───────────────
+
+const CDP_PORT = process.env.GCAP_CDP_PORT ?? '9333'
+
+async function cdp() {
+  const targets = await fetch(`http://127.0.0.1:${CDP_PORT}/json`).then(r => r.json()).catch(() => null)
+  const page = targets?.find(t => t.type === 'page' && t.webSocketDebuggerUrl && !t.url.startsWith('devtools:'))
+  if (!page) return null
+  const ws = new WebSocket(page.webSocketDebuggerUrl)
+  await new Promise((res, rej) => { ws.onopen = res; ws.onerror = () => rej(new Error('CDP connect failed')) })
+  let n = 0
+  const pending = new Map()
+  ws.onmessage = (m) => {
+    const d = JSON.parse(m.data)
+    if (d.id && pending.has(d.id)) { pending.get(d.id)(d); pending.delete(d.id) }
+  }
+  return {
+    async call(expr) {
+      const id = ++n
+      const done = new Promise(res => pending.set(id, res))
+      ws.send(JSON.stringify({ id, method: 'Runtime.evaluate', params: { expression: expr, awaitPromise: true, returnByValue: true } }))
+      const d = await done
+      if (d.result?.exceptionDetails) throw new Error(d.result.exceptionDetails.exception?.description ?? 'evaluate failed')
+      return d.result?.result?.value
+    },
+    close: () => ws.close(),
+  }
 }
 
 let failures = 0
@@ -215,6 +275,19 @@ try {
   const sample = raw['gcap-marco']['engine']
   check('decrypted text equals the original', sample.ok && sample.text === DOCUMENTS.find(d => d.id === 'engine').text)
 
+  console.log('\nWhy chips agree with the key server:')
+  {
+    const roster = (await cdpRoster())
+    if (roster) {
+      let disagree = []
+      for (const p of PERSONAS) for (const u of UNITS) {
+        const chips = u.policy.length === 0 || satisfiesPolicy(entitlementsOf(roster[p.id]), u.policy)
+        if (chips !== raw[p.id][u.key].ok) disagree.push(`${p.id}×${u.key}`)
+      }
+      check(`chips match the KAS for all ${PERSONAS.length * UNITS.length} person × unit pairs`, disagree.length === 0, disagree.join(', '))
+    } else console.log('  SKIPPED — needs the debug port.')
+  }
+
   console.log('\nRevocation:')
   const stolenFile = vault.get('workorder').bytes
   const before = await canOpen(stolenFile, await token(COMPROMISED_ID))
@@ -235,6 +308,119 @@ try {
   await issuer('/restore', COMPROMISED_ID)
   const restored = await canOpen(stolenFile, await token(COMPROMISED_ID))
   check('restore brings the account back', restored.ok, restored.reason)
+
+  console.log('\nFree play:')
+  const page = await cdp()
+  if (!page) {
+    console.log(`  SKIPPED — no debug port on :${CDP_PORT}. Start the app with --remote-debugging-port=${CDP_PORT} to run these.`)
+  } else {
+    const api = (fn, ...args) => page.call(`window.electronAPI.${fn}(${args.map(a => JSON.stringify(a)).join(',')})`)
+    const opens = async (personaId, unitKey) => (await canOpen(vault.get(unitKey).bytes, await token(personaId))).ok
+    const grants = async (id) => (await api('gcapPeople')).people.find(p => p.id === id)?.grants
+    try {
+      await api('gcapResetPeople')
+
+      // Priya (secret · gbr · sensors · partner) demoted to CUI: every SECRET unit goes, CUI ones stay.
+      check('baseline: priya opens sensors, bom and governance',
+        (await opens('gcap-priya', 'sensors')) && (await opens('gcap-priya', 'bom')) && (await opens('gcap-priya', 'governance')))
+      const p0 = await grants('gcap-priya')
+      const t0 = Date.now()
+      await api('gcapSetPerson', 'gcap-priya', { ...p0, clearance: 'cui' })
+      const refused = !(await opens('gcap-priya', 'sensors')) && !(await opens('gcap-priya', 'bom'))
+      check(`demoted to CUI: sensors and bom refused on the very next rewrap (${Date.now() - t0} ms incl. edit)`, refused)
+      check('demoted to CUI: governance and the icd extract still open',
+        (await opens('gcap-priya', 'governance')) && (await opens('gcap-priya', 'icd:extract')))
+      check('a colleague is unaffected by the edit', await opens('gcap-marco', 'sensors'))
+      await api('gcapSetPerson', 'gcap-priya', p0)
+      check('restored to SECRET: sensors opens again', await opens('gcap-priya', 'sensors'))
+
+      // Ryan (unclassified · usa) is given a GCAP footing one grant at a time.
+      const r0 = await grants('gcap-ryan')
+      check('baseline: ryan refused governance', !(await opens('gcap-ryan', 'governance')))
+      await api('gcapSetPerson', 'gcap-ryan', { clearance: 'cui', nationality: 'gbr' })
+      check('cui + gbr alone is not enough for governance (needs tier partner)', !(await opens('gcap-ryan', 'governance')))
+      await api('gcapSetPerson', 'gcap-ryan', { clearance: 'cui', nationality: 'gbr', supplytier: 'partner' })
+      check('cui + gbr + partner opens governance', await opens('gcap-ryan', 'governance'))
+      check('…but not funding (needs the finance role)', !(await opens('gcap-ryan', 'funding')))
+      await api('gcapSetPerson', 'gcap-ryan', r0)
+
+      // A person who never existed.
+      const added = await api('gcapAddPerson', { name: 'Elena Rossi', nation: 'ita', grants: { clearance: 'cui', nationality: 'ita', workpackage: 'airframe', supplytier: 'tier3' } })
+      check('an added person gets a gcap-x- id', /^gcap-x-elena-rossi-\d+$/.test(added?.id ?? ''), String(added?.id))
+      check('added person (cui · ita · airframe · tier3) opens the work order', await opens(added.id, 'workorder'))
+      check('…but not governance (tier3 is not partner)', !(await opens(added.id, 'governance')))
+      check('…and not SECRET material', !(await opens(added.id, 'sensors')))
+      await api('gcapRemovePerson', added.id)
+      check('removed: the issuer no longer knows the person, so no token at all',
+        (await fetch(`${ISSUER_URL}/token`, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ username: added.id }) })).status === 400)
+      const mappingsLeft = await api('gcapResetPeople')
+      check('removed: no mapping is left behind for them on the platform', mappingsLeft.deleted === 0, `reset had to delete ${mappingsLeft.deleted}`)
+      check('a shipped person cannot be removed', await api('gcapRemovePerson', 'gcap-marco').then(() => false, () => true))
+
+      // Values outside the seeded vocabulary are refused rather than silently mapped to nothing.
+      check('an unseeded value is rejected', await api('gcapSetPerson', 'gcap-ryan', { nationality: 'atlantis' }).then(() => false, () => true))
+      check('a non-gcap subject cannot be edited', await api('gcapSetPerson', 'dow-sarah', { clearance: 'cui' }).then(() => false, () => true))
+
+      const r = await api('gcapResetPeople')
+      check('reset: an edited person is back to shipped grants', (await grants('gcap-priya')).clearance === 'secret')
+      await api('gcapSetPerson', 'gcap-ryan', { clearance: 'cui', nationality: 'gbr', supplytier: 'partner' })
+      await api('gcapResetPeople')
+      check('reset: ryan is refused governance again', !(await opens('gcap-ryan', 'governance')))
+      check('reset: the roster is the ten shipped people', r.people.length === 10 && r.people.every(p => !p.added), String(r.people.length))
+      check('reset is idempotent (a second one changes nothing)', (await api('gcapResetPeople')).created === 0)
+
+      // ── A day on the programme ──
+      console.log('\nA day on the programme (each event applied in order; changed units must equal the hand-written set):')
+      const snapshot = async () => {
+        const out = {}
+        for (const p of PERSONAS) {
+          const t = await token(p.id)
+          out[p.id] = Object.fromEntries(await Promise.all(UNITS.map(async u => [u.key, (await canOpen(vault.get(u.key).bytes, t)).ok])))
+        }
+        return out
+      }
+      let prev = await snapshot()
+      for (const ev of DAY) {
+        if (ev.change.kind === 'revoke') await api('gcapRevoke', ev.person)
+        else {
+          const g = await grants(ev.person)
+          await api('gcapSetPerson', ev.person, cleanGrants(ev.change.apply(g)))
+        }
+        const next = await snapshot()
+        const got = {}
+        for (const p of PERSONAS) for (const u of UNITS) {
+          if (prev[p.id][u.key] === next[p.id][u.key]) continue
+          const e = (got[p.id] ??= { lost: [], gained: [] })
+          ;(next[p.id][u.key] ? e.gained : e.lost).push(u.key)
+        }
+        for (const e of Object.values(got)) { e.lost.sort(); e.gained.sort() }
+        const want = Object.fromEntries(Object.entries(EXPECTED_DAY[ev.id]).map(([k, v]) => [k, { lost: [...v.lost].sort(), gained: [...v.gained].sort() }]))
+        check(`${ev.time} ${ev.title}: ${JSON.stringify(got)}`, JSON.stringify(got) === JSON.stringify(want), `wanted ${JSON.stringify(want)}`)
+        prev = next
+      }
+      const wrenOverview = await canOpen(vault.get('overview').bytes, await token('gcap-wren'))
+      check('revoked Wren still opens the open-to-all overview (its policy needs no entitlement)', wrenOverview.ok, wrenOverview.reason)
+      await api('gcapRestore', '*').catch(() => {})
+      await issuer('/restore', '*')
+      await api('gcapResetPeople')
+      const back = await snapshot()
+      check('start of day: the grid is the baseline again', PERSONAS.every(p => UNITS.every(u => back[p.id][u.key] === raw[p.id][u.key].ok)))
+
+      // ── Editing a document's policy ──
+      console.log('\nEditing a document policy (engine report re-encrypted with work package sensors added):')
+      const engine = UNITS.find(u => u.key === 'engine')
+      const widened = specFromPolicy(engine.policy)
+      widened.workpackage = [...widened.workpackage, 'sensors']
+      const widenedBytes = await encrypt({ ...engine, policy: policyFromSpec(widened) }, adminToken)
+      const allowed = []
+      for (const p of PERSONAS) if ((await canOpen(widenedBytes, await token(p.id))).ok) allowed.push(p.id)
+      check('the wider policy admits exactly marco, kenji, harriet and priya', JSON.stringify(allowed.sort()) === JSON.stringify(['gcap-harriet', 'gcap-kenji', 'gcap-marco', 'gcap-priya']), allowed.join(','))
+      check('the original ciphertext is unchanged: harriet is still refused', !(await canOpen(vault.get('engine').bytes, await token('gcap-harriet'))).ok)
+    } finally {
+      await api('gcapResetPeople').catch(() => {})
+      page.close()
+    }
+  }
 
   console.log('\nBanners:')
   for (const [id, want] of Object.entries(EXPECTED_BANNERS)) {

@@ -138,6 +138,27 @@ function revokedIdentities() {
   return [...REVOKED]
 }
 
+/**
+ * GCAP free play: change what a `gcap-` identity's token carries, or create one that was never
+ * shipped. The KAS does not read this (it resolves through subject mappings, see gcap-grants.js);
+ * what this keeps honest is the issuer's own table, which the UI reads to explain a verdict.
+ * Confined to the `gcap-` prefix so it can never touch another page's persona.
+ */
+function setGcapIdentity(id, { name, grants }) {
+  if (!id.startsWith(REVOCABLE_PREFIX)) throw new Error(`"${id}" is not a GCAP identity`)
+  PERSONA_CLAIMS[id] = { sub: id, name, ...grants, ...STD }
+  PERSONA_FQNS[id] = aiIdentities.grantsToFqns(grants)
+  return true
+}
+
+function dropGcapIdentity(id) {
+  if (!id.startsWith(REVOCABLE_PREFIX) || aiIdentities.IDENTITIES[id]) return false
+  delete PERSONA_CLAIMS[id]
+  delete PERSONA_FQNS[id]
+  REVOKED.delete(id)
+  return true
+}
+
 /** Drop a scenario's identities when it is deleted, so its tokens stop being issuable. */
 function unregisterIdentity(id) {
   if (RESERVED_IDENTITY_IDS.has(id)) return false
@@ -343,7 +364,7 @@ function stop() {
 
 module.exports = {
   loadOrGenerateKeys, startServer, issueToken, stop,
-  getEntityAttributes, registerIdentity, unregisterIdentity,
+  getEntityAttributes, registerIdentity, unregisterIdentity, setGcapIdentity, dropGcapIdentity,
   revokeIdentity, restoreIdentity, restoreAllIdentities, revokedIdentities,
   ISSUER, PORT, PERSONA_CLAIMS,
 }
