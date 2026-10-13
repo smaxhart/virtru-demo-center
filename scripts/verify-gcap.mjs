@@ -35,6 +35,7 @@ import { authTokenInterceptor } from '@opentdf/sdk'
 import identities from '../electron/ai-identities.js'
 import { PERSONAS, DOCUMENTS, UNITS, COMPROMISED_ID } from '../src/gcap/data.js'
 import { markingOf } from '../src/gcap/marking.js'
+import { SCM_ROWS } from '../src/gcap/scmData.js'
 import { DAY, cleanGrants } from '../src/gcap/events.js'
 import { entitlementsOf, specFromPolicy, policyFromSpec } from '../src/gcap/entitle.js'
 import { satisfiesPolicy } from '../src/data/policyMatch.js'
@@ -78,6 +79,26 @@ const EXPECTED_DAY = {
   'kenji-moved':      { 'gcap-kenji': { lost: ['engine', 'jp-range'], gained: ['icd:full'] } },
 }
 
+/**
+ * Meridian SCM: the rows each persona may see, as table → ids, written out by hand. Same rule as the
+ * tree above: this is compared with the key server's answers, never derived from the policies.
+ * Anything not listed is hidden, and the page does not say how many.
+ */
+const SUPPLIERS_ALL = ['Edgewing Machining', 'Northgate Precision', 'Sable Interconnect', 'Tarn Harness Ltd']
+const EXPECTED_SCM = {
+  'gcap-marco':   { crs: ['CR-4471', 'CR-4468', 'CR-4466', 'CR-4462', 'CR-4459', 'CR-4451', 'CR-4447'], parts: ['P-20417', 'P-20418', 'P-31002', 'P-44215', 'P-51102'], sups: SUPPLIERS_ALL, ords: ['PO-88213', 'PO-88220', 'PO-88237', 'PO-88250'] },
+  'gcap-harriet': { crs: ['CR-4471', 'CR-4468', 'CR-4459', 'CR-4455'], parts: ['P-31002', 'P-51102'], sups: SUPPLIERS_ALL, ords: ['PO-88213', 'PO-88220', 'PO-88237'] },
+  'gcap-kenji':   { crs: ['CR-4471', 'CR-4466', 'CR-4462', 'CR-4451', 'CR-4447'], parts: ['P-20417', 'P-20418', 'P-44210', 'P-44215'], sups: [...SUPPLIERS_ALL, 'Kestrel Fluid Systems', 'Okabe Fasteners'], ords: ['PO-88213', 'PO-88220', 'PO-88231', 'PO-88250'] },
+  'gcap-priya':   { crs: ['CR-4471', 'CR-4459'], parts: ['P-51090', 'P-51102'], sups: SUPPLIERS_ALL, ords: ['PO-88213', 'PO-88220', 'PO-88237'] },
+  'gcap-oliver':  { crs: ['CR-4471'], parts: [], sups: [], ords: ['PO-88213', 'PO-88220'] },
+  'gcap-giulia':  { crs: ['CR-4471', 'CR-4455'], parts: ['P-31007'], sups: [], ords: ['PO-88213', 'PO-88220', 'PO-88244'] },
+  'gcap-wren':    { crs: ['CR-4471', 'CR-4462', 'CR-4451', 'CR-4447'], parts: ['P-20417', 'P-20418', 'P-44215'], sups: [], ords: ['PO-88213', 'PO-88220', 'PO-88250'] },
+  'gcap-owen':    { crs: [], parts: ['P-20417', 'P-20418', 'P-44215'], sups: [], ords: ['PO-88213', 'PO-88250'] },
+  'gcap-sanjay':  { crs: [], parts: [], sups: [], ords: [] },
+  'gcap-ryan':    { crs: [], parts: [], sups: [], ords: [] },
+}
+const scmKeys = (want) => Object.entries(want).flatMap(([table, ids]) => ids.map(id => `${table}:${id}`)).sort()
+
 const EXPECTED_BANNERS = {
   overview:      'OPEN // ANY AUTHENTICATED ACE USER',
   'uk-ew':       'UK TOP SECRET // UK ONLY // WP SENSORS',
@@ -107,6 +128,14 @@ function staticChecks() {
     for (const fqn of u.policy) if (!seeded.has(fqn)) problems.push(`${u.key} names ${fqn}, which is not seeded`)
     if (u.policy.length > 20) problems.push(`${u.key} carries ${u.policy.length} values, over the 20-value cap`)
   }
+  for (const r of SCM_ROWS) {
+    if (!r.policy) problems.push(`SCM row ${r.key} has no policy`)
+    else {
+      for (const fqn of r.policy) if (!seeded.has(fqn)) problems.push(`SCM row ${r.key} names ${fqn}, which is not seeded`)
+      if (r.policy.length > 20) problems.push(`SCM row ${r.key} carries ${r.policy.length} values, over the 20-value cap`)
+    }
+  }
+  if (SCM_ROWS.length !== 28) problems.push(`expected 28 SCM rows, found ${SCM_ROWS.length}`)
   if (EXPECTED_COUNTS && UNITS.length !== 19) problems.push(`expected 19 units, found ${UNITS.length}`)
   if (DOCUMENTS.length !== 18) problems.push(`expected 18 documents, found ${DOCUMENTS.length}`)
   return problems
@@ -273,6 +302,17 @@ try {
   for (const tier of ['full', 'extract']) {
     const got = PERSONAS.map(p => p.id).filter(id => raw[id][`icd:${tier}`].ok).sort()
     check(`icd:${tier}`, JSON.stringify(got) === JSON.stringify([...EXPECTED_ICD_RAW[tier]].sort()), got.join(','))
+  }
+
+  console.log('\nMeridian SCM rows (one rewrap per persona per row):')
+  const scmBytes = new Map()
+  for (const r of SCM_ROWS) scmBytes.set(r.key, await encrypt(r, adminToken))
+  for (const p of PERSONAS) {
+    const answers = await Promise.all(SCM_ROWS.map(async r => [r.key, (await canOpen(scmBytes.get(r.key), tokens[p.id])).ok]))
+    const got = answers.filter(([, ok]) => ok).map(([k]) => k).sort()
+    const want = scmKeys(EXPECTED_SCM[p.id])
+    check(`${p.id}: ${got.length} SCM rows visible (expected ${want.length})`, JSON.stringify(got) === JSON.stringify(want),
+      `extra ${got.filter(k => !want.includes(k)).join(',') || '-'}; missing ${want.filter(k => !got.includes(k)).join(',') || '-'}`)
   }
 
   // Content must round-trip, not just open.

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import './scm.css'
 import { DOCUMENTS, DOC_BY_ID, auditName } from './data.js'
 import { openDocument, openWithoutIdentity } from './vault.js'
+import { visibleScmRows } from './scmVault.js'
 import { entitlementsOf } from './entitle.js'
 import { evaluatePolicy, groupLabel } from '../data/policyMatch.js'
 import { AppWindow } from './Scm.jsx'
@@ -28,7 +29,7 @@ const fresh = () => ({
   wins: DEFAULT_IDS.map((p, i) => newWindow(`w${i}`, p)),
 })
 
-export default function ThreeWindows({ world, vault, active, onEditPerson }) {
+export default function ThreeWindows({ world, vault, scm, active, onEditPerson }) {
   const { people, byId, epoch, revokedIds, live } = world
   const store = useRef(null)
   if (!store.current) store.current = fresh()
@@ -38,6 +39,20 @@ export default function ThreeWindows({ world, vault, active, onEditPerson }) {
   const env = useRef({})
   env.current = { byId, people, revokedIds, vault, epoch }
   const skipEpoch = useRef(null)
+
+  // Which SCM rows each person may see, as the key server answered. Keyed by person and by anything
+  // that can change the answer (an edited grant bumps the epoch, a disabled account is in the key),
+  // so a stale answer is never read: a new key simply has no entry yet and is asked for.
+  const rowCache = useRef(new Map())
+  const rowsFor = (pid) => {
+    const key = `${pid}@${epoch}@${revokedIds.has(pid) ? 'off' : 'on'}`
+    const hit = rowCache.current.get(key)
+    if (hit) return hit === 'pending' ? null : hit
+    if (!scm) return null
+    rowCache.current.set(key, 'pending')
+    visibleScmRows(scm, pid).then(set => { rowCache.current.set(key, set); render() }).catch(() => { rowCache.current.delete(key) })
+    return null
+  }
   const seenEpoch = useRef(epoch)
   const [toast, setToast] = useState(null)
   const toastTimer = useRef(null)
@@ -198,7 +213,7 @@ export default function ThreeWindows({ world, vault, active, onEditPerson }) {
   }
 
   const ctx = {
-    S, people: people.filter(x => x.id !== 'gcap-ryan'), revoked: revokedIds, entsOf: (p, shown) => (revokedIds.has(p.id) && !shown ? [] : entitlementsOf(p.grants)), tFor: (p) => makeT(S.tr ? langOf(p) : 'en'), live, firstCr: FIRST_CR, who, unitsOf, sizeOf, statusOf, set,
+    S, rowsFor, people: people.filter(x => x.id !== 'gcap-ryan'), revoked: revokedIds, entsOf: (p, shown) => (revokedIds.has(p.id) && !shown ? [] : entitlementsOf(p.grants)), tFor: (p) => makeT(S.tr ? langOf(p) : 'en'), live, firstCr: FIRST_CR, who, unitsOf, sizeOf, statusOf, set,
     editPerson: onEditPerson,
     nav: (w, view, cr) => set(w, { view, cr: cr ?? w.cr, tab: 'summary', q: '', menu: false, share: false }),
     user: (w, pid) => set(w, { pid, res: null, menu: false, ent: false, share: false, to: 'gmail' }),

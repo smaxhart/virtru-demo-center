@@ -142,6 +142,7 @@ const D = {
   'PO': ['PO', '発注'],
   'Qty': ['Qtà', '数量'],
   'Nothing matches.': ['Nessun risultato.', '該当なし。'],
+  'Asking the key server…': ['Richiesta al server delle chiavi…', 'キーサーバーに確認中…'],
   // statuses
   'Approved': ['Approvata', '承認済み'],
   'Implemented': ['Implementata', '実施済み'],

@@ -61,16 +61,18 @@ function Home({ ctx, w, p }) {
   const t = ctx.tFor(p)
   const link = (cr, text) => <a href="#" onClick={e => { e.preventDefault(); ctx.nav(w, 'cr', cr) }}>{text}</a>
   const crTitle = (id) => t(CRS.find(c => c[0] === id)[1])
+  const seen = ctx.rowsFor(p.id)
+  const tasks = (TASKS[p.id] ?? []).filter(([, , cr]) => !cr || seen?.has(`crs:${cr}`))
   return (
     <>
       <div className="crumb">{t(p.employer)} · {t(p.title)}</div>
       <h3>{t('Good morning, {0}', first(p))}</h3>
       <div className="card"><h4>{t('My tasks')}</h4>
-        {(TASKS[p.id] ?? []).map(([due, text, cr]) => (
+        {tasks.map(([due, text, cr]) => (
           <div className="ev" key={text + due}><time>{t('Due {0}', t.date(due))}</time>
             <span>{cr ? <>{link(cr, t(text, cr))} · {crTitle(cr)}</> : t(text)}</span></div>
         ))}
-        {!(TASKS[p.id] ?? []).length && <div style={{ color: '#7a8b98', fontSize: 12 }}>{t('Nothing assigned to you.')}</div>}
+        {!tasks.length && <div style={{ color: '#7a8b98', fontSize: 12 }}>{t('Nothing assigned to you.')}</div>}
       </div>
       <div className="card"><h4>{t('Recent activity')}</h4><Events items={S.log.slice(0, 4)} t={t} /></div>
     </>
@@ -160,19 +162,31 @@ function ChangeRequest({ ctx, w, p }) {
 
 function Page({ ctx, w, p }) {
   const t = ctx.tFor(p)
-  const plain = (rows, map) => rows.map(r => ({ key: r[0], text: r.join(' '), cells: map ? map(r) : r }))
-  if (w.view === 'home') return <Home ctx={ctx} w={w} p={p} />
-  if (w.view === 'cr') return <ChangeRequest ctx={ctx} w={w} p={p} />
-  if (w.view === 'crs') {
-    const rows = CRS.map(c => ({
+  // What the key server released to this person. Null while it is being asked; a row not in the set is
+  // simply not drawn, and nothing says how many were left out.
+  const seen = ctx.rowsFor(p.id)
+  const waiting = <div style={{ color: '#7a8b98', fontSize: 12 }}>{t('Asking the key server…')}</div>
+  const plain = (table, rows, map) => rows
+    .filter(r => seen?.has(`${table}:${r[0]}`))
+    .map(r => ({ key: r[0], text: r.join(' '), cells: map ? map(r) : r }))
+  if (!seen) {
+    if (w.view === 'home') return <Home ctx={ctx} w={w} p={p} />
+    const title = { crs: 'Change requests', cr: 'Change requests', parts: 'Parts', sups: 'Suppliers', ords: 'Orders' }[w.view]
+    return <><h3>{t(title)}</h3>{waiting}</>
+  }
+  const view = w.view === 'cr' && !seen.has(`crs:${w.cr}`) ? 'crs' : w.view
+  if (view === 'home') return <Home ctx={ctx} w={w} p={p} />
+  if (view === 'cr') return <ChangeRequest ctx={ctx} w={w} p={p} />
+  if (view === 'crs') {
+    const rows = CRS.filter(c => seen.has(`crs:${c[0]}`)).map(c => ({
       key: c[0], text: c.join(' '), onClick: () => ctx.nav(w, 'cr', c[0]),
       cells: [c[0], t(c[1]), <span key="s" className={`tag ${STATUS_TAG[ctx.statusOf(c[0])] ?? ''}`}>{t(ctx.statusOf(c[0]))}</span>, t(c[3]), t.date(c[4])],
     }))
     return <><h3>{t('Change requests')}</h3><Table ids t={t} cols={['ID', 'Title', 'Status', 'Package', 'Due']} rows={rows} q={w.q} /></>
   }
-  if (w.view === 'parts') return <><h3>{t('Parts')}</h3><Table ids t={t} cols={['Part', 'Description', 'Rev', 'Supplier', 'Lead', 'Stock']} rows={plain(PARTS, r => [r[0], t(r[1]), r[2], r[3], t.days(r[4]), r[5]])} q={w.q} /></>
-  if (w.view === 'sups') return <><h3>{t('Suppliers')}</h3><Table t={t} cols={['Supplier', 'Tier', 'Country', 'On-time', 'Open POs']} rows={plain(SUPS, r => [r[0], t(r[1]), t(r[2]), r[3], r[4]])} q={w.q} /></>
-  return <><h3>{t('Orders')}</h3><Table ids t={t} cols={['PO', 'Part', 'Description', 'Qty', 'Due', 'Status']} rows={plain(ORDS, r => [r[0], r[1], t(r[2]), r[3], t.date(r[4]), t(r[5])])} q={w.q} /></>
+  if (view === 'parts') return <><h3>{t('Parts')}</h3><Table ids t={t} cols={['Part', 'Description', 'Rev', 'Supplier', 'Lead', 'Stock']} rows={plain('parts', PARTS, r => [r[0], t(r[1]), r[2], r[3], t.days(r[4]), r[5]])} q={w.q} /></>
+  if (view === 'sups') return <><h3>{t('Suppliers')}</h3><Table t={t} cols={['Supplier', 'Tier', 'Country', 'On-time', 'Open POs']} rows={plain('sups', SUPS, r => [r[0], t(r[1]), t(r[2]), r[3], r[4]])} q={w.q} /></>
+  return <><h3>{t('Orders')}</h3><Table ids t={t} cols={['PO', 'Part', 'Description', 'Qty', 'Due', 'Status']} rows={plain('ords', ORDS, r => [r[0], r[1], t(r[2]), r[3], t.date(r[4]), t(r[5])])} q={w.q} /></>
 }
 
 /** `[['clearance', ['secret']], ['nationality', ['ita']]]`: a clearance shows its top level only, since it carries everything below. */

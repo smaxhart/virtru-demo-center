@@ -359,6 +359,9 @@ Operations and programme-security roles only.`,
   },
 ]
 
+/** The policy vocabulary, for other GCAP files that write policies of their own (the SCM rows). */
+export const POLICY_KIT = { U, P, S, T, GCAP, nationality, workpackage, supplytier, role, company }
+
 export const DOC_BY_ID = Object.fromEntries(DOCUMENTS.map(d => [d.id, d]))
 export const DOC_BY_LINK = Object.fromEntries(DOCUMENTS.map(d => [d.link, d]))
 

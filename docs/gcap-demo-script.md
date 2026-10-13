@@ -280,6 +280,20 @@ Suggested run for a 15-minute slot: Workspace Acts 1, 2 and 7 (about 5 min), Thr
 
 Point at the shield button in each title bar, or hover it. It lists what the key server holds for that person: clearance, nationality, work packages, supply tier. Marco holds integration; Priya and Kenji do not.
 
+### Beat 1b — The system itself is trimmed (1 min)
+
+Meridian SCM's own tables are not the same for everyone. Every row of Changes, Parts, Suppliers and Orders is an encrypted record with a policy, and a window shows only the rows the key server releases to that person. A row you can't open isn't greyed out; it isn't there, and nothing says how many are missing.
+
+> "This is the supply-chain system, not a document store. Same screen, three people, three different lists. The system doesn't filter anything; each row asks the key server whether you may see it."
+
+Things to show, all from the **Parts**, **Suppliers**, **Orders** and **Changes** tabs:
+- **Priya (BAE)** sees the avionics tray assembly (BAE IP); **Kenji (MHI)** sees the coolant fitting and its purchase order (MHI IP); neither sees the other's. Giulia (Leonardo) sees the harness assembly and its order.
+- **Suppliers** is the same targeting list as the bill of materials: partners at GCAP SECRET only, and Japan's own suppliers (Kestrel, Okabe) are visible to Japan alone. Marco has four of the six, Kenji all six.
+- Switch a window to **Owen Pryce** (Tier-3): parts and orders for his airframe work, no suppliers, no change requests. Switch to **Sanjay** or **Ryan**: every table is empty.
+- **Disable an account** (Three windows controls): that person's tables empty out at once, because the key server now refuses every row.
+
+Nuance for Q&A: the SCM data are mock, but each row's visibility is a real key-server decision made at the moment the window asks, so editing someone's access in **Free play** changes their tables too.
+
 ### Beat 2 — Opened (1 min)
 
 Press **Open it in every window** (or **Open** on each attachment). Marco gets the **full release**. Priya and Kenji get the **supplier extract**, with the withheld block on their sheets.

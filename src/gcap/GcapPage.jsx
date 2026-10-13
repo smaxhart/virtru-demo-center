@@ -11,6 +11,7 @@ import {
   SKY, RED, PAPER, INK, MONO, SERIF,
 } from './ui.jsx'
 import ThreeWindows from './ThreeWindows.jsx'
+import { encryptScmRows } from './scmVault.js'
 import ProgrammeDay from './ProgrammeDay.jsx'
 import { PersonEditor, PolicyEditor } from './Editors.jsx'
 
@@ -612,6 +613,7 @@ export default function GcapPage() {
   const [aiReady, setAiReady] = useState(!window.electronAPI?.getAiStatus)
   const [aiError, setAiError] = useState(null)
   const [vault, setVault] = useState(null)
+  const [scm, setScm] = useState(null)
   const [progress, setProgress] = useState(null)
   const [tab, setTab] = useState('workspace')
   const [resetKey, setResetKey] = useState(0)
@@ -639,7 +641,10 @@ export default function GcapPage() {
     if (!aiReady || vault) return
     let live = true
     encryptVault(p => live && setProgress(p))
-      .then(v => { if (live) setVault(v) })
+      .then(async v => {
+        const rows = await encryptScmRows(p => live && setProgress(p))
+        if (live) { setScm(rows); setVault(v) }
+      })
       .catch(e => live && setAiError(e.message))
     return () => { live = false }
   }, [aiReady, vault])
@@ -699,7 +704,7 @@ export default function GcapPage() {
           <Workspace vault={vault} world={world} active={tab === 'workspace'} resetKey={resetKey} onEditPerson={editPerson} />
         </div>
         <div hidden={tab !== 'windows'}>
-          <ThreeWindows key={resetKey} vault={vault} world={world} active={tab === 'windows'} onEditPerson={editPerson} />
+          <ThreeWindows key={resetKey} vault={vault} scm={scm} world={world} active={tab === 'windows'} onEditPerson={editPerson} />
         </div>
         <div hidden={tab !== 'day'}>
           <ProgrammeDay
