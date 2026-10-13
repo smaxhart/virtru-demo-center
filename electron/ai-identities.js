@@ -109,6 +109,9 @@ const ATTRIBUTE_DEFS = [
   // (GCAP RESTRICTED / GCAP SECRET) are rendered from these by `src/gcap/marking.js`, not stored.
   { name: 'workpackage', rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ANY_OF',    values: ['airframe', 'propulsion', 'sensors', 'integration'] },
   { name: 'supplytier',  rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ANY_OF',    values: ['partner', 'tier2', 'tier3'] },
+  // Whose intellectual property a file is. ANY_OF and held by exactly one company's staff: a policy
+  // naming `company:bae` opens for BAE people and for nobody else, whatever their clearance or nation.
+  { name: 'company',     rule: 'ATTRIBUTE_RULE_TYPE_ENUM_ANY_OF',    values: ['bae', 'mhi', 'leonardo'] },
 
   // ── SABLE · joint mission engineering ─────────────────────────────────────
   // The first ALL_OF definitions in the vocabulary, and the reason they exist: a simulation output
@@ -197,10 +200,10 @@ const HUMANS = {
   // already-seeded platform. Nationality is what separates sovereign files from shared ones.
   'gcap-marco':   { name: 'Marco Bellandi', grants: { clearance: 'secret',       nationality: 'ita', workpackage: ['airframe', 'propulsion', 'sensors', 'integration'], supplytier: 'partner' } },
   'gcap-harriet': { name: 'Harriet Lowe',   grants: { clearance: 'ts-sci',       nationality: 'gbr', workpackage: ['sensors', 'integration'], supplytier: 'partner', role: 'security' } },
-  'gcap-kenji':   { name: 'Kenji Watanabe', grants: { clearance: 'secret',       nationality: 'jpn', workpackage: ['propulsion', 'airframe'], supplytier: 'partner' } },
-  'gcap-priya':   { name: 'Priya Nair',     grants: { clearance: 'secret',       nationality: 'gbr', workpackage: 'sensors', supplytier: 'partner' } },
+  'gcap-kenji':   { name: 'Kenji Watanabe', grants: { clearance: 'secret',       nationality: 'jpn', workpackage: ['propulsion', 'airframe'], supplytier: 'partner', company: 'mhi' } },
+  'gcap-priya':   { name: 'Priya Nair',     grants: { clearance: 'secret',       nationality: 'gbr', workpackage: 'sensors', supplytier: 'partner', company: 'bae' } },
   'gcap-oliver':  { name: 'Oliver Hartley', grants: { clearance: 'cui',          nationality: 'gbr', supplytier: 'partner', role: 'finance' } },
-  'gcap-giulia':  { name: 'Giulia Ferraro', grants: { clearance: 'cui',          nationality: 'ita', supplytier: 'partner', role: 'export' } },
+  'gcap-giulia':  { name: 'Giulia Ferraro', grants: { clearance: 'cui',          nationality: 'ita', supplytier: 'partner', role: 'export', company: 'leonardo' } },
   'gcap-wren':    { name: 'Wren Castellan', grants: { clearance: 'cui',          nationality: 'gbr', workpackage: 'airframe', supplytier: 'tier2' } },
   // The account an adversary takes over in the compromise act. Nothing about its grants is unusual,
   // which is the point: the blast radius is small because the account is ordinary.

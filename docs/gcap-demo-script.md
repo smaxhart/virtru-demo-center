@@ -24,9 +24,9 @@ Every file in ACE is an encrypted object. The workspace is the same for everyone
 ## How to Read the Screen
 
 - **The tree is trimmed by policy.** A persona's file tree lists only what they can open. There are no padlocks and no "restricted" placeholders, because a file's *name* is intelligence.
-- **The counter shows what you can see, never the total.** "9 objects" — not "9 of 14." A total would tell a competitor how much they're missing. (COP shows "X of Y"; this page deliberately doesn't.)
+- **The counter shows what you can see, never the total.** "7 objects" — not "7 of 18." A total would tell a competitor how much they're missing. (COP shows "X of Y"; this page deliberately doesn't.)
 - **Probe by link.** A **Probe** box takes a file link, as if someone forwarded it in an email. It asks the KAS directly, bypassing the tree, so a refusal proves the data said no and not just the UI. The **Where the key came from** panel draws the request as a line from the person to the custodian that answered: solid blue with a tick when released, dashed red with a cross when refused. Every probe lands in the audit log.
-- **Auditor view (presenter only).** A presenter shortcut — not a persona, not a nav item, unreachable from any seat — opens a persona × document grid of all 14 documents, showing who can open what. It is the proof that files were hidden rather than absent, and it is computed from the same policy decisions as the tree, never typed in. See Act 6 and "When Someone Asks".
+- **Auditor view (presenter only).** A presenter shortcut — not a persona, not a nav item, unreachable from any seat — opens a persona × document grid of all 18 documents, showing who can open what. It is the proof that files were hidden rather than absent, and it is computed from the same policy decisions as the tree, never typed in. See Act 6 and "When Someone Asks".
 - **The trim and the open share one decision path.** The tree is not filtered by a separate client-side list; it is built from the same policy decision that gates opening.
 
 ---
@@ -35,12 +35,12 @@ Every file in ACE is an encrypted object. The workspace is the same for everyone
 
 | Persona | Employer | Nation / tier | Sees | What they show |
 |---|---|---|---|---|
-| **Marco Bellandi** | Edgewing (design authority) | ITA · GCAP SECRET · all work packages | 9 | The broadest view — and a tree with no UK or Japanese sovereign files in it |
-| **Harriet Lowe** | GIGO (programme security) | GBR · national TOP SECRET | 8 | Programme reach, no sovereign reach into Italy or Japan |
-| **Kenji Watanabe** | Mitsubishi Heavy Industries | JPN · GCAP SECRET | 7 | Japan is in GCAP, not NATO |
-| **Priya Nair** | BAE Systems | GBR · GCAP SECRET · sensors | 6 | Same nation as Harriet, lower tier |
+| **Marco Bellandi** | Edgewing (design authority) | ITA · GCAP SECRET · all work packages | 7 | The broadest view — and a tree with no UK or Japanese sovereign files in it |
+| **Harriet Lowe** | GIGO (programme security) | GBR · national TOP SECRET | 7 | Programme reach, no sovereign reach into Italy or Japan |
+| **Kenji Watanabe** | Mitsubishi Heavy Industries | JPN · GCAP SECRET · MHI IP | 8 | Japan is in GCAP, not NATO — and MHI's own IP |
+| **Priya Nair** | BAE Systems | GBR · GCAP SECRET · sensors · BAE IP | 7 | Same nation as Harriet, lower tier — and BAE's own IP |
 | **Oliver Hartley** | Edgewing (funding controller) | GBR · GCAP RESTRICTED · finance | 4 | Money without design |
-| **Giulia Ferraro** | Leonardo (export) | ITA · GCAP RESTRICTED · export | 4 | Authority is not rank |
+| **Giulia Ferraro** | Leonardo (export) | ITA · GCAP RESTRICTED · export · Leonardo IP | 6 | Authority is not rank — and Leonardo's own IP |
 | **Wren Castellan** | Tier-2 supplier | GBR · GCAP RESTRICTED · airframe | 3 | Gets the interface extract, not the design |
 | **Owen Pryce** | Tier-3 supplier | GBR · GCAP RESTRICTED · airframe | 2 | The compromised credential |
 | **Sanjay Rao** | Edgewing IT (ACE administrator) | GBR · unclassified · admin | 2 | Runs the platform, sees almost none of it |
@@ -65,7 +65,7 @@ Counts are tree items. The interface control document is one item whose contents
 > "This is ACE — the shared environment three nations and a few hundred companies build an aircraft in. The hard requirement is that people at different clearances, in different countries, work in the *same place*. The usual answer is separate enclaves and copying data between them. Here there's one workspace, and every file in it decides for itself who can see it."
 
 **Point at Marco's tree and counter**
-> "Marco sees nine objects. There are more in the programme — I'll show you what happens to them."
+> "Marco sees seven objects. There are more in the programme — I'll show you what happens to them."
 
 **Click Programme Overview**
 > "Public. Anyone authenticated opens it. A system that only ever says no proves nothing."
@@ -151,19 +151,41 @@ Counts are tree items. The interface control document is one item whose contents
 
 ---
 
+## ACT 5b — Company IP (1.5 min)
+
+**Setup line:**
+> "Three companies build this aircraft, and they are partners and competitors at the same time. Each one has work it will not hand to the other two. That isn't a programme marking and it isn't a nation — it's whose intellectual property the file is."
+
+**Point at the Company IP folder as Priya Nair (BAE)**
+> "Priya sees two files here: the sensor fusion specification and the radar aperture calibration method. Both are marked BAE IP. She's BAE; they're hers to open."
+
+**Switch persona to Kenji Watanabe (MHI)**
+> "Kenji's Company IP folder is different. Engine thermal report, hot-section coating process — MHI IP. Not one of BAE's files is here, and he has no way to tell they exist."
+
+**Switch persona to Giulia Ferraro (Leonardo)**
+> "Giulia sees Leonardo's mission-computer architecture and defensive-aids notes. And she's at the lowest programme tier of the three — the company wall is a separate rule from rank."
+
+**Switch persona to Marco Bellandi**
+> "And Marco, the design authority, has none of it. Edgewing integrates the aircraft; it doesn't get to read each company's IP. Same pattern as the sovereign wall, one level down: the data says who it belongs to."
+
+**Paste a BAE file link into Probe as Kenji**
+> "Even with the link in hand, the key server refuses. The attempt is in the audit log."
+
+---
+
 ## ACT 6 — The Competitor (1 min)
 
 **Setup line:**
 > "A competing prime gets a login. Maybe a shared-supplier relationship, maybe a mistaken invite. Authenticated is not authorized."
 
 **Switch persona to Ryan Mercer**
-> "One object. The public overview. He can't see that there's an engine test report, or a supplier register, or that funding is being drawn down. If this screen showed thirteen padlocks he'd learn exactly what this programme is testing and buying. A file name is intelligence — so the names aren't there."
+> "One object. The public overview. He can't see that there's an engine test report, or a supplier register, or that funding is being drawn down. If this screen showed seventeen padlocks he'd learn exactly what this programme is testing and buying. A file name is intelligence — so the names aren't there."
 
-**Paste the Engine Thermal Test Report link into Probe**
+**Paste the MHI Engine Thermal Test Report link into Probe**
 > "And the trim isn't just the UI. If he goes looking for it by link, the KAS refuses — and that attempt is in the audit log. Someone probing for a file they shouldn't know exists is precisely the signal programme security wants to be told about."
 
 **Optional — open the Auditor view (Ctrl/Cmd+Shift+A, Esc to close)**
-> "If you'd rather not take my word that those files exist, this is the view only the presenter has. Fourteen documents down, ten people across, and the cell is the decision. Ryan's column is one tick. Nobody in this environment can open this screen — not Ryan, not Harriet, not the administrator."
+> "If you'd rather not take my word that those files exist, this is the view only the presenter has. Eighteen documents down, ten people across, and the cell is the decision. Ryan's column is one tick. Nobody in this environment can open this screen — not Ryan, not Harriet, not the administrator."
 
 ---
 
@@ -327,16 +349,16 @@ Change any window's person from its name menu (Ryan Mercer is deliberately not o
 
 ## Tab 3 — A Day on the Programme (~3 min)
 
-**Run the day** plays four events 3 s apart; **Apply this one** plays any single event. Each event is one change at the identity provider, and the matrix shows only what the key server then answered differently (9 of 140 decisions over the whole day):
+**Run the day** plays four events 3 s apart; **Apply this one** plays any single event. Each event is one change at the identity provider, and the matrix shows only what the key server then answered differently (10 of 190 decisions over the whole day):
 
 | Time | Event | Effect |
 |---|---|---|
 | 08:12 | Owen's shop is acquired (drops Tier-3) | Owen loses the work order |
 | 10:47 | Wren's account is compromised (revoked) | Wren loses the ICD extract and the work order |
-| 13:30 | Priya's clearance lapses to RESTRICTED | Priya loses sensors, BoM and the NATO paper |
+| 13:30 | Priya's clearance lapses to RESTRICTED | Priya loses her BAE sensor files, BoM and the NATO paper |
 | 16:05 | Kenji moves to integration | Kenji loses engine and the Japan range plan; his ICD extract becomes the full ICD |
 
-> "Nobody emailed anyone. Four changes at the identity provider, and nine answers changed."
+> "Nobody emailed anyone. Four changes at the identity provider, and ten answers changed."
 
 Nuance for Q&A: revoked Wren **still opens the GCAP Programme Overview**, because its policy is empty and needs no entitlement. Say so before anyone else notices.
 

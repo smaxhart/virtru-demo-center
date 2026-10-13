@@ -27,6 +27,7 @@ const nationality = (v) => fqn('nationality', v)
 const workpackage = (v) => fqn('workpackage', v)
 const supplytier  = (v) => fqn('supplytier', v)
 const role        = (v) => fqn('role', v)
+const company     = (v) => fqn('company', v)
 
 /** The three programme nations. Japan is a GCAP partner and is not in NATO or the Five Eyes. */
 export const GCAP_NATIONS = ['gbr', 'ita', 'jpn']
@@ -110,7 +111,7 @@ export const COMPROMISED_ID = 'gcap-owen'
 // put the file's name on screen before anyone has been asked whether they may know it exists.
 // A document with `tiers` is one tree item that serves the most privileged tier the caller can open.
 
-export const FOLDERS = ['Programme', 'Design', 'Supply chain', 'Funding', 'Sovereign', 'Export and NATO', 'Operations']
+export const FOLDERS = ['Programme', 'Design', 'Company IP', 'Supply chain', 'Funding', 'Sovereign', 'Export and NATO', 'Operations']
 
 export const DOCUMENTS = [
   {
@@ -174,8 +175,8 @@ Design rationale, load cases and the partition schedule are not part of this rel
     ],
   },
   {
-    id: 'engine', folder: 'Design', title: 'Engine Thermal Test Report', link: 'ace://obj/0c6b72', custodian: 'gigo',
-    policy: [S, ...GCAP, workpackage('propulsion')],
+    id: 'engine', folder: 'Company IP', title: 'MHI Engine Thermal Test Report', link: 'ace://obj/0c6b72', custodian: 'gigo',
+    policy: [S, ...GCAP, workpackage('propulsion'), company('mhi')],
     text: `ENGINE THERMAL TEST REPORT — PROPULSION WORK PACKAGE
 
 Rig campaign 4, hot-section soak at 110 percent design speed for 50 cycles.
@@ -183,11 +184,11 @@ Rig campaign 4, hot-section soak at 110 percent design speed for 50 cycles.
   - Two combustor liner hot spots observed at the 30 degree position; redesign of the liner cooling pattern under review.
   - No change to the certified operating envelope.
 
-Recommendation: proceed to campaign 5 with the revised liner. Propulsion work package only.`,
+Recommendation: proceed to campaign 5 with the revised liner. Mitsubishi Heavy Industries intellectual property; propulsion work package only.`,
   },
   {
-    id: 'sensors', folder: 'Design', title: 'Sensor Fusion Design Specification', link: 'ace://obj/93af58', custodian: 'gigo',
-    policy: [S, ...GCAP, workpackage('sensors')],
+    id: 'sensors', folder: 'Company IP', title: 'BAE Sensor Fusion Design Specification', link: 'ace://obj/93af58', custodian: 'gigo',
+    policy: [S, ...GCAP, workpackage('sensors'), company('bae')],
     text: `SENSOR FUSION DESIGN SPECIFICATION — SENSORS WORK PACKAGE
 
 Architecture: distributed track-level fusion with per-sensor confidence weighting.
@@ -195,7 +196,59 @@ Architecture: distributed track-level fusion with per-sensor confidence weightin
   - Conflict resolution: highest-confidence source wins unless the operator has pinned a track.
   - Degraded mode: fusion continues on any single remaining sensor with reduced confidence bounds.
 
-Open item: time-alignment error budget between the two apertures. Sensors work package only.`,
+Open item: time-alignment error budget between the two apertures. BAE Systems intellectual property; sensors work package only.`,
+  },
+  {
+    id: 'bae-aperture', folder: 'Company IP', title: 'BAE Radar Aperture Calibration Method', link: 'ace://obj/3c9d82', custodian: 'gigo',
+    policy: [S, ...GCAP, company('bae')],
+    text: `RADAR APERTURE CALIBRATION METHOD — BAE SYSTEMS
+
+Fictional content for demonstration.
+
+Procedure for calibrating the phase and gain of each transmit-receive module across the array, and the correction table format the fusion software consumes.
+  - Calibration interval: every 40 flight hours, or after any thermal excursion above the module limit.
+  - Residual phase error held under the per-module budget; modules outside it are masked, not repaired in the field.
+
+BAE Systems intellectual property. Not released to the other partner companies.`,
+  },
+  {
+    id: 'mhi-coating', folder: 'Company IP', title: 'MHI Hot-Section Coating Process', link: 'ace://obj/a1f670', custodian: 'gigo',
+    policy: [S, ...GCAP, company('mhi')],
+    text: `HOT-SECTION COATING PROCESS — MITSUBISHI HEAVY INDUSTRIES
+
+Fictional content for demonstration.
+
+Deposition sequence, bond-coat chemistry class and cure schedule for the turbine hot-section thermal barrier.
+  - Surface preparation and masking order for the blade root.
+  - Cure schedule and the inspection points between coats.
+
+Mitsubishi Heavy Industries intellectual property. Not released to the other partner companies.`,
+  },
+  {
+    id: 'leo-mission', folder: 'Company IP', title: 'Leonardo Mission Computer Software Architecture', link: 'ace://obj/5e08b4', custodian: 'gigo',
+    policy: [P, ...GCAP, company('leonardo')],
+    text: `MISSION COMPUTER SOFTWARE ARCHITECTURE — LEONARDO
+
+Fictional content for demonstration.
+
+Partitioning of the mission computer into isolated processing domains, the scheduling model and the update path for each partition.
+  - Domain boundaries and the message schema between them.
+  - Build and signing flow for field-loadable software.
+
+Leonardo intellectual property. Not released to the other partner companies.`,
+  },
+  {
+    id: 'leo-ew', folder: 'Company IP', title: 'Leonardo Defensive Aids Integration Notes', link: 'ace://obj/d7a315', custodian: 'gigo',
+    policy: [P, ...GCAP, company('leonardo')],
+    text: `DEFENSIVE AIDS INTEGRATION NOTES — LEONARDO
+
+Fictional content for demonstration.
+
+How the defensive-aids suite is mounted, cooled and tied into the aircraft's power and data buses, and the bench-test results behind each choice.
+  - Mounting zones and cooling allocation.
+  - Bench-test summary by configuration.
+
+Leonardo intellectual property. Not released to the other partner companies.`,
   },
   {
     id: 'workorder', folder: 'Supply chain', title: 'Tier-3 Machined Part Work Order', link: 'ace://obj/5d20e1', custodian: 'gigo',

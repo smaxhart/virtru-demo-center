@@ -6,11 +6,12 @@ import { DOC_BY_ID } from './data.js'
 import { groupLabel, groupPolicy } from '../data/policyMatch.js'
 
 const LABEL = {
-  clearance: 'Clearance', nationality: 'Nationality', workpackage: 'Work package', supplytier: 'Supply tier', role: 'Role',
+  clearance: 'Clearance', nationality: 'Nationality', workpackage: 'Work package', supplytier: 'Supply tier', role: 'Role', company: 'Company',
 }
 const HINT = {
   clearance: 'A floor: holding a level holds everything beneath it.',
   nationality: 'Releasability is decided by nationality alone.',
+  company: "Whose intellectual property a file is. A company's IP opens only for that company's staff.",
 }
 const MAX_POLICY_VALUES = 20
 
@@ -65,13 +66,14 @@ function Drawer({ title, sub, onClose, children }) {
   )
 }
 
-const blank = { clearance: '', nationality: '', workpackage: [], supplytier: [], role: [] }
+const blank = { clearance: '', nationality: '', workpackage: [], supplytier: [], role: [], company: [] }
 const draftOf = (grants = {}) => ({
   clearance: [].concat(grants.clearance ?? [])[0] ?? '',
   nationality: [].concat(grants.nationality ?? [])[0] ?? '',
   workpackage: [].concat(grants.workpackage ?? []),
   supplytier: [].concat(grants.supplytier ?? []),
   role: [].concat(grants.role ?? []),
+  company: [].concat(grants.company ?? []),
 })
 
 function GrantsForm({ draft, setDraft, vocab }) {
@@ -80,7 +82,7 @@ function GrantsForm({ draft, setDraft, vocab }) {
     <>
       <Field name="clearance"><Chips single options={LADDER.filter(l => vocab.clearance.includes(l))} value={draft.clearance} onChange={set('clearance')} /></Field>
       <Field name="nationality"><Chips single options={vocab.nationality} value={draft.nationality} onChange={set('nationality')} /></Field>
-      {['workpackage', 'supplytier', 'role'].map(n => (
+      {['workpackage', 'supplytier', 'role', 'company'].map(n => (
         <Field key={n} name={n}><Chips options={vocab[n]} value={draft[n]} onChange={set(n)} /></Field>
       ))}
     </>
@@ -202,7 +204,7 @@ export function PolicyEditor({ world, vault, docId, onClose }) {
       </div>
       <Field name="clearance"><Chips single options={LADDER} value={draft.clearance[0] ?? ''} onChange={setValue('clearance')} /></Field>
       <Field name="nationality"><Chips options={world.vocab.nationality} value={draft.nationality} onChange={setValue('nationality')} /></Field>
-      {['workpackage', 'supplytier', 'role'].map(n => (
+      {['workpackage', 'supplytier', 'role', 'company'].map(n => (
         <Field key={n} name={n}><Chips options={world.vocab[n]} value={draft[n]} onChange={setValue(n)} /></Field>
       ))}
       <div style={{ marginTop: 12, fontSize: 11.5, color: 'var(--c-text-5)' }}>

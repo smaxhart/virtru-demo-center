@@ -5,7 +5,7 @@
 
 import { NS } from '../data/coalitions.js'
 
-export const EDITABLE = ['clearance', 'nationality', 'workpackage', 'supplytier', 'role']
+export const EDITABLE = ['clearance', 'nationality', 'workpackage', 'supplytier', 'role', 'company']
 /** Highest first. Holding a level holds everything beneath it. */
 export const LADDER = ['ts-sci', 'secret', 'cui', 'unclassified']
 

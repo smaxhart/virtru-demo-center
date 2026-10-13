@@ -12,7 +12,7 @@
  * exists and is also run at every launch: a session that ends mid-demo must not leave Priya demoted
  * for the next one.
  *
- * Only the five GCAP vocabularies are editable, and only on `gcap-` subjects.
+ * Only the six GCAP vocabularies are editable, and only on `gcap-` subjects.
  */
 
 const { IDENTITIES, ATTRIBUTE_DEFS, NS, NAMESPACE, grantsToFqns } = require('./ai-identities.js')
@@ -20,7 +20,7 @@ const { IDENTITIES, ATTRIBUTE_DEFS, NS, NAMESPACE, grantsToFqns } = require('./a
 const PLATFORM_BASE = 'http://localhost:7777'
 const SM = 'policy.subjectmapping.SubjectMappingService'
 
-const EDITABLE = ['clearance', 'nationality', 'workpackage', 'supplytier', 'role']
+const EDITABLE = ['clearance', 'nationality', 'workpackage', 'supplytier', 'role', 'company']
 const ADDED_PREFIX = 'gcap-x-'
 
 /** Seeded values per editable vocabulary, so a picker can only offer what the platform created. */

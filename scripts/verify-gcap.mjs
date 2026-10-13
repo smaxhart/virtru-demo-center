@@ -10,7 +10,7 @@
  *   1. Static seams — every GCAP persona is known to the issuer and vice versa, every policy FQN
  *      names a seeded value, no policy is over the 20-value cap. These fail at runtime as a flat
  *      denial with nothing in the error to say why.
- *   2. The 10 × 15 grid — a real rewrap for every persona against every encrypted unit, compared to
+ *   2. The 10 × 19 grid — a real rewrap for every persona against every encrypted unit, compared to
  *      EXPECTED below, which is written out by hand and deliberately NOT derived from the policies
  *      in data.js: a check that computed its own answer could never disagree with it.
  *   3. Tree sizes — the visible-item count per persona, which is the number the talk track quotes.
@@ -47,12 +47,12 @@ const ISSUER_URL = 'http://localhost:7779'
 
 /** persona → the tree, as doc id → the tier served (or `true` for an untiered document). */
 const EXPECTED_TREE = {
-  'gcap-marco':   { overview: true, governance: true, icd: 'full', engine: true, sensors: true, workorder: true, bom: true, 'it-avionics': true, 'nato-paper': true },
-  'gcap-harriet': { overview: true, governance: true, icd: 'full', sensors: true, bom: true, 'uk-ew': true, 'nato-paper': true, 'custody-log': true },
-  'gcap-kenji':   { overview: true, governance: true, icd: 'extract', engine: true, workorder: true, bom: true, 'jp-range': true },
-  'gcap-priya':   { overview: true, governance: true, icd: 'extract', sensors: true, bom: true, 'nato-paper': true },
+  'gcap-marco':   { overview: true, governance: true, icd: 'full', workorder: true, bom: true, 'it-avionics': true, 'nato-paper': true },
+  'gcap-harriet': { overview: true, governance: true, icd: 'full', bom: true, 'uk-ew': true, 'nato-paper': true, 'custody-log': true },
+  'gcap-kenji':   { overview: true, governance: true, icd: 'extract', engine: true, 'mhi-coating': true, workorder: true, bom: true, 'jp-range': true },
+  'gcap-priya':   { overview: true, governance: true, icd: 'extract', sensors: true, 'bae-aperture': true, bom: true, 'nato-paper': true },
   'gcap-oliver':  { overview: true, governance: true, icd: 'extract', funding: true },
-  'gcap-giulia':  { overview: true, governance: true, icd: 'extract', export: true },
+  'gcap-giulia':  { overview: true, governance: true, icd: 'extract', export: true, 'leo-mission': true, 'leo-ew': true },
   'gcap-wren':    { overview: true, icd: 'extract', workorder: true },
   'gcap-owen':    { overview: true, workorder: true },
   'gcap-sanjay':  { overview: true, 'custody-log': true },
@@ -60,8 +60,8 @@ const EXPECTED_TREE = {
 }
 
 const EXPECTED_COUNTS = {
-  'gcap-marco': 9, 'gcap-harriet': 8, 'gcap-kenji': 7, 'gcap-priya': 6, 'gcap-oliver': 4,
-  'gcap-giulia': 4, 'gcap-wren': 3, 'gcap-owen': 2, 'gcap-sanjay': 2, 'gcap-ryan': 1,
+  'gcap-marco': 7, 'gcap-harriet': 7, 'gcap-kenji': 8, 'gcap-priya': 7, 'gcap-oliver': 4,
+  'gcap-giulia': 6, 'gcap-wren': 3, 'gcap-owen': 2, 'gcap-sanjay': 2, 'gcap-ryan': 1,
 }
 
 /** Raw per-tier decisions for the tiered document: the tier served is the more privileged one held. */
@@ -74,7 +74,7 @@ const EXPECTED_ICD_RAW = {
 const EXPECTED_DAY = {
   'owen-acquired':    { 'gcap-owen':  { lost: ['workorder'], gained: [] } },
   'wren-compromised': { 'gcap-wren':  { lost: ['icd:extract', 'workorder'], gained: [] } },
-  'priya-lapse':      { 'gcap-priya': { lost: ['sensors', 'bom', 'nato-paper'], gained: [] } },
+  'priya-lapse':      { 'gcap-priya': { lost: ['sensors', 'bae-aperture', 'bom', 'nato-paper'], gained: [] } },
   'kenji-moved':      { 'gcap-kenji': { lost: ['engine', 'jp-range'], gained: ['icd:full'] } },
 }
 
@@ -86,6 +86,10 @@ const EXPECTED_BANNERS = {
   'nato-paper':  'GCAP SECRET // REL TO NATO',
   governance:    'GCAP RESTRICTED // REL TO GCAP PARTNERS // TIER PARTNER',
   funding:       'GCAP RESTRICTED // REL TO GCAP PARTNERS // FINANCE ROLE',
+  sensors:       'GCAP SECRET // REL TO GCAP PARTNERS // WP SENSORS // BAE IP',
+  engine:        'GCAP SECRET // REL TO GCAP PARTNERS // WP PROPULSION // MHI IP',
+  'mhi-coating': 'GCAP SECRET // REL TO GCAP PARTNERS // MHI IP',
+  'leo-mission': 'GCAP RESTRICTED // REL TO GCAP PARTNERS // LEONARDO IP',
 }
 
 // ── Static ───────────────────────────────────────────────────────────────────
@@ -103,8 +107,8 @@ function staticChecks() {
     for (const fqn of u.policy) if (!seeded.has(fqn)) problems.push(`${u.key} names ${fqn}, which is not seeded`)
     if (u.policy.length > 20) problems.push(`${u.key} carries ${u.policy.length} values, over the 20-value cap`)
   }
-  if (EXPECTED_COUNTS && UNITS.length !== 15) problems.push(`expected 15 units, found ${UNITS.length}`)
-  if (DOCUMENTS.length !== 14) problems.push(`expected 14 documents, found ${DOCUMENTS.length}`)
+  if (EXPECTED_COUNTS && UNITS.length !== 19) problems.push(`expected 19 units, found ${UNITS.length}`)
+  if (DOCUMENTS.length !== 18) problems.push(`expected 18 documents, found ${DOCUMENTS.length}`)
   return problems
 }
 
@@ -222,7 +226,7 @@ if (problems.length) {
   for (const p of problems) console.error(`  ✗ ${p}`)
   process.exit(1)
 }
-console.log('Static checks passed: 10 personas, 14 documents, 15 units, every FQN seeded.\n')
+console.log('Static checks passed: 10 personas, 18 documents, 19 units, every FQN seeded.\n')
 
 const health = await fetch(`${PLATFORM_URL}/healthz`).catch(() => null)
 if (!health?.ok) {
@@ -234,7 +238,7 @@ try {
   await issuer('/restore', '*')
   const adminToken = await token('admin')
 
-  console.log('Encrypting 15 units as admin…')
+  console.log('Encrypting 19 units as admin…')
   const vault = new Map()
   for (const u of UNITS) vault.set(u.key, { unit: u, bytes: await encrypt(u, adminToken) })
 

@@ -65,6 +65,9 @@ const PLATFORM_BASE = 'http://localhost:7777'
  *   5  the SABLE page — the `sablewp`, `sablecomp` (both ALL_OF) and `sableteam` definitions and
  *      eight `sable-` identities (seven people and the enclave runner). Without the bump all eight
  *      authenticate and hold nothing, so every SABLE file is withheld from everyone.
+ *   6  GCAP company IP — the `company` definition (bae, mhi, leonardo), granted to the three company
+ *      personas (Priya, Kenji, Giulia). Without the bump an install keeps the old vocabulary, and every
+ *      policy naming `company:*` is denied to everyone, the owning company included.
  *
  * Re-seeding is additive — nothing is ever deleted. A grant that stops being correct is removed
  * from `ai-identities.js`, which stops the *token* from carrying it, and the leftover mapping goes
@@ -76,7 +79,7 @@ const PLATFORM_BASE = 'http://localhost:7777'
  * authenticate and entitled to nothing — every document withheld, with a trace that blames the
  * persona for holding no attributes rather than the seeder for never having written them.
  */
-const SEED_VERSION = '5'
+const SEED_VERSION = '6'
 
 async function rpc(token, service, method, body = {}) {
   const res = await fetch(`${PLATFORM_BASE}/${service}/${method}`, {

@@ -34,6 +34,9 @@ const NATIONAL = {
   jpn: { 'ts-sci': '極秘',           secret: '秘',          cui: '取扱注意',            unclassified: '—' },
 }
 
+/** How a company is named in an IP caveat. */
+const COMPANY_NAME = { bae: 'BAE', mhi: 'MHI', leonardo: 'LEONARDO' }
+
 const NATION_NAME = { gbr: 'UK', ita: 'ITA', jpn: 'JPN', usa: 'USA' }
 const nameOf = (n) => NATION_NAME[n] ?? n.toUpperCase()
 
@@ -76,6 +79,7 @@ export function markingOf(policy) {
     ...(get('supplytier').length === 3 ? ['ALL SUPPLY TIERS']
       : get('supplytier').length ? [`TIER ${get('supplytier').map(v => v.toUpperCase()).join('/')}`] : []),
     ...(get('role').length ? [`${get('role').map(v => v.toUpperCase()).join('/')} ROLE`] : []),
+    ...get('company').map(v => `${COMPANY_NAME[v] ?? v.toUpperCase()} IP`),
   ]
 
   if (!level) {
