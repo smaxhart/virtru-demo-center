@@ -27,7 +27,7 @@ const PAGE_LABELS = {
   '/architecture': 'Architecture',
   '/cop':          'Common Operating Picture',
   '/collaborate':  'Collaborate',
-  '/gcap':         'GCAP Advanced Collaborative Environment',
+  '/gcap':         'GCAP Advanced Collaborative Environment - Working',
   '/sable':        'SABLE · Joint Mission Engineering',
   '/ai-agent':     'AI Protection',
   '/audit':        'Audit Log',
