@@ -365,15 +365,56 @@ console.log('\nBundled inputs')
   } else ok('every extraResources input is present')
 }
 
-// 9 ── Advisory only, and deliberately so: the embedded feed token is a known, accepted risk
-//      pending the product team's fork. Flagged at every release so it stays known.
-console.log('\nAdvisory')
+// 9 ── The update-feed token. It ships inside the .app, so a bad one is a bad one on every machine that
+//      installs the build, failing silently as "no updates available" (the v1.8.x installs that went
+//      quiet with a revoked classic PAT). Checked here, before a build is spent on it:
+//        present and filled in → fine-grained, never classic → GitHub accepts it → it can read this repo's
+//        releases → it cannot write → it is not about to expire.
+//      Fatal, not advisory: a release whose installs cannot update is a release that cannot be fixed
+//      remotely. See electron/update-token.example.js for how to make one.
+console.log('\nUpdate-feed token')
 {
-  const main = readFileSync(join(ROOT, 'electron', 'main.js'), 'utf8')
-  if (/['"](ghp|gho|ghu|ghs)_[A-Za-z0-9]{20,}['"]/.test(main)) {
-    warn('the embedded update-feed token is a classic PAT (repo scope, read+write) and ships in this build')
-    note('accepted risk, not a blocker — see the deferral note before "fixing" it')
-  } else ok('no classic PAT found inline in electron/main.js')
+  const tokenPath = join(ROOT, 'electron', 'update-token.js')
+  const pkg = JSON.parse(readFileSync(PKG, 'utf8'))
+  const { owner, repo } = pkg.build.publish
+  const EXPIRY_FLOOR_DAYS = 30
+  let token = null
+  if (!existsSync(tokenPath)) {
+    fail('electron/update-token.js is missing — this build would never check for updates')
+    note('cp electron/update-token.example.js electron/update-token.js, then paste a fine-grained token')
+  } else {
+    // A plain CommonJS string export; read it as text so this script never executes the file.
+    token = (/module\.exports\s*=\s*['"]([^'"]+)['"]/.exec(readFileSync(tokenPath, 'utf8')) ?? [])[1] ?? null
+    if (!token || token.includes('REPLACE_ME')) { fail('electron/update-token.js still holds the placeholder'); token = null }
+    else if (/^(ghp|gho|ghu|ghs|ghr)_/.test(token)) {
+      fail('the feed token is a classic PAT — read-write across every private repo, and it would ship in the app')
+      token = null
+    } else if (!token.startsWith('github_pat_')) { fail('the feed token does not look like a fine-grained PAT (expected github_pat_)'); token = null }
+  }
+  if (token) {
+    const api = (path) => fetch(`https://api.github.com/repos/${owner}/${repo}${path}`, {
+      headers: { Authorization: `Bearer ${token}`, 'X-GitHub-Api-Version': '2022-11-28' },
+    }).catch(() => null)
+    const meta = await api('')
+    if (!meta) warn('could not reach GitHub to validate the feed token')
+    else if (meta.status === 401) fail('GitHub rejected the feed token (401) — expired or revoked')
+    else if (meta.status === 404) { fail(`the feed token cannot see ${owner}/${repo} (404)`); note('fine-grained tokens are per repository — check Repository access') }
+    else if (!meta.ok) fail(`GitHub returned HTTP ${meta.status} validating the feed token`)
+    else {
+      const body = await meta.json()
+      if (body.permissions?.push) fail('the feed token can write to the repo — it ships in the app, so it must be Contents: read-only')
+      else ok(`feed token reads ${owner}/${repo} and cannot write to it`)
+      const rel = await api('/releases?per_page=1')
+      if (!rel?.ok) { fail(`the feed token cannot read releases (HTTP ${rel?.status ?? '—'})`); note('add Repository permissions → Contents → Read-only') }
+      else ok('feed token reads the releases API')
+      const expiry = meta.headers.get('github-authentication-token-expiration')
+      if (expiry) {
+        const days = Math.floor((new Date(expiry) - new Date()) / 86_400_000)
+        if (days < EXPIRY_FLOOR_DAYS) fail(`the feed token expires in ${days} day(s) — builds shipped now would stop updating almost immediately`)
+        else ok(`feed token valid for ${days} more days (expires ${expiry.split(' ')[0]})`)
+      } else warn('the feed token reports no expiry — a dated one is safer')
+    }
+  }
 }
 
 // ── Verdict ───────────────────────────────────────────────────────────────────

@@ -25,19 +25,73 @@ const aiUploads    = require('./ai-uploads')
 const isDev = !app.isPackaged
 
 // ── Auto-updater ──────────────────────────────────────────────────────────────
+//
+// The repo is private, so the feed needs a token, and the token has to travel inside the
+// build: a .app launched from Finder or the Dock inherits no shell environment, so
+// process.env is empty in the only case that matters. An env-var-only design silently
+// never updates for real users. That constraint is real and is why this is embedded.
+//
+// The safety comes from the token's *scope*, not from hiding it: a fine-grained PAT,
+// Contents read-only, this repository only, with an expiry. Someone who unzips a build can
+// read the repo the build came from and nothing else.
+//
+// Until v1.7.4 this line read `process.env.GH_TOKEN || 'ghp_…'` with a classic PAT inline.
+// Classic `repo` scope is read-write across every private repository on the account, so every
+// .dmg handed to a seller also handed out push access to all ten of them — including this one,
+// which auto-updates onto every seller's machine. isClassicPat() now refuses them outright
+// rather than trusting this comment to be read.
 
 let pendingUpdateZip = null
+
+const isClassicPat = t => /^(ghp|gho|ghu|ghs|ghr)_/.test(t)
+
+/**
+ * Resolves the feed token: environment first, then the packed file, skipping classic PATs.
+ *
+ * The file is an untracked `electron/update-token.js`. electron-builder packs from the
+ * filesystem, not from git, so the token still ships in the .app — but it never enters git
+ * history, never trips secret scanning, and rotating it is a file edit rather than a commit.
+ *
+ * GH_TOKEN is checked first for terminal-launched builds, but `gh auth token` returns a
+ * classic `gho_` token, so a classic value there is skipped in favour of the packed one
+ * rather than disabling updates outright.
+ */
+function feedToken() {
+  const candidates = []
+  if (process.env.GH_TOKEN) candidates.push(['GH_TOKEN', process.env.GH_TOKEN.trim()])
+  try {
+    const t = require('./update-token.js')
+    if (typeof t === 'string' && t.trim()) candidates.push(['update-token.js', t.trim()])
+  } catch {
+    // untracked and absent — expected on a fresh clone
+  }
+
+  for (const [source, value] of candidates) {
+    if (isClassicPat(value)) {
+      log.warn(`[updater] Ignoring the classic PAT from ${source} — see the note in main.js`)
+      continue
+    }
+    log.info(`[updater] Feed token from ${source}`)
+    return value
+  }
+  return null
+}
 
 function setupUpdater() {
   if (isDev) return  // don't check for updates in dev
 
-  // Private repo — token required for releases API (GH_TOKEN not available outside terminal)
+  const token = feedToken()
+  if (!token) {
+    log.info('[updater] No usable feed token — updates disabled')
+    return
+  }
+
   autoUpdater.setFeedURL({
     provider: 'github',
     owner: 'smaxhart',
     repo: 'virtru-demo-center',
     private: true,
-    token: process.env.GH_TOKEN || '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',
+    token,
   })
 
   autoUpdater.autoDownload = true
@@ -83,6 +137,11 @@ function setupUpdater() {
 
   autoUpdater.on('error', err => {
     log.error('[updater] Error:', err.message)
+    // A fine-grained PAT expires, and when it does every installed copy starts 401ing with
+    // nothing to say why. Name it in the log so the next person does not go hunting.
+    if (/401|403|Bad credentials/i.test(err.message)) {
+      log.error('[updater] Feed token looks expired or revoked — rotate it and cut a new release')
+    }
     if (mainWindow) mainWindow.webContents.send('update-status', { state: 'error', message: err.message })
   })
 }

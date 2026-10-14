@@ -181,11 +181,18 @@ node -e 'const fs=require("fs"),p=process.argv[1],fd=fs.openSync(p,"r"),b=Buffer
 Nothing under `dist/mac*` should appear in that listing. The largest legitimate entry is
 `dist/cctv` at ~83 MB.
 
-One check is advisory and never blocks: the embedded update-feed token is a classic PAT, which is a
-**known and accepted** risk pending the product team taking this codebase for a PEP. It is surfaced
-at every release so it stays known. Don't "fix" it without reading why v1.7.4 was reverted — the
-token genuinely has to ship inside the build, because a `.app` launched from Finder inherits no
-shell environment and `process.env.GH_TOKEN` is empty in the only case that matters.
+One check guards the update path: **the update-feed token**. It ships inside the `.app` (a build launched
+from Finder inherits no shell environment, so an env-var-only design never updates for real users), which
+makes a bad token a bad token on every installed copy. `release.mjs` therefore refuses to build unless
+`electron/update-token.js` holds a **fine-grained** PAT (never a classic `ghp_`) that GitHub accepts, that
+can read this repo's releases, that **cannot write**, and that has at least 30 days left. The file is
+untracked on purpose: electron-builder packs from the filesystem, so it still ships in `app.asar`, but it
+never enters git history. Set it up from `electron/update-token.example.js`.
+
+When the token is revoked or expires, every installed copy starts failing update checks with `401` and the
+app logs `Feed token looks expired or revoked`. Installs that carry a dead token **cannot be fixed by a
+release** — they have no way to fetch it — so each needs a one-time manual reinstall. Rotate the token
+before it expires and put the expiry date in a calendar.
 
 ## Not yet automated
 
