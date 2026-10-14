@@ -23,84 +23,11 @@ const FLOW = [
   { title: 'Grant or deny', body: 'If the attributes match, KAS unwraps the key and the file opens. If they do not, or access was revoked, it stays ciphertext.' },
 ]
 
-// ── The briefing ─────────────────────────────────────────────────────────────
-// Illustrative only: it evaluates the active persona's attributes in the browser. The live demos
-// are where a denial is a real KAS decision, and the caption under the sheet says so.
-
-const RANK = { unclassified: 0, cui: 1, secret: 2, 'ts-sci': 3 }
-
-const BRIEF = [
-  { mark: '(U)',        req: {},                                  text: 'Storm track, port closures and public shelter locations are published by the response office.' },
-  { mark: '(S)',        req: { clearance: 'secret' },             text: 'Norfolk EOC stages fourteen rotary-wing assets for medical evacuation across the Carolinas.' },
-  { mark: '(S//REL FVEY)', req: { clearance: 'secret', relto: 'fvey' }, text: 'Five Eyes partners share maritime surveillance of the approaches to Wilmington.' },
-  { mark: '(S//REL NATO)', req: { clearance: 'secret', relto: 'nato' }, text: 'Allied liaison cells receive the coalition logistics plan and the contractor statement of work.' },
-  { mark: '(TS//SCI)',  req: { clearance: 'ts-sci', mission: 'intel' }, text: 'Airborne collection over the Groton command centre supports the intelligence summary.' },
-]
-
-const BANNERS = [
-  { rank: 3, text: 'TOP SECRET//SCI', bg: '#f5a800', fg: '#0a1a33' },
-  { rank: 2, text: 'SECRET',          bg: '#c8102e', fg: '#ffffff' },
-  { rank: 0, text: 'UNCLASSIFIED',    bg: '#007a33', fg: '#ffffff' },
-]
-
-const clearanceRank = (attrs) =>
-  Math.max(0, ...attrs.filter(a => a.startsWith('clearance:')).map(a => RANK[a.split(':')[1]] ?? 0))
-
-function canOpen(req, attrs, rank) {
-  if (req.clearance && rank < RANK[req.clearance]) return false
-  if (req.relto && !attrs.includes(`relto:${req.relto}`)) return false
-  if (req.mission && !attrs.includes(`mission:${req.mission}`)) return false
-  return true
-}
-
-// Redacted passages carry same-length filler, not the real sentence, so the text is never in the DOM.
-const filler = (s) => s.replace(/[^\s]/g, 'x')
-
-function Briefing({ persona }) {
-  const attrs = persona.attributes
-  const rank = clearanceRank(attrs)
-  const open = BRIEF.map(l => canOpen(l.req, attrs, rank))
-  const banner = BANNERS.find(b => b.rank <= rank) ?? BANNERS[BANNERS.length - 1]
-  const openCount = open.filter(Boolean).length
-
-  return (
-    <div>
-      <div className="brief-sheet">
-        <div className="brief-banner" style={{ background: banner.bg, color: banner.fg }}>{banner.text}</div>
-        <div style={{ padding: '22px 28px 26px' }}>
-          <div style={{ fontSize: 12.5, color: '#5b6b82', marginBottom: 4 }}>Coalition response brief</div>
-          <div style={{ fontSize: 21, fontWeight: 700, letterSpacing: '-0.02em', color: '#0a1a33', marginBottom: 18 }}>
-            Operation COASTAL SURGE
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
-            {BRIEF.map((l, i) => (
-              <p key={i} className="brief-line">
-                <span className="brief-mark">{l.mark}</span>
-                {open[i]
-                  ? <span key="open" className="brief-open">{l.text}</span>
-                  : <span key="shut" className="brief-shut" role="img" aria-label="Redacted passage">{filler(l.text)}</span>}
-              </p>
-            ))}
-          </div>
-        </div>
-        <div className="brief-banner" style={{ background: banner.bg, color: banner.fg }}>{banner.text}</div>
-      </div>
-
-      <p style={{ margin: '14px 0 0', fontSize: 13, color: 'rgba(214,226,244,0.85)' }}>
-        {openCount} of {BRIEF.length} passages are open to {persona.id === 'generic' ? 'a generic user' : persona.name}.
-      </p>
-      <p style={{ margin: '3px 0 0', fontSize: 12, color: 'rgba(146,192,233,0.6)' }}>
-        This is an illustration. In the live demos, every denial is a real key-server refusal.
-      </p>
-    </div>
-  )
-}
-
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function HomePage() {
   const navigate = useNavigate()
-  const { platformReady, platformError, activePersona } = useDemo()
+  const { platformReady, platformError } = useDemo()
   const hood = platformReady === true
     ? [...UNDER_THE_HOOD, { to: '/platform', icon: 'server', label: 'Platform' }]
     : UNDER_THE_HOOD
@@ -108,16 +35,24 @@ export default function HomePage() {
   return (
     <div style={{ overflowY: 'auto', height: '100%' }}>
 
-      <section style={{ background: 'var(--c-ink)', color: '#fff' }}>
+      <section style={{ background: 'var(--c-ink)', color: '#fff', position: 'relative', overflow: 'hidden' }}>
+        {/* The logomark, overblown, as it was before the October redesign. Behind everything, never in the way. */}
+        <img
+          src="./virtru-logomark.svg"
+          alt=""
+          aria-hidden="true"
+          style={{ position: 'absolute', top: -70, right: -90, width: 580, height: 580, opacity: 0.12, pointerEvents: 'none', userSelect: 'none', zIndex: 0 }}
+        />
         <div className="home-hero">
           <div>
+            <img src="./virtru-logomark.svg" alt="Virtru" width={52} height={52} style={{ display: 'block', marginBottom: 22 }} />
             <h2 style={{ margin: 0, fontSize: 34, fontWeight: 720, lineHeight: 1.1, letterSpacing: '-0.03em', color: '#fff' }}>
               Data that enforces its own rules
             </h2>
 
             <p style={{ margin: '14px 0 0', fontSize: 15.5, lineHeight: 1.6, color: 'rgba(214,226,244,0.8)', maxWidth: '52ch' }}>
               The Data Security Platform binds policy to the data and has a key server enforce it wherever the data goes.
-              Each demo below is a capability that unlocks for a customer. Pick someone in the top bar to see the idea on the sheet.
+              Each demo below is a capability that unlocks for a customer.
             </p>
 
             {platformReady === false && platformError && (
@@ -164,7 +99,6 @@ export default function HomePage() {
             </div>
           </div>
 
-          <Briefing persona={activePersona} />
         </div>
       </section>
 

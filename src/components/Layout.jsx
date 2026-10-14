@@ -20,7 +20,7 @@ const NAV_ITEMS = [
 ]
 
 // Pages whose content changes with the active persona. The switcher only shows on these.
-const PERSONA_ROUTES = new Set(['/home', '/architecture', '/cop', '/collaborate', '/audit'])
+const PERSONA_ROUTES = new Set(['/architecture', '/cop', '/collaborate', '/audit'])
 
 const PAGE_LABELS = {
   '/home':         'Home',

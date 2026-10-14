@@ -437,7 +437,8 @@ textarea.input { height: auto; padding: 10px 12px; line-height: 1.5; }
 .home-hero {
   max-width: 1240px; margin: 0 auto;
   padding: 40px 40px 44px;
-  display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr); gap: 48px; align-items: start;
+  position: relative; z-index: 1;
+  display: grid; grid-template-columns: minmax(0, 680px); gap: 48px; align-items: start;
 }
 @media (max-width: 1100px) {
   .home-hero { grid-template-columns: minmax(0, 1fr); gap: 36px; }
@@ -471,24 +472,6 @@ textarea.input { height: auto; padding: 10px 12px; line-height: 1.5; }
 .steps li { border-top: 2px solid var(--c-border-2); padding-top: 14px; }
 .steps li .flow-n { margin-bottom: 10px; }
 @media (max-width: 1100px) { .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-
-/* The briefing sheet: a document on the dark hero. */
-.brief-sheet {
-  background: #fdfdfb;
-  border-radius: 4px;
-  overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.3), 0 24px 48px -16px rgba(0,0,0,0.55);
-}
-.brief-banner { text-align: center; padding: 3px 0; font-size: 11.5px; font-weight: 700; letter-spacing: 0.12em; transition: background-color .25s, color .25s; }
-.brief-line { margin: 0; font-size: 14.5px; line-height: 1.55; color: #1b2a41; }
-.brief-mark { margin-right: 8px; font-family: var(--font-mono); font-size: 11.5px; font-weight: 600; color: #5b6b82; white-space: nowrap; }
-.brief-shut {
-  background: var(--c-ink); color: transparent; border-radius: 2px;
-  box-decoration-break: clone; -webkit-box-decoration-break: clone;
-  user-select: none; -webkit-user-select: none;
-}
-.brief-open { animation: unseal .32s ease-out; }
-@keyframes unseal { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
 
 .demo-row {
   display: flex; align-items: center; gap: 16px;
