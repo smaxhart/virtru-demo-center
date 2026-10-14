@@ -392,8 +392,9 @@ console.log('\nUpdate-feed token')
     } else if (!token.startsWith('github_pat_')) { fail('the feed token does not look like a fine-grained PAT (expected github_pat_)'); token = null }
   }
   if (token) {
-    const api = (path) => fetch(`https://api.github.com/repos/${owner}/${repo}${path}`, {
-      headers: { Authorization: `Bearer ${token}`, 'X-GitHub-Api-Version': '2022-11-28' },
+    const api = (path, init = {}) => fetch(`https://api.github.com/repos/${owner}/${repo}${path}`, {
+      ...init,
+      headers: { Authorization: `Bearer ${token}`, 'X-GitHub-Api-Version': '2022-11-28', ...init.headers },
     }).catch(() => null)
     const meta = await api('')
     if (!meta) warn('could not reach GitHub to validate the feed token')
@@ -401,9 +402,18 @@ console.log('\nUpdate-feed token')
     else if (meta.status === 404) { fail(`the feed token cannot see ${owner}/${repo} (404)`); note('fine-grained tokens are per repository — check Repository access') }
     else if (!meta.ok) fail(`GitHub returned HTTP ${meta.status} validating the feed token`)
     else {
-      const body = await meta.json()
-      if (body.permissions?.push) fail('the feed token can write to the repo — it ships in the app, so it must be Contents: read-only')
-      else ok(`feed token reads ${owner}/${repo} and cannot write to it`)
+      // Not `permissions.push` on the repo: for a fine-grained token that field reports the *user's* role
+      // (admin, for the owner), whatever the token is limited to, and would fail every read-only token.
+      // Ask the question directly instead. An empty-body PUT to the contents API cannot create anything,
+      // and GitHub checks the token's permission before it validates the body: 403 "Resource not
+      // accessible by personal access token" means no Contents write, 422 means write is allowed.
+      const probe = await api('/contents/.feed-token-write-probe', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: '{}',
+      })
+      if (!probe) warn('could not probe the feed token for write access')
+      else if (probe.status === 403) ok(`feed token reads ${owner}/${repo} and cannot write to it`)
+      else if (probe.status === 422) fail('the feed token can write to the repo — it ships in the app, so it must be Contents: read-only')
+      else warn(`unexpected HTTP ${probe.status} probing the feed token for write access`)
       const rel = await api('/releases?per_page=1')
       if (!rel?.ok) { fail(`the feed token cannot read releases (HTTP ${rel?.status ?? '—'})`); note('add Repository permissions → Contents → Read-only') }
       else ok('feed token reads the releases API')
