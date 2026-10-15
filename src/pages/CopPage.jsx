@@ -28,6 +28,13 @@ const SEEDED_KEY  = 'cop_seeded_v12'
 const MAP_CENTER = [38, -72]
 const MAP_ZOOM   = 5
 
+// CARTO's free basemaps require a key on every request; without one each tile is replaced by an
+// "API KEY REQUIRED" watermark. The key is inlined from VITE_CARTO_KEY at build time (see .env.local.example).
+const CARTO_KEY = import.meta.env.VITE_CARTO_KEY
+const BASEMAP_URL = `https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png?key=${CARTO_KEY ?? ''}`
+// CARTO's terms require this credit on every map. Bottom-left: the legend covers the bottom-right.
+const BASEMAP_CREDIT = '© OpenStreetMap contributors, © <a href="https://carto.com/attributions/" target="_blank" rel="noreferrer">CARTO</a>'
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function loadObjects() {
@@ -642,9 +649,9 @@ export default function CopPage() {
           center: MAP_CENTER, zoom: MAP_ZOOM,
           zoomControl: true, attributionControl: false,
         })
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-          subdomains: 'abcd', maxZoom: 19,
-        }).addTo(map)
+        if (!CARTO_KEY) console.warn('[cop] VITE_CARTO_KEY was not set at build time: the basemap will show CARTO\'s "API KEY REQUIRED" watermark')
+        L.control.attribution({ position: 'bottomleft', prefix: false }).addTo(map)
+        L.tileLayer(BASEMAP_URL, { maxZoom: 19, attribution: BASEMAP_CREDIT }).addTo(map)
         mapInstanceRef.current = map
         setMapLoaded(true)
       })

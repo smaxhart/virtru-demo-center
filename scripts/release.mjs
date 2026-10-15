@@ -43,6 +43,7 @@
  */
 
 import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
@@ -424,6 +425,35 @@ console.log('\nUpdate-feed token')
         else ok(`feed token valid for ${days} more days (expires ${expiry.split(' ')[0]})`)
       } else warn('the feed token reports no expiry — a dated one is safer')
     }
+  }
+}
+
+// 10 ── The COP basemap key. CARTO serves a placeholder tile ("API KEY REQUIRED") with HTTP 200 to any
+//       request without a valid key, so a status check proves nothing: a build with no key, or a revoked
+//       one, ships a map covered in watermarks. Compare a keyed tile with an unkeyed one instead; if the
+//       bytes are identical the key was not honoured. Vite inlines VITE_CARTO_KEY from .env.local at build.
+console.log('\nBasemap key')
+{
+  const envPath = join(ROOT, '.env.local')
+  let key = null
+  if (!existsSync(envPath)) {
+    fail('.env.local is missing — the COP map would ship covered in "API KEY REQUIRED" watermarks')
+    note('cp .env.local.example .env.local, then set VITE_CARTO_KEY (free: https://carto.com/basemaps/apikey/)')
+  } else {
+    key = (/^VITE_CARTO_KEY=(.+)$/m.exec(readFileSync(envPath, 'utf8')) ?? [])[1]?.trim() || null
+    if (!key) fail('VITE_CARTO_KEY is empty in .env.local')
+  }
+  if (key) {
+    const tile = async (q) => {
+      try {
+        const r = await fetch(`https://basemaps.cartocdn.com/rastertiles/dark_all/5/9/12.png${q}`)
+        return r.ok ? createHash('sha256').update(Buffer.from(await r.arrayBuffer())).digest('hex') : null
+      } catch { return null }
+    }
+    const [keyed, bare] = await Promise.all([tile(`?key=${encodeURIComponent(key)}`), tile('')])
+    if (!keyed || !bare) warn('could not reach CARTO to validate the basemap key')
+    else if (keyed === bare) fail('CARTO served the placeholder tile for this key — it is wrong, revoked, or over quota')
+    else ok('CARTO honours the basemap key (a real tile, not the watermark)')
   }
 }
 

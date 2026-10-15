@@ -194,6 +194,14 @@ app logs `Feed token looks expired or revoked`. Installs that carry a dead token
 release** — they have no way to fetch it — so each needs a one-time manual reinstall. Rotate the token
 before it expires and put the expiry date in a calendar.
 
+A second input is baked in the same way: **the CARTO basemap key** that the COP map needs. CARTO now
+returns a placeholder tile ("API KEY REQUIRED", HTTP 200) to any request without a valid key, so a missing
+or revoked key does not fail loudly, it ships a map covered in watermarks. The key lives in an untracked
+`.env.local` (`VITE_CARTO_KEY=…`, see `.env.local.example`) that Vite inlines at build time, and
+`release.mjs` refuses to build unless CARTO serves a different tile for that key than for none. Keys are
+free (https://carto.com/basemaps/apikey/); the credit "© OpenStreetMap contributors, © CARTO" must stay
+visible on the map.
+
 ## Not yet automated
 
 - **Branch protection.** Unavailable — private repo on the free plan. The gates above live in

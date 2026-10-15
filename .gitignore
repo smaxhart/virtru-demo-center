@@ -10,3 +10,7 @@ out/
 # filesystem, not from git — but is kept out of history so it never lands in a clone or
 # trips secret scanning. See electron/update-token.example.js.
 electron/update-token.js
+
+# The CARTO basemap key (VITE_CARTO_KEY). Vite inlines it into the renderer bundle at build time, so it
+# ships inside the .app, but it stays out of git. See .env.local.example.
+.env.local
